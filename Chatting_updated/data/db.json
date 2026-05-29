@@ -1,0 +1,56 @@
+{
+  "rooms": {
+    "general": {
+      "messages": [],
+      "meta": {
+        "isPrivate": false,
+        "ownerId": null,
+        "admins": [],
+        "members": [],
+        "passkey": ""
+      }
+    },
+    "sa": {
+      "messages": [],
+      "meta": {
+        "isPrivate": true,
+        "ownerId": "9b59c9f5-4919-457b-a784-e855d770551d",
+        "admins": [],
+        "members": [],
+        "passkey": ""
+      }
+    }
+  },
+  "users": {
+    "a5cf216b-4795-468b-88bc-ca0251ff654c": {
+      "clientId": "a5cf216b-4795-468b-88bc-ca0251ff654c",
+      "username": "danny",
+      "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=danny",
+      "lastSeen": 1775911767293
+    },
+    "8835fdd1-f5d3-4a80-b519-befc5914fdc2": {
+      "clientId": "8835fdd1-f5d3-4a80-b519-befc5914fdc2",
+      "username": "danny",
+      "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=danny",
+      "lastSeen": 1776077492265
+    },
+    "e1e9077a-2f8b-4451-825e-aa9fac0a962e": {
+      "clientId": "e1e9077a-2f8b-4451-825e-aa9fac0a962e",
+      "username": "Sammy",
+      "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=Sammy",
+      "lastSeen": 1776170602601
+    },
+    "9b59c9f5-4919-457b-a784-e855d770551d": {
+      "clientId": "9b59c9f5-4919-457b-a784-e855d770551d",
+      "username": "sma",
+      "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=sma",
+      "lastSeen": 1776203014821
+    },
+    "5b9fe7ab-400a-40bc-97e8-124b297f7bfa": {
+      "clientId": "5b9fe7ab-400a-40bc-97e8-124b297f7bfa",
+      "username": "Duke",
+      "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=Duke",
+      "lastSeen": 1776759423901
+    }
+  }
+}

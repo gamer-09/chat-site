@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0f172a">
+  <title>ptr_29 Chat - Mobile Test</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #0b1220;
+      --sidebar: #0b1220;
+      --panel2: #111827;
+      --border: #1f2937;
+      --border-light: #334155;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent2: #7c3aed;
+      --text: #e2e8f0;
+      --text-muted: #9ca3af;
+      --text-dim: #7a8594;
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+      --success: #16a34a;
+      --warning: #f59e0b;
+    }
+    
+    * { box-sizing: border-box; }
+    
+    html, body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      height: 100%;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      line-height: 1.4;
+      font-size: 14px;
+      touch-action: manipulation;
+    }
+    
+    header {
+      padding: 10px 12px;
+      background: linear-gradient(135deg, var(--panel2), var(--panel) 60%, var(--bg));
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+      min-height: 48px;
+    }
+    
+    header h1 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    
+    header .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    main {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      height: calc(100% - 48px);
+    }
+    
+    #sidebar {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      border: none;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: var(--panel);
+    }
+    
+    body.mobile-chat-active #sidebar { display: none; }
+    body.mobile-chat-active #chat { display: flex; }
+    
+    #rooms-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel2);
+    }
+    
+    #rooms-header h2 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    #room-list {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 6px;
+    }
+    
+    .room {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      margin-bottom: 4px;
+      border: 1px solid transparent;
+    }
+    
+    .room:hover, .room:active {
+      background: rgba(255,255,255,0.05);
+      border-color: var(--border);
+    }
+    
+    .room.active {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    
+    .room-name { flex: 1; font-weight: 500; font-size: 15px; }
+    .room-icon { font-size: 18px; }
+    
+    #join-by-passkey {
+      padding: 10px 12px;
+      gap: 6px;
+      border-top: 1px solid var(--border);
+      background: var(--panel2);
+      display: flex;
+      align-items: center;
+    }
+    
+    #user-section {
+      padding: 12px 14px;
+      border-top: 1px solid var(--border);
+      background: var(--panel2);
+    }
+    
+    #user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    
+    #user-avatar-preview {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      object-fit: cover;
+      background: var(--panel);
+    }
+    
+    #user-info { flex: 1; min-width: 0; }
+    #user-info .username { font-weight: 600; font-size: 14px; }
+    #user-info .client-id { font-size: 10px; color: var(--text-dim); font-family: monospace; }
+    
+    .user-actions { display: flex; gap: 6px; }
+    .user-actions button { padding: 8px 12px; font-size: 13px; }
+    
+    #chat {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      flex-shrink: 0;
+      position: relative;
+    }
+    
+    body.mobile-chat-active #chat {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    
+    #room-bar {
+      padding: 10px 12px;
+      gap: 8px;
+      flex-shrink: 0;
+      flex-wrap: nowrap;
+      min-height: 52px;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel2);
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    #room-info {
+      gap: 6px;
+      min-width: 0;
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+    }
+    
+    #room-name-display {
+      font-size: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 600;
+    }
+    
+    .room-tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--border);
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    
+    #mobile-back-btn {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      background: rgba(37,99,235,0.15);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 12px;
+      flex-shrink: 0;
+      cursor: pointer;
+      white-space: nowrap;
+      border-radius: 8px;
+    }
+    
+    #mobile-back-btn:hover { background: rgba(37,99,235,0.25); }
+    
+    /* Hide text labels from room bar buttons */
+    #room-bar button span { display: none; }
+    #room-bar button {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      min-width: 40px;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #room-info-banner {
+      padding: 6px 10px;
+      font-size: 0.72rem;
+      gap: 6px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      flex-shrink: 0;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      color: var(--text-muted);
+    }
+    
+    .banner-view-btn {
+      padding: 2px 7px;
+      font-size: 0.7rem;
+      flex-shrink: 0;
+      margin-left: auto;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--accent);
+    }
+    
+    #typing {
+      min-height: 18px;
+      max-height: 24px;
+      padding: 2px 12px;
+      font-size: 12px;
+      flex-shrink: 0;
+      color: var(--accent);
+      font-style: italic;
+    }
+    
+    #messages {
+      flex: 1;
+      padding: 10px;
+      gap: 8px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      min-height: 0;
+      max-height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    #messages:empty::after {
+      content: "No messages yet. Start the conversation!";
+      display: block;
+      text-align: center;
+      color: var(--text-dim);
+      font-style: italic;
+      padding: 40px 20px;
+      opacity: 0.6;
+    }
+    
+    .msg {
+      max-width: 85%;
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      align-self: flex-start;
+    }
+    
+    .msg.me {
+      align-self: flex-end;
+      background: linear-gradient(135deg, rgba(37,99,235,0.22), rgba(124,58,237,0.18));
+      border-color: var(--border-light);
+    }
+    
+    .meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    
+    .meta .avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    
+    .meta .name { font-weight: 600; font-size: 13px; }
+    .meta .time { font-size: 11px; color: var(--text-dim); }
+    
+    .body { line-height: 1.5; font-size: 14px; }
+    
+    #input-area {
+      padding: 8px 10px;
+      padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
+      flex-shrink: 0;
+      border-top: 1px solid var(--border);
+      background: var(--panel2);
+      position: sticky;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+    }
+    
+    body.mobile-chat-active #input-area {
+      position: sticky;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+    
+    #chat-form {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    #reply-preview-bar {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      background: rgba(37,99,235,0.1);
+    }
+    
+    #reply-preview-bar .label { color: var(--accent); font-weight: 500; }
+    #reply-preview-bar .close-btn {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0 4px;
+    }
+    
+    #text {
+      flex: 1;
+      min-width: 0;
+      font-size: 16px;
+      padding: 12px 16px;
+      border-radius: 24px;
+      touch-action: manipulation;
+      -webkit-appearance: none;
+      appearance: none;
+      border: 1px solid var(--border-light);
+      background: var(--bg);
+      color: var(--text);
+    }
+    
+    #text:focus {
+      border-color: var(--accent);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.25);
+    }
+    
+    #username, #avatar { display: none; }
+    
+    #image-btn {
+      padding: 12px;
+      border-radius: 50%;
+      aspect-ratio: 1;
+      flex-shrink: 0;
+      font-size: 18px;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--border);
+      color: var(--text);
+      border: none;
+      cursor: pointer;
+    }
+    
+    #send-btn {
+      padding: 12px 16px;
+      border-radius: 50%;
+      aspect-ratio: 1;
+      flex-shrink: 0;
+      font-size: 18px;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent);
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    
+    #send-btn:hover { background: var(--accent-hover); }
+    #send-btn .send-label { display: none; }
+    #send-btn .send-icon { display: inline; }
+    
+    button {
+      font: inherit;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+    
+    button.secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    
+    button.secondary:hover { background: var(--border-light); }
+    
+    input, select {
+      font: inherit;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      padding: 10px 14px;
+      font-size: 14px;
+    }
+    
+    input:focus, select:focus {
+      border-color: var(--accent);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.25);
+    }
+    
+    /* Hide non-mobile elements */
+    #online-panel { display: none !important; }
+    
+    /* Mobile header hide when in chat */
+    body.mobile-chat-active header {
+      display: none;
+    }
+    
+    body.mobile-chat-active main {
+      height: 100%;
+    }
+    
+    /* Show back button in chat mode */
+    body.mobile-chat-active #mobile-back-btn {
+      display: flex !important;
+    }
+    
+    /* Test controls */
+    .test-controls {
+      position: fixed;
+      bottom: 80px;
+      right: 10px;
+      z-index: 1000;
+      display: flex;
+      gap: 8px;
+    }
+    
+    .test-btn {
+      padding: 8px 12px;
+      font-size: 12px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    
+    @media (min-width: 641px) {
+      .test-controls { display: none; }
+    }
+  </style>
+</head>
+<body class="mobile-chat-active">
+  <header>
+    <h1>💬 ptr_29 Chat</h1>
+    <div class="header-actions">
+      <button class="secondary">❓</button>
+      <button class="secondary">🌙</button>
+    </div>
+  </header>
+  
+  <main>
+    <aside id="sidebar">
+      <div id="rooms-header">
+        <h2>Rooms</h2>
+        <div style="display:flex; gap:6px">
+          <button class="secondary" title="Create room">＋</button>
+          <button class="secondary" title="Refresh">↻</button>
+        </div>
+      </div>
+      
+      <div id="room-list">
+        <div class="room active">
+          <span class="room-icon">#</span>
+          <span class="room-name">general</span>
+        </div>
+        <div class="room">
+          <span class="room-icon">🔒</span>
+          <span class="room-name">private-room</span>
+        </div>
+        <div class="room">
+          <span class="room-icon">#</span>
+          <span class="room-name">random</span>
+        </div>
+      </div>
+      
+      <div id="join-by-passkey">
+        <input type="text" placeholder="Enter passkey..." style="flex:1">
+        <button class="secondary">Join</button>
+      </div>
+      
+      <div id="user-section">
+        <div id="user-profile">
+          <img id="user-avatar-preview" src="https://api.dicebear.com/7.x/thumbs/svg?seed=test" alt="">
+          <div id="user-info">
+            <div class="username">TestUser</div>
+            <div class="client-id">ID: abc123...</div>
+          </div>
+        </div>
+        <div class="user-actions">
+          <button class="secondary">Edit Profile</button>
+          <button class="danger">Delete</button>
+        </div>
+      </div>
+    </aside>
+    
+    <section id="chat">
+      <div id="room-bar">
+        <button id="mobile-back-btn" onclick="toggleChat()">← Rooms</button>
+        <div id="room-info">
+          <span id="room-name-display">#general</span>
+          <span class="room-tag">Public</span>
+        </div>
+        <div style="display:flex; gap:8px">
+          <button class="secondary">⚙️ <span>Settings</span></button>
+          <button class="secondary">🗑️ <span>Clear</span></button>
+        </div>
+      </div>
+      
+      <div id="room-info-banner">
+        <span>👑 <strong>Owner:</strong> None</span>
+        <span>·</span>
+        <span>👥 <strong>Users:</strong> 1</span>
+        <span>·</span>
+        <span>🛡 <strong>Admins:</strong> 0</span>
+        <button class="banner-view-btn">View Info</button>
+      </div>
+      
+      <div id="typing">Someone is typing...</div>
+      
+      <div id="messages">
+        <div class="msg">
+          <div class="meta">
+            <img class="avatar" src="https://api.dicebear.com/7.x/thumbs/svg?seed=user1" alt="">
+            <span class="name">Alice</span>
+            <span class="time">10:42 AM</span>
+          </div>
+          <div class="body">Hey everyone! Welcome to the chat.</div>
+        </div>
+        
+        <div class="msg me">
+          <div class="meta">
+            <img class="avatar" src="https://api.dicebear.com/7.x/thumbs/svg?seed=test" alt="">
+            <span class="name">You</span>
+            <span class="time">10:43 AM</span>
+          </div>
+          <div class="body">Thanks! This looks great.</div>
+        </div>
+      </div>
+      
+      <div id="input-area">
+        <div id="reply-preview-bar" style="display:flex">
+          <span class="label">↩️ Replying to</span>
+          <span class="who">Alice</span>
+          <span class="excerpt">Hey everyone!...</span>
+          <button type="button" class="close-btn" onclick="closeReply()">×</button>
+        </div>
+        <form id="chat-form" autocomplete="off" onsubmit="return sendMessage(event)">
+          <input id="username" type="text" placeholder="Your username" required>
+          <input id="avatar" type="url" placeholder="Avatar URL" style="display:none">
+          <input id="text" type="text" placeholder="Type a message..." required autocomplete="off">
+          <button type="button" id="image-btn" title="Send image">📷</button>
+          <button type="submit" id="send-btn" title="Send message">
+            <span class="send-label">Send</span>
+            <span class="send-icon">➤</span>
+          </button>
+        </form>
+      </div>
+    </section>
+  </main>
+  
+  <div class="test-controls">
+    <button class="test-btn" onclick="toggleChat()">Toggle Rooms/Chat</button>
+    <button class="test-btn" onclick="clearMessages()">Clear Messages</button>
+    <button class="test-btn" onclick="addTestMsg()">Add Test Message</button>
+  </div>
+  
+  <script>
+    // Toggle between rooms list and chat
+    function toggleChat() {
+      document.body.classList.toggle('mobile-chat-active');
+    }
+    
+    // Close reply preview
+    function closeReply() {
+      document.getElementById('reply-preview-bar').style.display = 'none';
+    }
+    
+    // Send message
+    function sendMessage(e) {
+      e.preventDefault();
+      const input = document.getElementById('text');
+      const text = input.value.trim();
+      if (!text) return;
+      
+      const messages = document.getElementById('messages');
+      const msg = document.createElement('div');
+      msg.className = 'msg me';
+      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      msg.innerHTML = `
+        <div class="meta">
+          <img class="avatar" src="https://api.dicebear.com/7.x/thumbs/svg?seed=test" alt="">
+          <span class="name">You</span>
+          <span class="time">${now}</span>
+        </div>
+        <div class="body">${text}</div>
+      `;
+      messages.appendChild(msg);
+      messages.scrollTop = messages.scrollHeight;
+      input.value = '';
+      input.focus();
+    }
+    
+    // Clear messages
+    function clearMessages() {
+      document.getElementById('messages').innerHTML = '';
+    }
+    
+    // Add test message from other user
+    function addTestMsg() {
+      const messages = document.getElementById('messages');
+      const msg = document.createElement('div');
+      msg.className = 'msg';
+      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      msg.innerHTML = `
+        <div class="meta">
+          <img class="avatar" src="https://api.dicebear.com/7.x/thumbs/svg?seed=other" alt="">
+          <span class="name">Bob</span>
+          <span class="time">${now}</span>
+        </div>
+        <div class="body">This is a test message!</div>
+      `;
+      messages.appendChild(msg);
+      messages.scrollTop = messages.scrollHeight;
+    }
+    
+    // Mobile keyboard handling
+    const input = document.getElementById('text');
+    const messages = document.getElementById('messages');
+    
+    input.addEventListener('focus', () => {
+      setTimeout(() => {
+        messages.scrollTop = messages.scrollHeight;
+      }, 300);
+    });
+    
+    // Visual Viewport API
+    if (window.visualViewport) {
+      const inputArea = document.getElementById('input-area');
+      window.visualViewport.addEventListener('resize', function() {
+        const vv = window.visualViewport;
+        if (window.innerHeight - vv.height > 100) {
+          // Keyboard open
+          inputArea.style.position = 'fixed';
+          inputArea.style.bottom = '0';
+          inputArea.style.left = '0';
+          inputArea.style.right = '0';
+          setTimeout(() => {
+            messages.scrollTop = messages.scrollHeight;
+          }, 100);
+        } else {
+          inputArea.style.position = '';
+          inputArea.style.bottom = '';
+          inputArea.style.left = '';
+          inputArea.style.right = '';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

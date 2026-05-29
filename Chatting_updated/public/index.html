@@ -1,0 +1,1751 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0f172a">
+  <title>ptr_29 Chat</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #0b1220;
+      --panel2: #111827;
+      --border: #1f2937;
+      --border-light: #334155;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent2: #7c3aed;
+      --text: #e2e8f0;
+      --text-muted: #9ca3af;
+      --text-dim: #7a8594;
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+      --success: #16a34a;
+      --warning: #f59e0b;
+    }
+    
+    * { box-sizing: border-box; }
+    
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      line-height: 1.4;
+      font-size: 14px;
+      overflow: hidden;
+    }
+    
+    header {
+      padding: 12px 16px;
+      background: linear-gradient(135deg, var(--panel2), var(--panel) 60%, var(--bg));
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    header .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    /* Sidebar */
+    #sidebar {
+      width: 280px;
+      min-width: 240px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    #rooms-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel2);
+    }
+    
+    #rooms-header h2 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    #room-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    
+    .room {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      margin-bottom: 4px;
+      border: 1px solid transparent;
+    }
+    
+    .room:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: var(--border);
+    }
+    
+    .room.active {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    
+    .room.active:hover {
+      background: var(--accent-hover);
+    }
+    
+    .room-icon {
+      font-size: 16px;
+    }
+    
+    .room-name {
+      flex: 1;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .room-badge {
+      background: var(--danger);
+      color: white;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-weight: 600;
+      min-width: 18px;
+      text-align: center;
+    }
+    
+    .room.active .room-badge {
+      background: rgba(255,255,255,0.2);
+    }
+    
+    .room-private::before {
+      content: "🔒";
+      margin-right: 4px;
+    }
+    
+    /* Join by passkey */
+    #join-by-passkey {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--panel2);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    #join-by-passkey input {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    /* User profile section */
+    #user-section {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      background: var(--panel2);
+    }
+    
+    #user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    
+    #user-avatar-preview {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      object-fit: cover;
+      background: var(--panel);
+    }
+    
+    #user-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    #user-info .username {
+      font-weight: 600;
+      font-size: 15px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    #user-info .client-id {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: monospace;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .user-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    /* Chat area */
+    #chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background: 
+        radial-gradient(1200px 60% at 100% 0%, rgba(37,99,235,0.06), transparent 60%),
+        radial-gradient(900px 50% at 0% 100%, rgba(124,58,237,0.05), transparent 60%);
+    }
+    
+    #room-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel2);
+      flex-shrink: 0;
+    }
+    
+    #room-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    #room-name-display {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .room-tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--border);
+      color: var(--text-muted);
+    }
+    
+    .room-tag.owner {
+      background: var(--accent);
+      color: white;
+    }
+    
+    .room-tag.admin {
+      background: var(--accent2);
+      color: white;
+    }
+
+    /* ── Member chip with remove button ─────────────────────────────── */
+    .member-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: var(--border);
+      font-size: 0.78rem;
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .chip-remove {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      line-height: 1;
+      padding: 0 2px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .chip-remove:hover { color: #e74c3c; background: rgba(231,76,60,0.12); }
+
+    /* ── Room info banner (visible to all members) ───────────────────── */
+    #room-info-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 6px 16px;
+      background: var(--sidebar);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .banner-item { display: flex; align-items: center; gap: 4px; }
+    .banner-item strong { color: var(--text); }
+    .banner-sep { color: var(--text-dim); }
+    .banner-view-btn {
+      margin-left: auto;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px 10px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      color: var(--accent);
+    }
+    .banner-view-btn:hover { background: var(--accent); color: white; }
+
+    /* ── Username availability hint ───────────────────────────────────── */
+    .username-hint { font-size: 11px; margin-top: 3px; min-height: 15px; transition: color 0.2s; }
+    .username-hint.available { color: #27ae60; }
+    .username-hint.taken     { color: #e74c3c; }
+    .username-hint.checking  { color: var(--text-dim); }
+
+    /* Send button: show text label on desktop, icon on mobile */
+    #send-btn .send-icon { display: none; }
+    #send-btn .send-label { display: inline; }
+    
+    #typing {
+      min-height: 24px;
+      color: var(--accent);
+      font-size: 13px;
+      padding: 4px 16px;
+      font-style: italic;
+    }
+    
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      /* align-items: flex-start makes every child shrink to content width by default,
+         which is what we want for received message bubbles */
+      align-items: flex-start;
+    }
+    
+    .sys {
+      color: var(--accent);
+      font-size: 12px;
+      opacity: 0.85;
+      text-align: center;
+      padding: 8px;
+      /* system messages span full width so they stay centred */
+      width: 100%;
+      align-self: center;
+    }
+    
+    .msg {
+      max-width: 70%;
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      animation: messageSlide 0.2s ease;
+      position: relative;
+      /* align-items: flex-start on #messages handles shrink-wrapping;
+         no need for width: fit-content which has browser quirks */
+    }
+
+    /* ── Inline action buttons ─────────────────────────────────────────── */
+    .msg-actions {
+      position: absolute;
+      top: -16px;
+      right: 8px;
+      display: flex;
+      gap: 2px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2px 4px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .msg:hover .msg-actions,
+    .msg.actions-visible .msg-actions {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .msg-action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 3px 6px;
+      border-radius: 12px;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .msg-action-btn:hover { background: var(--border); color: var(--text); }
+    .msg-action-btn.danger:hover { background: rgba(231,76,60,0.15); color: #e74c3c; }
+    
+    @keyframes messageSlide {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .msg.me {
+      align-self: flex-end;
+      background: linear-gradient(135deg, rgba(37,99,235,0.22), rgba(124,58,237,0.18));
+      border-color: var(--border-light);
+    }
+    
+    .msg.reply {
+      border-left: 3px solid var(--accent);
+    }
+    
+    .meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    
+    .meta .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      object-fit: cover;
+      background: var(--panel);
+    }
+    
+    .meta .name {
+      font-weight: 600;
+      color: var(--text);
+    }
+    
+    .meta .time {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    
+    .meta .edited {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    
+    .body {
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+      font-size: 14px;
+    }
+    
+    .msg img.msg-image {
+      display: block;
+      max-width: 240px;
+      max-height: 240px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      object-fit: contain;
+      cursor: zoom-in;
+      margin-top: 8px;
+    }
+    
+    .receipts {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    
+    /* Reply block inside a message bubble */
+    .reply-preview {
+      display: block;
+      background: rgba(37,99,235,0.12);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 6px 6px 0;
+      padding: 5px 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      /* Shrink to content — never wider than the bubble itself */
+      width: fit-content;
+      max-width: 100%;
+      min-width: 60px;
+      box-sizing: border-box;
+    }
+    .reply-preview:hover { background: rgba(37,99,235,0.2); }
+    
+    .reply-preview .user {
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--accent);
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .reply-preview .excerpt {
+      font-size: 12px;
+      color: var(--text-muted);
+      /* Wrap to next line when text is long */
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      white-space: normal;
+      /* Cap at 3 lines */
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.4;
+    }
+    
+    /* Input area */
+    #input-area {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--panel2);
+    }
+    
+    #reply-preview-bar {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: rgba(37,99,235,0.1);
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    
+    #reply-preview-bar .label {
+      color: var(--accent);
+      font-weight: 500;
+    }
+    
+    #reply-preview-bar .close-btn {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0 4px;
+    }
+    
+    #chat-form {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    input, button, select {
+      font: inherit;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      outline: none;
+    }
+    
+    input, select {
+      background: var(--bg);
+      color: var(--text);
+      padding: 10px 14px;
+      font-size: 14px;
+    }
+    
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.25);
+    }
+    
+    #username {
+      width: 140px;
+    }
+    
+    #text {
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    
+    button:hover {
+      background: var(--accent-hover);
+    }
+    
+    button:active {
+      transform: translateY(1px);
+    }
+    
+    button.secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    
+    button.secondary:hover {
+      background: var(--border-light);
+    }
+    
+    button.danger {
+      background: var(--danger);
+    }
+    
+    button.danger:hover {
+      background: var(--danger-hover);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* Online panel */
+    #online-panel {
+      width: 220px;
+      min-width: 180px;
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    #online-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel2);
+    }
+    
+    #online-header h2 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    #online-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+    
+    .online-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      transition: background 0.15s;
+    }
+    
+    .online-item:hover {
+      background: rgba(255,255,255,0.05);
+    }
+    
+    .online-item img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      object-fit: cover;
+      background: var(--panel);
+    }
+    
+    .online-item .info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .online-item .name {
+      font-weight: 500;
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .online-item .status {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    
+    .online-indicator {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    
+    /* Room settings */
+    #room-settings-panel {
+      display: none;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel2);
+      padding: 16px;
+      max-height: 50vh;
+      overflow-y: auto;
+    }
+    
+    #room-settings-panel h3 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+    }
+    
+    .settings-section {
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .settings-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    
+    .settings-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .settings-label {
+      min-width: 80px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+    
+    .chip .remove {
+      cursor: pointer;
+      opacity: 0.6;
+    }
+    
+    .chip .remove:hover {
+      opacity: 1;
+    }
+    
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      backdrop-filter: blur(4px);
+    }
+    
+    .modal-overlay.open {
+      display: flex;
+    }
+    
+    .modal {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      width: 90%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    
+    .modal h3 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+    }
+    
+    .modal p {
+      margin: 0 0 16px 0;
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .modal .warning {
+      background: rgba(220,38,38,0.1);
+      border: 1px solid rgba(220,38,38,0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+      color: #fca5a5;
+      font-size: 13px;
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    /* Context menu */
+    .context-menu {
+      position: fixed;
+      z-index: 9999;
+      display: none;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      min-width: 160px;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+      overflow: hidden;
+    }
+    
+    .context-menu.open {
+      display: block;
+    }
+    
+    .context-menu button {
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      color: var(--text);
+      border: none;
+      padding: 10px 14px;
+      border-radius: 0;
+      font-size: 13px;
+    }
+    
+    .context-menu button:hover {
+      background: var(--panel2);
+    }
+    
+    .context-menu button.danger {
+      color: #fca5a5;
+    }
+    
+    .context-menu button.danger:hover {
+      background: rgba(220,38,38,0.2);
+    }
+    
+    /* Lightbox */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      cursor: zoom-out;
+    }
+    
+    .lightbox.open {
+      display: flex;
+    }
+    
+    .lightbox img {
+      max-width: 92vw;
+      max-height: 92vh;
+      border-radius: 8px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    
+    /* Scrollbars */
+    *::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    *::-webkit-scrollbar-thumb {
+      background: var(--border-light);
+      border-radius: 4px;
+    }
+    
+    *::-webkit-scrollbar-thumb:hover {
+      background: var(--text-dim);
+    }
+    
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    @keyframes highlight {
+      0% { background: rgba(37,99,235,0.3); }
+      100% { background: transparent; }
+    }
+    
+    /* ── Responsive: tablet ──────────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      #online-panel { display: none; }
+    }
+
+    /* MOBILE STYLES - COMPLETELY REMOVED AND WILL BE REBUILT */
+    
+    /* Toast notifications */
+    .toast-container {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 100000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .toast {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      animation: slideIn 0.3s ease;
+      max-width: 320px;
+    }
+    
+    .toast.success {
+      border-color: var(--success);
+    }
+    
+    .toast.error {
+      border-color: var(--danger);
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       HELP MODAL
+    ═══════════════════════════════════════════════════════════════════ */
+    #help-modal { align-items: center; justify-content: center; }
+
+    .help-modal-inner {
+      background: var(--panel2);
+      border: 1px solid var(--border-light);
+      border-radius: 20px;
+      width: min(92vw, 780px);
+      max-height: 90dvh;
+      min-height: 500px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    }
+
+    .help-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .help-logo { font-size: 32px; line-height: 1; }
+    .help-title { margin: 0; font-size: 20px; font-weight: 700; }
+    .help-sub { margin: 2px 0 0; font-size: 13px; color: var(--text-muted); }
+    .help-close {
+      margin-left: auto;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 50%;
+      width: 32px; height: 32px;
+      padding: 0;
+      font-size: 14px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .help-close:hover { background: var(--border); color: var(--text); }
+
+    /* Step dots */
+    .help-dots {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      padding: 14px 0 6px;
+      flex-shrink: 0;
+    }
+    .help-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--border-light);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .help-dot.active { background: var(--accent); width: 22px; border-radius: 4px; }
+
+    /* Slides viewport */
+    .help-slides {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      min-height: 300px;
+    }
+
+    .help-slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      gap: 24px;
+      padding: 24px 28px;
+      align-items: stretch;
+      justify-content: flex-start;
+      overflow-y: auto;
+      background: var(--panel2);
+      box-sizing: border-box;
+    }
+    .help-slide.active {
+      display: flex;
+      animation: fadeSlideIn 0.3s ease;
+    }
+    
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Demo panel */
+    .help-demo {
+      flex-shrink: 0;
+      width: 220px;
+    }
+    .demo-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 12px;
+      min-height: 180px;
+    }
+    .demo-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    /* Profile demo */
+    .demo-profile { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .demo-avatar-ring {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .demo-avatar { font-size: 22px; }
+    .demo-name { font-weight: 600; font-size: 13px; color: var(--text); }
+    .demo-id { font-size: 10px; color: var(--text-dim); }
+
+    /* Room list demo */
+    .demo-room-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+    .demo-room {
+      padding: 7px 10px;
+      border-radius: 8px;
+      background: var(--panel2);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .active-room { background: var(--accent); color: white; }
+
+    /* Passkey row */
+    .demo-passkey-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+    .demo-input {
+      background: var(--bg);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .demo-input.flex1 { flex: 1; }
+    .demo-input.sm-input { flex: 1; font-size: 10px; padding: 4px 7px; }
+    .demo-btn {
+      background: var(--accent);
+      color: white;
+      border-radius: 8px;
+      padding: 5px 9px;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .demo-btn.sm-btn { padding: 4px 8px; font-size: 10px; }
+    .demo-btn.round-btn { border-radius: 50%; padding: 6px 9px; }
+    .demo-btn-row { display: flex; gap: 6px; }
+    .highlight-btn { animation: highlightPulse 1.8s infinite; }
+    @keyframes highlightPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.5); }
+      50%      { box-shadow: 0 0 0 6px rgba(37,99,235,0); }
+    }
+
+    /* Chat demo panel */
+    .demo-chat-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      padding-bottom: 10px;
+    }
+    .demo-bubble {
+      padding: 7px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      max-width: 85%;
+      align-self: flex-start;
+      line-height: 1.4;
+    }
+    .demo-bubble.me {
+      align-self: flex-end;
+      background: linear-gradient(135deg,rgba(37,99,235,0.3),rgba(124,58,237,0.2));
+      border-color: var(--border-light);
+    }
+    .demo-name-sm { display: block; font-size: 9px; font-weight: 700; color: var(--accent); margin-bottom: 2px; }
+    .demo-reply-block {
+      font-size: 10px;
+      border-left: 2px solid var(--accent);
+      padding: 2px 6px;
+      margin-bottom: 4px;
+      color: var(--text-muted);
+      border-radius: 0 4px 4px 0;
+      background: rgba(37,99,235,0.1);
+    }
+    .demo-input-row { display: flex; gap: 5px; align-items: center; margin-top: 4px; }
+
+    /* Settings demo */
+    .demo-settings-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px; font-size: 11px; color: var(--text-muted);
+    }
+    .demo-setting-label { font-size: 11px; color: var(--text-dim); }
+    .demo-toggle {
+      padding: 3px 10px; border-radius: 20px; font-size: 10px;
+      background: var(--border); color: var(--text-muted);
+    }
+    .on-toggle { background: rgba(37,99,235,0.25); color: var(--accent); }
+    .demo-passkey-display {
+      font-family: monospace; font-size: 13px; font-weight: 700;
+      color: var(--text); letter-spacing: 1px;
+    }
+    .demo-share-hint {
+      margin-top: 8px; font-size: 10px; color: var(--text-dim);
+      text-align: center; font-style: italic;
+    }
+
+    /* Members demo */
+    .demo-info-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 6px; font-size: 11px; color: var(--text-muted);
+    }
+    .demo-chip {
+      background: var(--border); border-radius: 20px;
+      padding: 2px 8px; font-size: 11px; color: var(--text);
+      display: flex; align-items: center; gap: 4px;
+    }
+    .demo-x { color: var(--danger); cursor: pointer; }
+    .demo-add-row { display: flex; gap: 5px; margin-top: 8px; }
+
+    /* Help text section */
+    .help-text { flex: 1; min-width: 0; }
+    .help-text h3 { margin: 0 0 8px; font-size: 17px; font-weight: 700; }
+    .help-text p { margin: 0 0 12px; color: var(--text-muted); font-size: 13px; line-height: 1.6; }
+    .help-tips {
+      list-style: none;
+      margin: 0; padding: 0;
+      display: flex; flex-direction: column; gap: 7px;
+    }
+    .help-tips li {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      line-height: 1.4;
+    }
+    .help-tips li strong { color: var(--text); }
+
+    /* Navigation */
+    .help-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px 20px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .help-prev, .help-next { padding: 9px 20px; font-size: 13px; border-radius: 10px; }
+    .help-prev { background: var(--border); color: var(--text); }
+    .help-prev:hover { background: var(--border-light); }
+    .help-step-counter { font-size: 13px; color: var(--text-muted); }
+
+    /* ── Animations ────────────────────────────────────────────────── */
+    @keyframes pulseAvatar {
+      0%,100% { transform: scale(1); }
+      50%      { transform: scale(1.08); }
+    }
+    .pulse-avatar { animation: pulseAvatar 2s ease-in-out infinite; }
+
+    @keyframes bounceIn {
+      0%   { opacity: 0; transform: translateY(12px); }
+      60%  { transform: translateY(-3px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .bounce-in { opacity: 0; animation: bounceIn 0.5s ease forwards; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .slide-up { opacity: 0; animation: slideUp 0.4s ease forwards; }
+
+    @keyframes typingAnim {
+      0%  { width: 0; }
+      80% { width: 100%; }
+      100%{ width: 100%; }
+    }
+    .typing-anim {
+      display: inline-block;
+      overflow: hidden;
+      white-space: nowrap;
+      border-right: 2px solid var(--accent);
+      animation: typingAnim 2s steps(10, end) infinite alternate;
+      max-width: 100%;
+    }
+    .typing-cursor {
+      border-right: 2px solid var(--accent);
+      animation: blink 0.9s step-end infinite;
+    }
+    @keyframes blink { 50% { border-color: transparent; } }
+
+    @keyframes flashIn {
+      0%  { opacity: 0; letter-spacing: 3px; }
+      60% { opacity: 1; letter-spacing: 1px; }
+      100%{ opacity: 1; letter-spacing: 1px; }
+    }
+    .flash-in { animation: flashIn 1.2s ease forwards; }
+
+    /* Desktop: hide mobile-only elements */
+    .mobile-only { display: none !important; }
+    
+    /* Mobile-specific viewport fix */
+    .lightbox img { max-height: 92dvh; }
+    @media (max-width: 640px) {
+      .help-modal-inner { width: 98vw; border-radius: 16px; max-height: 96dvh; }
+      .help-header { padding: 14px 16px 12px; gap: 10px; }
+      .help-logo { font-size: 24px; }
+      .help-title { font-size: 16px; }
+      .help-sub { display: none; }
+      .help-slide {
+        flex-direction: column;
+        padding: 14px 16px;
+        gap: 16px;
+      }
+      .help-demo { width: 100%; }
+      .demo-panel { min-height: auto; }
+      .help-nav { padding: 12px 16px 16px; }
+      .help-prev, .help-next { padding: 8px 14px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>💬 ptr_29 Chat</h1>
+    <div class="header-actions">
+      <button id="help-btn" class="secondary" title="How to use">❓</button>
+      <button id="theme-toggle" class="secondary" title="Toggle theme">🌙</button>
+    </div>
+  </header>
+  
+  <main>
+    <aside id="sidebar">
+      <div id="rooms-header">
+        <h2>Rooms</h2>
+        <div style="display:flex; gap:6px">
+          <button id="open-create-room" class="secondary" title="Create room">＋</button>
+          <button id="refresh-rooms" class="secondary" title="Refresh">↻</button>
+        </div>
+      </div>
+      
+      <div id="room-list"></div>
+      
+      <div id="join-by-passkey">
+        <input id="passkey-join-input" type="text" placeholder="Enter passkey to join private room..." style="flex:1">
+        <button id="passkey-join-btn" type="button" class="secondary">Join</button>
+      </div>
+      
+      <div id="user-section">
+        <div id="user-profile">
+          <img id="user-avatar-preview" src="" alt="">
+          <div id="user-info">
+            <div class="username">Anonymous</div>
+            <div class="client-id">Not connected</div>
+          </div>
+        </div>
+        <!-- Mobile username input -->
+        <div class="mobile-username-row mobile-only">
+          <input id="mobile-username" type="text" placeholder="Enter username..." style="flex:1; margin-bottom:8px;">
+        </div>
+        <div class="user-actions">
+          <button id="edit-profile-btn" class="secondary">Edit Profile</button>
+          <button id="delete-user-btn" class="danger">Delete Account</button>
+        </div>
+      </div>
+    </aside>
+    
+    <section id="chat">
+      <div id="room-bar">
+        <!-- Back button: hidden on desktop, shown on mobile via CSS -->
+        <button id="mobile-back-btn" class="mobile-only">← Rooms</button>
+        <div id="room-info">
+          <span id="room-name-display">#general</span>
+          <span id="room-type-tag" class="room-tag">Public</span>
+          <span id="room-role-tag" class="room-tag" style="display:none"></span>
+        </div>
+        <div style="display:flex; gap:8px">
+          <button id="room-settings-btn" class="secondary">⚙️ <span>Settings</span></button>
+          <button id="clear-room-btn" class="secondary">🗑️ <span>Clear</span></button>
+          <button id="leave-btn" class="secondary"><span>Leave</span></button>
+        </div>
+      </div>
+      
+      <div id="room-settings-panel">
+        <div class="settings-section" id="room-info-section">
+          <h3>Room Information</h3>
+          <div class="settings-row">
+            <span class="settings-label">Owner:</span>
+            <span id="room-owner">-</span>
+          </div>
+          <div class="settings-row" style="align-items:flex-start">
+            <span class="settings-label">Admins:</span>
+            <div id="room-admins-list" style="display:flex; gap:6px; flex-wrap:wrap; flex:1"></div>
+          </div>
+          <div class="settings-row" id="add-admin-row" style="display:none; align-items:center; gap:6px">
+            <span class="settings-label"></span>
+            <input id="add-admin-input" type="text" placeholder="Client ID to make admin" style="flex:1; font-size:0.8rem">
+            <button id="add-admin-btn" class="secondary" style="white-space:nowrap">+ Add Admin</button>
+          </div>
+          <div class="settings-row" style="align-items:flex-start">
+            <span class="settings-label">Members:</span>
+            <div id="room-members-list" style="display:flex; gap:6px; flex-wrap:wrap; flex:1"></div>
+          </div>
+          <div class="settings-row" id="add-member-row" style="display:none; align-items:center; gap:6px">
+            <span class="settings-label"></span>
+            <input id="add-member-input" type="text" placeholder="Client ID to add as member" style="flex:1; font-size:0.8rem">
+            <button id="add-member-btn" class="secondary" style="white-space:nowrap">+ Add Member</button>
+          </div>
+        </div>
+        
+        <div class="settings-section" id="room-management-section">
+          <h3>Room Management</h3>
+          <div class="settings-row">
+            <span class="settings-label">Rename:</span>
+            <input id="rename-input" type="text" placeholder="New room name">
+            <button id="rename-btn">Rename</button>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Privacy:</span>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
+              <input id="privacy-checkbox" type="checkbox">
+              <span>Private room</span>
+            </label>
+            <button id="save-privacy-btn">Save</button>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Passkey:</span>
+            <input id="passkey-input" type="text" placeholder="Generate or enter passkey" style="flex:1">
+            <button id="generate-passkey-btn" class="secondary">Generate</button>
+            <button id="copy-passkey-btn" class="secondary">Copy</button>
+            <button id="save-passkey-btn">Save</button>
+            <button id="clear-passkey-btn" class="danger">Clear</button>
+          </div>
+          <div class="settings-row" id="delete-room-row" style="display:none">
+            <span class="settings-label"></span>
+            <button id="delete-room-btn" class="danger">🗑️ Delete Room</button>
+          </div>
+        </div>
+        
+        <div style="display:flex; justify-content:flex-end; margin-top:12px">
+          <button id="close-settings-btn" class="secondary">Close</button>
+        </div>
+      </div>
+      
+      <div id="typing"></div>
+      <div id="messages"></div>
+      
+      <div id="input-area">
+        <div id="reply-preview-bar">
+          <span class="label">↩️ Replying to</span>
+          <span class="who"></span>
+          <span class="excerpt"></span>
+          <button type="button" class="close-btn">×</button>
+        </div>
+        <form id="chat-form" autocomplete="off">
+          <input id="username" type="text" placeholder="Your username" required>
+          <input id="avatar" type="url" placeholder="Avatar URL (optional)" style="display:none">
+          <input id="text" type="text" placeholder="Type a message..." required autocomplete="off">
+          <button type="button" id="image-btn" class="secondary" title="Send image">📷</button>
+          <button type="submit" id="send-btn" title="Send message"><span class="send-label">Send</span><span class="send-icon" aria-hidden="true">➤</span></button>
+          <input type="file" id="image-file" accept="image/*" style="display:none">
+        </form>
+      </div>
+    </section>
+    
+    <aside id="online-panel">
+      <div id="online-header">
+        <h2>Online Users</h2>
+      </div>
+      <div id="online-list"></div>
+    </aside>
+  </main>
+  
+  <!-- Create Room Modal -->
+  <div id="create-room-modal" class="modal-overlay">
+    <div class="modal">
+      <h3>Create New Room</h3>
+      <form id="create-room-form">
+        <div style="margin-bottom:16px">
+          <label style="display:block; margin-bottom:8px; color:var(--text-muted); font-size:13px">Room Name</label>
+          <input type="text" id="create-room-name" placeholder="my-awesome-room" required style="width:100%">
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
+            <input type="checkbox" id="create-room-private">
+            <span>Private room (requires passkey)</span>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="cancel-create-room" class="secondary">Cancel</button>
+          <button type="submit">Create Room</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Delete User Modal -->
+  <div id="delete-user-modal" class="modal-overlay">
+    <div class="modal">
+      <h3>⚠️ Delete Account</h3>
+      <div class="warning">
+        <strong>Warning:</strong> This action cannot be undone. Your account, all your messages, and your presence in all rooms will be permanently deleted.
+      </div>
+      <p>Are you sure you want to delete your account?</p>
+      <div class="modal-actions">
+        <button type="button" id="cancel-delete-user" class="secondary">Cancel</button>
+        <button type="button" id="confirm-delete-user" class="danger">Yes, Delete My Account</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Delete Room Modal -->
+  <div id="delete-room-modal" class="modal-overlay">
+    <div class="modal">
+      <h3>⚠️ Delete Room</h3>
+      <div class="warning">
+        <strong>Warning:</strong> This will permanently delete the room <strong id="delete-room-name"></strong> and all its messages. This action cannot be undone.
+      </div>
+      <p>Are you sure you want to delete this room?</p>
+      <div class="modal-actions">
+        <button type="button" id="cancel-delete-room" class="secondary">Cancel</button>
+        <button type="button" id="confirm-delete-room" class="danger">Yes, Delete Room</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Edit Profile Modal -->
+  <div id="edit-profile-modal" class="modal-overlay">
+    <div class="modal">
+      <h3>Edit Profile</h3>
+      <form id="edit-profile-form">
+        <div style="margin-bottom:16px">
+          <label style="display:block; margin-bottom:8px; color:var(--text-muted); font-size:13px">Username</label>
+          <input type="text" id="edit-username" required style="width:100%">
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="display:block; margin-bottom:8px; color:var(--text-muted); font-size:13px">Avatar URL</label>
+          <input type="url" id="edit-avatar" placeholder="https://example.com/avatar.png" style="width:100%">
+        </div>
+        <div style="margin-bottom:16px; padding:12px; background:var(--panel); border-radius:8px; border:1px solid var(--border)">
+          <label style="display:block; margin-bottom:6px; color:var(--text-muted); font-size:12px">🆔 Your Client ID <small>(Share this to be added as admin/member)</small></label>
+          <div style="display:flex; gap:8px; align-items:center">
+            <code id="edit-client-id" style="flex:1; font-family:monospace; font-size:13px; color:var(--text); word-break:break-all; background:var(--bg); padding:8px 10px; border-radius:6px; border:1px solid var(--border-light)"></code>
+            <button type="button" id="copy-client-id-btn" style="white-space:nowrap; padding:8px 14px; font-size:12px">Copy</button>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="cancel-edit-profile" class="secondary">Cancel</button>
+          <button type="submit">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Context Menu -->
+  <div id="context-menu" class="context-menu">
+    <button data-action="reply">↩️ Reply</button>
+    <button data-action="copy">📋 Copy Text</button>
+    <button data-action="edit">✏️ Edit</button>
+    <button data-action="delete" class="danger">🗑️ Delete</button>
+  </div>
+  
+  <!-- Lightbox -->
+  <div id="lightbox" class="lightbox">
+    <img id="lightbox-img" alt="Preview">
+  </div>
+  
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Help Modal -->
+  <div id="help-modal" class="modal-overlay">
+    <div class="help-modal-inner">
+      <div class="help-header">
+        <div class="help-logo">💬</div>
+        <div>
+          <h2 class="help-title">How to use ptr_29 Chat</h2>
+          <p class="help-sub">Step through the guide below</p>
+        </div>
+        <button id="help-close-btn" class="help-close">✕</button>
+      </div>
+
+      <!-- Step dots -->
+      <div class="help-dots" id="help-dots"></div>
+
+      <!-- Slides -->
+      <div class="help-slides" id="help-slides">
+
+        <!-- 1: Set your profile -->
+        <div class="help-slide active" data-step="1">
+          <div class="help-demo">
+            <div class="demo-panel">
+              <div class="demo-label">Sidebar → bottom</div>
+              <div class="demo-profile">
+                <div class="demo-avatar-ring">
+                  <div class="demo-avatar pulse-avatar">🙂</div>
+                </div>
+                <div>
+                  <div class="demo-name typing-anim">YourName</div>
+                  <div class="demo-id">ID: abc123de-f456-7890-abcd-ef1234567890</div>
+                </div>
+              </div>
+              <div class="demo-btn-row">
+                <div class="demo-btn highlight-btn">Edit Profile</div>
+              </div>
+            </div>
+          </div>
+          <div class="help-text">
+            <h3>① Set your profile</h3>
+            <p>At the bottom of the <strong>Rooms</strong> sidebar, tap <strong>Edit Profile</strong> to choose a username and avatar URL. The app checks in real-time that your chosen name isn't already taken.</p>
+            <ul class="help-tips">
+              <li>🆔 <strong>Your Client ID</strong> is a unique identifier. Share it with room owners so they can add you as an admin or member.</li>
+              <li>🔤 Username must be 2–50 characters</li>
+              <li>🖼️ Paste any image URL for a custom avatar</li>
+              <li>✅ A green tick means the name is free</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 2: Join a room -->
+        <div class="help-slide" data-step="2">
+          <div class="help-demo">
+            <div class="demo-panel">
+              <div class="demo-label">Rooms sidebar</div>
+              <div class="demo-room-list">
+                <div class="demo-room active-room"># general</div>
+                <div class="demo-room bounce-in" style="animation-delay:0.4s">🔒 secret</div>
+                <div class="demo-room bounce-in" style="animation-delay:0.7s"># lounge</div>
+              </div>
+              <div class="demo-passkey-row">
+                <div class="demo-input">ABCD-1234-XY</div>
+                <div class="demo-btn sm-btn">Join</div>
+              </div>
+            </div>
+          </div>
+          <div class="help-text">
+            <h3>② Browse &amp; join rooms</h3>
+            <p>The sidebar lists all rooms you can see. Tap any room to open it. Public rooms (# prefix) are open to everyone. Private rooms (🔒) need a passkey.</p>
+            <ul class="help-tips">
+              <li>➕ Create rooms with the <strong>＋</strong> button</li>
+              <li>🔑 Enter a passkey in the sidebar to join private rooms</li>
+              <li>📱 On mobile, tap a room to slide into chat</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 3: Send messages -->
+        <div class="help-slide" data-step="3">
+          <div class="help-demo">
+            <div class="demo-panel demo-chat-panel">
+              <div class="demo-bubble other slide-up" style="animation-delay:0.1s">
+                <span class="demo-name-sm">zane</span>hey! 👋
+              </div>
+              <div class="demo-bubble me slide-up" style="animation-delay:0.5s">
+                sup
+              </div>
+              <div class="demo-bubble other slide-up" style="animation-delay:0.9s">
+                <span class="demo-name-sm">zane</span>
+                <div class="demo-reply-block">↩ you · sup</div>
+                nice one
+              </div>
+              <div class="demo-input-row">
+                <div class="demo-input flex1 typing-cursor">Type a message…</div>
+                <div class="demo-btn round-btn">➤</div>
+              </div>
+            </div>
+          </div>
+          <div class="help-text">
+            <h3>③ Messaging</h3>
+            <p>Type in the input bar and press <strong>Send</strong> (or Enter). Your messages appear on the right in blue; others on the left.</p>
+            <ul class="help-tips">
+              <li>↩ <strong>Hover/tap</strong> a message to reveal Reply, Copy, Edit, Delete buttons</li>
+              <li>✏️ You can edit your own messages within 5 minutes</li>
+              <li>📷 Tap the camera icon to send an image (max 10 MB)</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 4: Private rooms & passkeys -->
+        <div class="help-slide" data-step="4">
+          <div class="help-demo">
+            <div class="demo-panel">
+              <div class="demo-label">Room Settings ⚙️</div>
+              <div class="demo-settings-row">
+                <span class="demo-setting-label">Privacy</span>
+                <div class="demo-toggle on-toggle">Private ✓</div>
+              </div>
+              <div class="demo-settings-row">
+                <span class="demo-setting-label">Passkey</span>
+                <div class="demo-passkey-display flash-in">ZXKQ-8821-MN</div>
+              </div>
+              <div class="demo-btn-row" style="margin-top:8px">
+                <div class="demo-btn sm-btn">Generate</div>
+                <div class="demo-btn sm-btn">Copy</div>
+              </div>
+              <div class="demo-share-hint">Share this key with friends →</div>
+            </div>
+          </div>
+          <div class="help-text">
+            <h3>④ Private rooms &amp; passkeys</h3>
+            <p>In <strong>⚙️ Settings</strong>, toggle a room to <strong>Private</strong>, then generate a passkey. Share that key with anyone you want to invite — they paste it in the sidebar to join.</p>
+            <ul class="help-tips">
+              <li>🔐 Passkeys are saved so you don't re-enter them</li>
+              <li>👁️ Private rooms only appear to members</li>
+              <li>🔄 You can change or clear the passkey any time</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 5: Admin & members -->
+        <div class="help-slide" data-step="5">
+          <div class="help-demo">
+            <div class="demo-panel">
+              <div class="demo-label">Room Info</div>
+              <div class="demo-info-row">
+                <span>👑 Owner</span><span class="demo-chip">dan</span>
+              </div>
+              <div class="demo-info-row">
+                <span>🛡 Admins</span>
+                <span class="demo-chip">sam <span class="demo-x">×</span></span>
+              </div>
+              <div class="demo-info-row" style="margin-top:6px">
+                <span>👥 Members</span>
+                <span class="demo-chip">zane <span class="demo-x">×</span></span>
+              </div>
+              <div class="demo-add-row">
+                <div class="demo-input sm-input">Client ID…</div>
+                <div class="demo-btn sm-btn">+ Add</div>
+              </div>
+            </div>
+          </div>
+          <div class="help-text">
+            <h3>⑤ Admins &amp; members</h3>
+            <p>As the room <strong>Owner</strong>, open <strong>⚙️ Settings → View Info</strong> to add or remove admins and members by their Client ID. Admins can manage the room but can never remove the owner.</p>
+            <ul class="help-tips">
+              <li>🆔 Your Client ID is shown under your username</li>
+              <li>🛡 Admins can delete rooms, clear messages, add members</li>
+              <li>👥 Members have access to private rooms without a passkey</li>
+            </ul>
+          </div>
+        </div>
+
+      </div><!-- /help-slides -->
+
+      <!-- Navigation -->
+      <div class="help-nav">
+        <button class="help-prev secondary" id="help-prev">← Back</button>
+        <span class="help-step-counter" id="help-step-counter">1 / 5</span>
+        <button class="help-next" id="help-next">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="./client.js" defer></script>
+</body>
+</html>
