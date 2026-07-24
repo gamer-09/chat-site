@@ -164,7 +164,6 @@
       margin-right: 4px;
     }
     
-    /* Join by passkey */
     #join-by-passkey {
       padding: 12px 16px;
       border-top: 1px solid var(--border);
@@ -178,7 +177,6 @@
       min-width: 0;
     }
     
-    /* User profile section */
     #user-section {
       padding: 16px;
       border-top: 1px solid var(--border);
@@ -277,8 +275,7 @@
       background: var(--accent2);
       color: white;
     }
-
-    /* ── Member chip with remove button ─────────────────────────────── */
+    
     .member-chip {
       display: inline-flex;
       align-items: center;
@@ -304,15 +301,14 @@
       flex-shrink: 0;
     }
     .chip-remove:hover { color: #e74c3c; background: rgba(231,76,60,0.12); }
-
-    /* ── Room info banner (visible to all members) ───────────────────── */
+    
     #room-info-banner {
       display: flex;
       align-items: center;
       gap: 8px;
       flex-wrap: wrap;
       padding: 6px 16px;
-      background: var(--sidebar);
+      background: var(--panel);
       border-bottom: 1px solid var(--border);
       font-size: 0.8rem;
       color: var(--text-muted);
@@ -331,14 +327,12 @@
       color: var(--accent);
     }
     .banner-view-btn:hover { background: var(--accent); color: white; }
-
-    /* ── Username availability hint ───────────────────────────────────── */
+    
     .username-hint { font-size: 11px; margin-top: 3px; min-height: 15px; transition: color 0.2s; }
     .username-hint.available { color: #27ae60; }
     .username-hint.taken     { color: #e74c3c; }
     .username-hint.checking  { color: var(--text-dim); }
-
-    /* Send button: show text label on desktop, icon on mobile */
+    
     #send-btn .send-icon { display: none; }
     #send-btn .send-label { display: inline; }
     
@@ -357,8 +351,6 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      /* align-items: flex-start makes every child shrink to content width by default,
-         which is what we want for received message bubbles */
       align-items: flex-start;
     }
     
@@ -368,7 +360,6 @@
       opacity: 0.85;
       text-align: center;
       padding: 8px;
-      /* system messages span full width so they stay centred */
       width: 100%;
       align-self: center;
     }
@@ -382,11 +373,8 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       animation: messageSlide 0.2s ease;
       position: relative;
-      /* align-items: flex-start on #messages handles shrink-wrapping;
-         no need for width: fit-content which has browser quirks */
     }
-
-    /* ── Inline action buttons ─────────────────────────────────────────── */
+    
     .msg-actions {
       position: absolute;
       top: -16px;
@@ -492,7 +480,6 @@
       color: var(--text-dim);
     }
     
-    /* Reply block inside a message bubble */
     .reply-preview {
       display: block;
       background: rgba(37,99,235,0.12);
@@ -501,7 +488,6 @@
       padding: 5px 10px;
       margin-bottom: 8px;
       cursor: pointer;
-      /* Shrink to content — never wider than the bubble itself */
       width: fit-content;
       max-width: 100%;
       min-width: 60px;
@@ -522,11 +508,9 @@
     .reply-preview .excerpt {
       font-size: 12px;
       color: var(--text-muted);
-      /* Wrap to next line when text is long */
       word-break: break-word;
       overflow-wrap: anywhere;
       white-space: normal;
-      /* Cap at 3 lines */
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
@@ -534,7 +518,6 @@
       line-height: 1.4;
     }
     
-    /* Input area */
     #input-area {
       padding: 12px 16px;
       border-top: 1px solid var(--border);
@@ -589,13 +572,102 @@
     input, select {
       background: var(--bg);
       color: var(--text);
-      padding: 10px 14px;
-      font-size: 14px;
+      padding: 8px 12px;
+    }
+    
+    .file-attachment {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      color: inherit;
+      text-decoration: none;
+      margin-top: 4px;
+    }
+    
+    .file-attachment:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    
+    .reactions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    
+    .reaction-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 11px;
+      cursor: pointer;
+      user-select: none;
+    }
+    
+    .reaction-pill:hover {
+      background: var(--bg-hover);
+    }
+    
+    .reaction-pill.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    
+    .mention {
+      color: var(--accent);
+      font-weight: 600;
+      background: rgba(0, 120, 255, 0.1);
+      padding: 0 4px;
+      border-radius: 4px;
+    }
+    
+    .msg-content strong {
+      font-weight: bold;
+    }
+    
+    .msg-content em {
+      font-style: italic;
+    }
+    
+    .emoji-picker-popup {
+      position: absolute;
+      bottom: 70px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+    
+    .emoji-picker-popup button {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    
+    .emoji-picker-popup button:hover {
+      background: var(--bg-hover);
     }
     
     input:focus, select:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(37,99,235,0.25);
+      box-shadow: 0 0 0 2px rgba(0, 120, 255, 0.2);
     }
     
     #username {
@@ -648,7 +720,6 @@
       cursor: not-allowed;
     }
     
-    /* Online panel */
     #online-panel {
       width: 220px;
       min-width: 180px;
@@ -729,7 +800,6 @@
       flex-shrink: 0;
     }
     
-    /* Room settings */
     #room-settings-panel {
       display: none;
       border-bottom: 1px solid var(--border);
@@ -790,7 +860,6 @@
       opacity: 1;
     }
     
-    /* Modals */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -846,7 +915,6 @@
       justify-content: flex-end;
     }
     
-    /* Context menu */
     .context-menu {
       position: fixed;
       z-index: 9999;
@@ -886,7 +954,6 @@
       background: rgba(220,38,38,0.2);
     }
     
-    /* Lightbox */
     .lightbox {
       position: fixed;
       inset: 0;
@@ -909,7 +976,6 @@
       box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     }
     
-    /* Scrollbars */
     *::-webkit-scrollbar {
       width: 8px;
       height: 8px;
@@ -933,14 +999,6 @@
       100% { background: transparent; }
     }
     
-    /* ── Responsive: tablet ──────────────────────────────────────────── */
-    @media (max-width: 1024px) {
-      #online-panel { display: none; }
-    }
-
-    /* MOBILE STYLES - COMPLETELY REMOVED AND WILL BE REBUILT */
-    
-    /* Toast notifications */
     .toast-container {
       position: fixed;
       top: 16px;
@@ -979,12 +1037,9 @@
         transform: translateX(0);
       }
     }
-
-    /* ═══════════════════════════════════════════════════════════════════
-       HELP MODAL
-    ═══════════════════════════════════════════════════════════════════ */
+    
     #help-modal { align-items: center; justify-content: center; }
-
+    
     .help-modal-inner {
       background: var(--panel2);
       border: 1px solid var(--border-light);
@@ -997,7 +1052,7 @@
       overflow: hidden;
       box-shadow: 0 24px 64px rgba(0,0,0,0.6);
     }
-
+    
     .help-header {
       display: flex;
       align-items: center;
@@ -1022,8 +1077,7 @@
       flex-shrink: 0;
     }
     .help-close:hover { background: var(--border); color: var(--text); }
-
-    /* Step dots */
+    
     .help-dots {
       display: flex;
       gap: 8px;
@@ -1039,15 +1093,14 @@
       transition: all 0.2s;
     }
     .help-dot.active { background: var(--accent); width: 22px; border-radius: 4px; }
-
-    /* Slides viewport */
+    
     .help-slides {
       flex: 1;
       position: relative;
       overflow: hidden;
       min-height: 300px;
     }
-
+    
     .help-slide {
       position: absolute;
       inset: 0;
@@ -1069,8 +1122,7 @@
       from { opacity: 0; transform: translateX(20px); }
       to { opacity: 1; transform: translateX(0); }
     }
-
-    /* Demo panel */
+    
     .help-demo {
       flex-shrink: 0;
       width: 220px;
@@ -1090,8 +1142,7 @@
       letter-spacing: 0.5px;
       margin-bottom: 10px;
     }
-
-    /* Profile demo */
+    
     .demo-profile { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
     .demo-avatar-ring {
       width: 40px; height: 40px;
@@ -1102,8 +1153,7 @@
     .demo-avatar { font-size: 22px; }
     .demo-name { font-weight: 600; font-size: 13px; color: var(--text); }
     .demo-id { font-size: 10px; color: var(--text-dim); }
-
-    /* Room list demo */
+    
     .demo-room-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
     .demo-room {
       padding: 7px 10px;
@@ -1113,8 +1163,7 @@
       color: var(--text-muted);
     }
     .active-room { background: var(--accent); color: white; }
-
-    /* Passkey row */
+    
     .demo-passkey-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
     .demo-input {
       background: var(--bg);
@@ -1143,8 +1192,7 @@
       0%,100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.5); }
       50%      { box-shadow: 0 0 0 6px rgba(37,99,235,0); }
     }
-
-    /* Chat demo panel */
+    
     .demo-chat-panel {
       display: flex;
       flex-direction: column;
@@ -1177,8 +1225,7 @@
       background: rgba(37,99,235,0.1);
     }
     .demo-input-row { display: flex; gap: 5px; align-items: center; margin-top: 4px; }
-
-    /* Settings demo */
+    
     .demo-settings-row {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 8px; font-size: 11px; color: var(--text-muted);
@@ -1197,8 +1244,7 @@
       margin-top: 8px; font-size: 10px; color: var(--text-dim);
       text-align: center; font-style: italic;
     }
-
-    /* Members demo */
+    
     .demo-info-row {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 6px; font-size: 11px; color: var(--text-muted);
@@ -1210,8 +1256,7 @@
     }
     .demo-x { color: var(--danger); cursor: pointer; }
     .demo-add-row { display: flex; gap: 5px; margin-top: 8px; }
-
-    /* Help text section */
+    
     .help-text { flex: 1; min-width: 0; }
     .help-text h3 { margin: 0 0 8px; font-size: 17px; font-weight: 700; }
     .help-text p { margin: 0 0 12px; color: var(--text-muted); font-size: 13px; line-height: 1.6; }
@@ -1230,8 +1275,7 @@
       line-height: 1.4;
     }
     .help-tips li strong { color: var(--text); }
-
-    /* Navigation */
+    
     .help-nav {
       display: flex;
       align-items: center;
@@ -1244,27 +1288,26 @@
     .help-prev { background: var(--border); color: var(--text); }
     .help-prev:hover { background: var(--border-light); }
     .help-step-counter { font-size: 13px; color: var(--text-muted); }
-
-    /* ── Animations ────────────────────────────────────────────────── */
+    
     @keyframes pulseAvatar {
       0%,100% { transform: scale(1); }
       50%      { transform: scale(1.08); }
     }
     .pulse-avatar { animation: pulseAvatar 2s ease-in-out infinite; }
-
+    
     @keyframes bounceIn {
       0%   { opacity: 0; transform: translateY(12px); }
       60%  { transform: translateY(-3px); }
       100% { opacity: 1; transform: translateY(0); }
     }
     .bounce-in { opacity: 0; animation: bounceIn 0.5s ease forwards; }
-
+    
     @keyframes slideUp {
       from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
     }
     .slide-up { opacity: 0; animation: slideUp 0.4s ease forwards; }
-
+    
     @keyframes typingAnim {
       0%  { width: 0; }
       80% { width: 100%; }
@@ -1283,41 +1326,24 @@
       animation: blink 0.9s step-end infinite;
     }
     @keyframes blink { 50% { border-color: transparent; } }
-
+    
     @keyframes flashIn {
       0%  { opacity: 0; letter-spacing: 3px; }
       60% { opacity: 1; letter-spacing: 1px; }
       100%{ opacity: 1; letter-spacing: 1px; }
     }
     .flash-in { animation: flashIn 1.2s ease forwards; }
-
-    /* Desktop: hide mobile-only elements */
-    .mobile-only { display: none !important; }
     
-    /* Mobile-specific viewport fix */
+    .mobile-only { display: none !important; }
     .lightbox img { max-height: 92dvh; }
-    @media (max-width: 640px) {
-      .help-modal-inner { width: 98vw; border-radius: 16px; max-height: 96dvh; }
-      .help-header { padding: 14px 16px 12px; gap: 10px; }
-      .help-logo { font-size: 24px; }
-      .help-title { font-size: 16px; }
-      .help-sub { display: none; }
-      .help-slide {
-        flex-direction: column;
-        padding: 14px 16px;
-        gap: 16px;
-      }
-      .help-demo { width: 100%; }
-      .demo-panel { min-height: auto; }
-      .help-nav { padding: 12px 16px 16px; }
-      .help-prev, .help-next { padding: 8px 14px; font-size: 12px; }
-    }
   </style>
 </head>
 <body>
   <header>
     <h1>💬 ptr_29 Chat</h1>
     <div class="header-actions">
+      <a href="/terms.html" class="secondary" style="text-decoration: none; padding: 10px 18px; font-size: 14px; font-weight: 500; border-radius: 8px; border: 1px solid var(--border); background: var(--border); color: var(--text); transition: all 0.15s ease; white-space: nowrap; display: inline-block;">Terms</a>
+      <a href="/privacy.html" class="secondary" style="text-decoration: none; padding: 10px 18px; font-size: 14px; font-weight: 500; border-radius: 8px; border: 1px solid var(--border); background: var(--border); color: var(--text); transition: all 0.15s ease; white-space: nowrap; display: inline-block;">Privacy</a>
       <button id="help-btn" class="secondary" title="How to use">❓</button>
       <button id="theme-toggle" class="secondary" title="Toggle theme">🌙</button>
     </div>
@@ -1341,16 +1367,15 @@
       </div>
       
       <div id="user-section">
+        <div class="mobile-username-row mobile-only">
+          <input id="mobile-username" type="text" placeholder="Your username">
+        </div>
         <div id="user-profile">
           <img id="user-avatar-preview" src="" alt="">
           <div id="user-info">
             <div class="username">Anonymous</div>
             <div class="client-id">Not connected</div>
           </div>
-        </div>
-        <!-- Mobile username input -->
-        <div class="mobile-username-row mobile-only">
-          <input id="mobile-username" type="text" placeholder="Enter username..." style="flex:1; margin-bottom:8px;">
         </div>
         <div class="user-actions">
           <button id="edit-profile-btn" class="secondary">Edit Profile</button>
@@ -1361,14 +1386,14 @@
     
     <section id="chat">
       <div id="room-bar">
-        <!-- Back button: hidden on desktop, shown on mobile via CSS -->
-        <button id="mobile-back-btn" class="mobile-only">← Rooms</button>
+        <button id="mobile-back-btn" type="button" class="mobile-only secondary" aria-label="Back to rooms">← <span>Back</span></button>
         <div id="room-info">
           <span id="room-name-display">#general</span>
           <span id="room-type-tag" class="room-tag">Public</span>
           <span id="room-role-tag" class="room-tag" style="display:none"></span>
         </div>
         <div style="display:flex; gap:8px">
+          <input type="text" id="search-messages-input" placeholder="Search..." style="padding:4px 8px; font-size:12px; width:120px;" autocomplete="off">
           <button id="room-settings-btn" class="secondary">⚙️ <span>Settings</span></button>
           <button id="clear-room-btn" class="secondary">🗑️ <span>Clear</span></button>
           <button id="leave-btn" class="secondary"><span>Leave</span></button>
@@ -1449,10 +1474,13 @@
         <form id="chat-form" autocomplete="off">
           <input id="username" type="text" placeholder="Your username" required>
           <input id="avatar" type="url" placeholder="Avatar URL (optional)" style="display:none">
+          <button type="button" id="emoji-btn" class="secondary" title="Insert emoji">😀</button>
           <input id="text" type="text" placeholder="Type a message..." required autocomplete="off">
+          <button type="button" id="file-btn" class="secondary" title="Send file">📎</button>
           <button type="button" id="image-btn" class="secondary" title="Send image">📷</button>
           <button type="submit" id="send-btn" title="Send message"><span class="send-label">Send</span><span class="send-icon" aria-hidden="true">➤</span></button>
           <input type="file" id="image-file" accept="image/*" style="display:none">
+          <input type="file" id="general-file" accept="*/*" style="display:none">
         </form>
       </div>
     </section>
@@ -1464,6 +1492,23 @@
       <div id="online-list"></div>
     </aside>
   </main>
+
+  <!-- Mobile-only bottom tab bar for switching between Rooms / Chat / Online views -->
+  <nav id="mobile-nav" class="mobile-only">
+    <button type="button" id="mobile-nav-rooms" class="mobile-nav-btn" data-view="rooms">
+      <span class="mobile-nav-icon">🏠</span>
+      <span class="mobile-nav-label">Rooms</span>
+    </button>
+    <button type="button" id="mobile-nav-chat" class="mobile-nav-btn" data-view="chat">
+      <span class="mobile-nav-icon">💬</span>
+      <span class="mobile-nav-label">Chat</span>
+    </button>
+    <button type="button" id="mobile-nav-online" class="mobile-nav-btn" data-view="online">
+      <span class="mobile-nav-icon">🟢</span>
+      <span class="mobile-nav-label">Online</span>
+      <span id="mobile-nav-online-badge" class="mobile-nav-badge" style="display:none">0</span>
+    </button>
+  </nav>
   
   <!-- Create Room Modal -->
   <div id="create-room-modal" class="modal-overlay">
@@ -1498,45 +1543,306 @@
       <p>Are you sure you want to delete your account?</p>
       <div class="modal-actions">
         <button type="button" id="cancel-delete-user" class="secondary">Cancel</button>
-        <button type="button" id="confirm-delete-user" class="danger">Yes, Delete My Account</button>
+        <button id="confirm-delete-user" class="danger">Delete Permanently</button>
       </div>
     </div>
   </div>
   
-  <!-- Delete Room Modal -->
-  <div id="delete-room-modal" class="modal-overlay">
-    <div class="modal">
-      <h3>⚠️ Delete Room</h3>
-      <div class="warning">
-        <strong>Warning:</strong> This will permanently delete the room <strong id="delete-room-name"></strong> and all its messages. This action cannot be undone.
+  <!-- Help Modal -->
+  <div id="help-modal" class="modal-overlay">
+    <div class="help-modal-inner">
+      <div class="help-header">
+        <div class="help-logo">💬</div>
+        <div>
+          <h3 class="help-title">How to Use ptr_29 Chat</h3>
+          <p class="help-sub">A complete guide to all features</p>
+        </div>
+        <button id="help-close-btn" class="help-close">×</button>
       </div>
-      <p>Are you sure you want to delete this room?</p>
-      <div class="modal-actions">
-        <button type="button" id="cancel-delete-room" class="secondary">Cancel</button>
-        <button type="button" id="confirm-delete-room" class="danger">Yes, Delete Room</button>
+      <div id="help-dots" class="help-dots"></div>
+      <div class="help-slides">
+
+        <!-- ── Slide 1: Welcome / Getting Started ── -->
+        <div class="help-slide active">
+          <div class="help-demo">
+            <div class="demo-panel">
+              <div class="demo-label">ptr_29 Chat</div>
+              <div class="demo-profile" style="margin-bottom:14px">
+                <div class="demo-avatar-ring pulse-avatar">
+                  <span class="demo-avatar">😎</span>
+                </div>
+                <div>
+                  <div class="demo-name">YourUsername</div>
+                  <div class="demo-id">ID: a1b2c3d4…</div>
+                </div>
+              </div>
+              <div class="demo-room-list">
+                <div class="demo-room active-room">💬 #general</div>
+                <div class="demo-room"># random</div>
+                <div class="demo-room">🔒 secret-club</div>
+              </div>
+              <div class="demo-passkey-row" style="margin-top:10px">
+                <div class="demo-input flex1" style="font-size:10px;color:var(--text-dim)">Type a message…</div>
+                <div class="demo-btn sm-btn">Send</div>
+              </div>
+            </div>
+          </div>
+          <div class="help-text">
+            <h3>👋 Welcome to ptr_29 Chat</h3>
+            <p>A real-time group chat with public &amp; private rooms, reply threads, image sharing, and full room management — all in your browser.</p>
+            <ul class="help-tips">
+              <li>🖊️ <strong>Set your username</strong> in the bottom-left box before joining</li>
+              <li>🏠 <strong>Click any room</strong> in the sidebar to join it instantly</li>
+              <li>✉️ <strong>Type &amp; press Enter</strong> (or Send) to post a message</li>
+              <li>❓ <strong>This guide</strong> walks you through every feature — use arrows or keyboard ← → to navigate</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ── Slide 2: Setting up your profile ── -->
+        <div class="help-slide">
+          <div class="help-demo">
+            <div class="demo-panel">
+              <div class="demo-label">Edit Profile</div>
+              <div style="margin-bottom:8px;font-size:11px;color:var(--text-dim)">Client ID</div>
+              <div style="font-family:monospace;font-size:10px;color:var(--accent);margin-bottom:12px;background:var(--bg);padding:5px 8px;border-radius:6px;border:1px solid var(--border)">a1b2c3d4-e5f6-…</div>
+              <div style="margin-bottom:6px;font-size:11px;color:var(--text-dim)">Username</div>
+              <div class="demo-input flex1" style="margin-bottom:12px;display:block;color:var(--text)">CoolUser99</div>
+              <div style="margin-bottom:6px;font-size:11px;color:var(--text-dim)">Avatar URL <span style="color:var(--text-dim)">(optional)</span></div>
+              <div class="demo-input flex1" style="margin-bottom:14px;display:block;font-size:9px;color:var(--text-dim)">https://…</div>
+              <div class="demo-btn-row" style="justify-content:flex-end">
+                <div class="demo-btn sm-btn highlight-btn">Save Changes</div>
+              </div>
+              <div class="demo-share-hint">Your ID is permanent — share it so others can add you to private rooms</div>
+            </div>
+          </div>
+          <div class="help-text">
+            <h3>👤 Your Profile</h3>
+            <p>Click <strong>Edit Profile</strong> in the sidebar to set your name and avatar. Your Client ID is unique and permanent — keep it safe.</p>
+            <ul class="help-tips">
+              <li>✏️ <strong>Username</strong> is checked live — you'll see a ✓ when it's available</li>
+              <li>🖼️ <strong>Avatar URL</strong> — paste any image link, or leave blank for an auto-generated avatar</li>
+              <li>🪪 <strong>Client ID</strong> — share this so room owners can grant you access to private rooms</li>
+              <li>🗑️ <strong>Delete Account</strong> removes your profile and all stored data from the server</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ── Slide 3: Rooms ── -->
+        <div class="help-slide">
+          <div class="help-demo">
+            <div class="demo-panel">
+              <div class="demo-label">Rooms</div>
+              <div class="demo-room-list">
+                <div class="demo-room active-room"># general <span style="margin-left:auto;background:rgba(255,255,255,0.2);border-radius:10px;padding:1px 6px;font-size:10px">3</span></div>
+                <div class="demo-room"># random</div>
+                <div class="demo-room">🔒 vip-lounge</div>
+              </div>
+              <div style="margin-top:10px;display:flex;gap:6px">
+                <div class="demo-btn sm-btn highlight-btn">＋ Create</div>
+                <div class="demo-btn sm-btn" style="background:var(--border);color:var(--text)">↻ Refresh</div>
+              </div>
+              <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+                <div style="font-size:10px;color:var(--text-dim);margin-bottom:6px">Join by passkey</div>
+                <div class="demo-passkey-row">
+                  <div class="demo-input sm-input flex1">ABCD-EFGH-IJKL</div>
+                  <div class="demo-btn sm-btn">Join</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="help-text">
+            <h3>🏠 Rooms</h3>
+            <p>All available rooms are listed in the left sidebar. Public rooms are open to everyone. Private rooms require a passkey or invite.</p>
+            <ul class="help-tips">
+              <li>📌 <strong>Click a room</strong> to switch into it — unread count shown in red badge</li>
+              <li>➕ <strong>Create Room</strong> — give it a name and optionally make it private</li>
+              <li>🔒 <strong>Private rooms</strong> — only accessible with a passkey or if the owner adds you</li>
+              <li>🔑 <strong>Join by passkey</strong> — paste the passkey code at the bottom of the sidebar and click Join</li>
+              <li>↻ <strong>Refresh</strong> — manually reload the room list</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ── Slide 4: Messaging ── -->
+        <div class="help-slide">
+          <div class="help-demo">
+            <div class="demo-panel">
+              <div class="demo-label">Chat — #general</div>
+              <div class="demo-chat-panel">
+                <div class="demo-bubble bounce-in" style="animation-delay:0.1s">
+                  <span class="demo-name-sm">Alice</span>
+                  Hey everyone! 👋
+                </div>
+                <div class="demo-bubble bounce-in" style="animation-delay:0.4s">
+                  <span class="demo-name-sm">Bob</span>
+                  <div class="demo-reply-block">↩ Alice: Hey everyone! 👋</div>
+                  Welcome Bob here!
+                </div>
+                <div class="demo-bubble me bounce-in" style="animation-delay:0.7s">
+                  <span class="demo-name-sm" style="color:rgba(255,255,255,0.6)">You</span>
+                  Nice to meet you all 😄
+                </div>
+              </div>
+              <div class="demo-input-row" style="margin-top:8px">
+                <div class="demo-input flex1"><span class="typing-anim">Type here…</span></div>
+                <div class="demo-btn round-btn">📷</div>
+                <div class="demo-btn sm-btn">Send</div>
+              </div>
+            </div>
+          </div>
+          <div class="help-text">
+            <h3>💬 Sending Messages</h3>
+            <p>Type your message in the box at the bottom and press <strong>Enter</strong> or click <strong>Send</strong>. Images can be attached with 📷.</p>
+            <ul class="help-tips">
+              <li>↩️ <strong>Reply</strong> — hover a message and click ↩ to quote it in your reply</li>
+              <li>📋 <strong>Copy</strong> — hover a message and click 📋 to copy its text</li>
+              <li>✏️ <strong>Edit</strong> — you can edit your own messages within 5 minutes of sending</li>
+              <li>🗑️ <strong>Delete</strong> — permanently remove your own messages at any time</li>
+              <li>🖱️ <strong>Right-click</strong> (or long-press on mobile) to open the context menu</li>
+              <li>📷 <strong>Images</strong> — click the camera button to share a photo from your device</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ── Slide 5: Room Settings ── -->
+        <div class="help-slide">
+          <div class="help-demo">
+            <div class="demo-panel">
+              <div class="demo-label">⚙️ Room Settings</div>
+              <div class="demo-settings-row">
+                <span>Rename:</span>
+                <div class="demo-input" style="font-size:10px;padding:3px 7px">my-room</div>
+              </div>
+              <div class="demo-settings-row">
+                <span>Privacy:</span>
+                <div class="demo-toggle on-toggle">🔒 Private</div>
+              </div>
+              <div class="demo-settings-row" style="flex-direction:column;align-items:flex-start;gap:5px">
+                <span>Passkey:</span>
+                <div style="display:flex;gap:5px;width:100%">
+                  <div class="demo-passkey-display">ABCD-1234-WXYZ</div>
+                  <div class="demo-btn sm-btn" style="margin-left:auto">Copy</div>
+                </div>
+                <div class="demo-share-hint">Share this with trusted people</div>
+              </div>
+              <div class="demo-settings-row" style="margin-top:4px">
+                <span>Admins:</span>
+                <div class="demo-chip">Bob <span class="demo-x">×</span></div>
+              </div>
+              <div class="demo-settings-row">
+                <span>Members:</span>
+                <div class="demo-chip">Alice <span class="demo-x">×</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="help-text">
+            <h3>⚙️ Room Settings</h3>
+            <p>Click <strong>⚙️ Settings</strong> in the chat header to manage a room. Only the room owner and admins can make changes.</p>
+            <ul class="help-tips">
+              <li>✏️ <strong>Rename</strong> — give the room a new name (not available for #general)</li>
+              <li>🔒 <strong>Privacy toggle</strong> — switch between public and private</li>
+              <li>🔑 <strong>Passkey</strong> — generate, copy, or clear the room's passkey. Share it so others can join</li>
+              <li>🛡️ <strong>Admins</strong> — add users by Client ID to help manage the room</li>
+              <li>👥 <strong>Members</strong> — grant specific users permanent access to a private room</li>
+              <li>🗑️ <strong>Delete Room</strong> — permanently removes the room and all messages (owner only)</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ── Slide 6: Online Users & Notifications ── -->
+        <div class="help-slide">
+          <div class="help-demo">
+            <div class="demo-panel">
+              <div class="demo-label">🟢 Online Now</div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:14px">😎</div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600">Alice</div>
+                    <div style="font-size:10px;color:var(--text-dim)">in #general</div>
+                  </div>
+                  <div style="width:8px;height:8px;background:#16a34a;border-radius:50%;margin-left:auto"></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#dc2626,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:14px">🎮</div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600">Bob</div>
+                    <div style="font-size:10px;color:var(--text-dim)">in #random</div>
+                  </div>
+                  <div style="width:8px;height:8px;background:#16a34a;border-radius:50%;margin-left:auto"></div>
+                </div>
+              </div>
+              <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px">
+                <div style="font-size:10px;color:var(--text-dim);margin-bottom:6px">🔔 Room info banner</div>
+                <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:10px;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap">
+                  <span>👑 Owner: Alice</span>
+                  <span>·</span>
+                  <span>👥 Users: 2</span>
+                  <span>·</span>
+                  <span>🛡 Admins: 1</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="help-text">
+            <h3>🟢 Online Users &amp; Info</h3>
+            <p>The right panel shows everyone currently online and which room they're in. The info banner at the top of the chat area shows key room details.</p>
+            <ul class="help-tips">
+              <li>👁️ <strong>Online panel</strong> — see all connected users and their current room in real time</li>
+              <li>🔔 <strong>Room info banner</strong> — shows owner, live user count, and admin count at a glance</li>
+              <li>📬 <strong>Unread badges</strong> — red numbers on rooms you haven't read yet</li>
+              <li>💡 <strong>Click "View Info"</strong> in the banner to jump straight to the settings panel</li>
+              <li>⌨️ <strong>Typing indicator</strong> — see when someone else is typing in real time</li>
+              <li>🖼️ <strong>Click any image</strong> in chat to view it full-screen in the lightbox</li>
+            </ul>
+          </div>
+        </div>
+
+      </div><!-- /help-slides -->
+      <div class="help-nav">
+        <button id="help-prev" class="help-prev">← Previous</button>
+        <span id="help-step-counter" class="help-step-counter">1 / 6</span>
+        <button id="help-next" class="help-next">Next →</button>
       </div>
     </div>
   </div>
   
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Lightbox for viewing images full-screen -->
+  <div id="lightbox" class="lightbox">
+    <img id="lightbox-img" src="" alt="">
+  </div>
+
+  <!-- Right-click / long-press context menu for messages -->
+  <div id="context-menu" class="context-menu"></div>
+
   <!-- Edit Profile Modal -->
   <div id="edit-profile-modal" class="modal-overlay">
     <div class="modal">
       <h3>Edit Profile</h3>
       <form id="edit-profile-form">
         <div style="margin-bottom:16px">
+          <label style="display:block; margin-bottom:8px; color:var(--text-muted); font-size:13px">Client ID</label>
+          <div style="display:flex; gap:8px; align-items:center">
+            <span id="edit-client-id" style="flex:1; font-family:monospace; font-size:12px; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap"></span>
+            <button type="button" id="copy-client-id-btn" class="secondary">Copy</button>
+          </div>
+        </div>
+        <div style="margin-bottom:16px">
           <label style="display:block; margin-bottom:8px; color:var(--text-muted); font-size:13px">Username</label>
-          <input type="text" id="edit-username" required style="width:100%">
+          <input type="text" id="edit-username" placeholder="Your username" required style="width:100%">
         </div>
         <div style="margin-bottom:16px">
           <label style="display:block; margin-bottom:8px; color:var(--text-muted); font-size:13px">Avatar URL</label>
-          <input type="url" id="edit-avatar" placeholder="https://example.com/avatar.png" style="width:100%">
+          <input type="url" id="edit-avatar" placeholder="https://... (optional)" style="width:100%">
         </div>
-        <div style="margin-bottom:16px; padding:12px; background:var(--panel); border-radius:8px; border:1px solid var(--border)">
-          <label style="display:block; margin-bottom:6px; color:var(--text-muted); font-size:12px">🆔 Your Client ID <small>(Share this to be added as admin/member)</small></label>
-          <div style="display:flex; gap:8px; align-items:center">
-            <code id="edit-client-id" style="flex:1; font-family:monospace; font-size:13px; color:var(--text); word-break:break-all; background:var(--bg); padding:8px 10px; border-radius:6px; border:1px solid var(--border-light)"></code>
-            <button type="button" id="copy-client-id-btn" style="white-space:nowrap; padding:8px 14px; font-size:12px">Copy</button>
-          </div>
+        <div style="margin-bottom:16px">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size: 13px;">
+            <input type="checkbox" id="edit-terms" required>
+            <span>I agree to the <a href="/terms.html" target="_blank" style="color:var(--accent); text-decoration:none;">Terms and Conditions</a></span>
+          </label>
         </div>
         <div class="modal-actions">
           <button type="button" id="cancel-edit-profile" class="secondary">Cancel</button>
@@ -1545,207 +1851,22 @@
       </form>
     </div>
   </div>
-  
-  <!-- Context Menu -->
-  <div id="context-menu" class="context-menu">
-    <button data-action="reply">↩️ Reply</button>
-    <button data-action="copy">📋 Copy Text</button>
-    <button data-action="edit">✏️ Edit</button>
-    <button data-action="delete" class="danger">🗑️ Delete</button>
-  </div>
-  
-  <!-- Lightbox -->
-  <div id="lightbox" class="lightbox">
-    <img id="lightbox-img" alt="Preview">
-  </div>
-  
-  <!-- Toast Container -->
-  <div id="toast-container" class="toast-container"></div>
 
-  <!-- Help Modal -->
-  <div id="help-modal" class="modal-overlay">
-    <div class="help-modal-inner">
-      <div class="help-header">
-        <div class="help-logo">💬</div>
-        <div>
-          <h2 class="help-title">How to use ptr_29 Chat</h2>
-          <p class="help-sub">Step through the guide below</p>
-        </div>
-        <button id="help-close-btn" class="help-close">✕</button>
+  <!-- Delete Room Modal -->
+  <div id="delete-room-modal" class="modal-overlay">
+    <div class="modal">
+      <h3>⚠️ Delete Room</h3>
+      <div class="warning">
+        <strong>Warning:</strong> This action cannot be undone. All messages in this room will be permanently deleted.
       </div>
-
-      <!-- Step dots -->
-      <div class="help-dots" id="help-dots"></div>
-
-      <!-- Slides -->
-      <div class="help-slides" id="help-slides">
-
-        <!-- 1: Set your profile -->
-        <div class="help-slide active" data-step="1">
-          <div class="help-demo">
-            <div class="demo-panel">
-              <div class="demo-label">Sidebar → bottom</div>
-              <div class="demo-profile">
-                <div class="demo-avatar-ring">
-                  <div class="demo-avatar pulse-avatar">🙂</div>
-                </div>
-                <div>
-                  <div class="demo-name typing-anim">YourName</div>
-                  <div class="demo-id">ID: abc123de-f456-7890-abcd-ef1234567890</div>
-                </div>
-              </div>
-              <div class="demo-btn-row">
-                <div class="demo-btn highlight-btn">Edit Profile</div>
-              </div>
-            </div>
-          </div>
-          <div class="help-text">
-            <h3>① Set your profile</h3>
-            <p>At the bottom of the <strong>Rooms</strong> sidebar, tap <strong>Edit Profile</strong> to choose a username and avatar URL. The app checks in real-time that your chosen name isn't already taken.</p>
-            <ul class="help-tips">
-              <li>🆔 <strong>Your Client ID</strong> is a unique identifier. Share it with room owners so they can add you as an admin or member.</li>
-              <li>🔤 Username must be 2–50 characters</li>
-              <li>🖼️ Paste any image URL for a custom avatar</li>
-              <li>✅ A green tick means the name is free</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- 2: Join a room -->
-        <div class="help-slide" data-step="2">
-          <div class="help-demo">
-            <div class="demo-panel">
-              <div class="demo-label">Rooms sidebar</div>
-              <div class="demo-room-list">
-                <div class="demo-room active-room"># general</div>
-                <div class="demo-room bounce-in" style="animation-delay:0.4s">🔒 secret</div>
-                <div class="demo-room bounce-in" style="animation-delay:0.7s"># lounge</div>
-              </div>
-              <div class="demo-passkey-row">
-                <div class="demo-input">ABCD-1234-XY</div>
-                <div class="demo-btn sm-btn">Join</div>
-              </div>
-            </div>
-          </div>
-          <div class="help-text">
-            <h3>② Browse &amp; join rooms</h3>
-            <p>The sidebar lists all rooms you can see. Tap any room to open it. Public rooms (# prefix) are open to everyone. Private rooms (🔒) need a passkey.</p>
-            <ul class="help-tips">
-              <li>➕ Create rooms with the <strong>＋</strong> button</li>
-              <li>🔑 Enter a passkey in the sidebar to join private rooms</li>
-              <li>📱 On mobile, tap a room to slide into chat</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- 3: Send messages -->
-        <div class="help-slide" data-step="3">
-          <div class="help-demo">
-            <div class="demo-panel demo-chat-panel">
-              <div class="demo-bubble other slide-up" style="animation-delay:0.1s">
-                <span class="demo-name-sm">zane</span>hey! 👋
-              </div>
-              <div class="demo-bubble me slide-up" style="animation-delay:0.5s">
-                sup
-              </div>
-              <div class="demo-bubble other slide-up" style="animation-delay:0.9s">
-                <span class="demo-name-sm">zane</span>
-                <div class="demo-reply-block">↩ you · sup</div>
-                nice one
-              </div>
-              <div class="demo-input-row">
-                <div class="demo-input flex1 typing-cursor">Type a message…</div>
-                <div class="demo-btn round-btn">➤</div>
-              </div>
-            </div>
-          </div>
-          <div class="help-text">
-            <h3>③ Messaging</h3>
-            <p>Type in the input bar and press <strong>Send</strong> (or Enter). Your messages appear on the right in blue; others on the left.</p>
-            <ul class="help-tips">
-              <li>↩ <strong>Hover/tap</strong> a message to reveal Reply, Copy, Edit, Delete buttons</li>
-              <li>✏️ You can edit your own messages within 5 minutes</li>
-              <li>📷 Tap the camera icon to send an image (max 10 MB)</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- 4: Private rooms & passkeys -->
-        <div class="help-slide" data-step="4">
-          <div class="help-demo">
-            <div class="demo-panel">
-              <div class="demo-label">Room Settings ⚙️</div>
-              <div class="demo-settings-row">
-                <span class="demo-setting-label">Privacy</span>
-                <div class="demo-toggle on-toggle">Private ✓</div>
-              </div>
-              <div class="demo-settings-row">
-                <span class="demo-setting-label">Passkey</span>
-                <div class="demo-passkey-display flash-in">ZXKQ-8821-MN</div>
-              </div>
-              <div class="demo-btn-row" style="margin-top:8px">
-                <div class="demo-btn sm-btn">Generate</div>
-                <div class="demo-btn sm-btn">Copy</div>
-              </div>
-              <div class="demo-share-hint">Share this key with friends →</div>
-            </div>
-          </div>
-          <div class="help-text">
-            <h3>④ Private rooms &amp; passkeys</h3>
-            <p>In <strong>⚙️ Settings</strong>, toggle a room to <strong>Private</strong>, then generate a passkey. Share that key with anyone you want to invite — they paste it in the sidebar to join.</p>
-            <ul class="help-tips">
-              <li>🔐 Passkeys are saved so you don't re-enter them</li>
-              <li>👁️ Private rooms only appear to members</li>
-              <li>🔄 You can change or clear the passkey any time</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- 5: Admin & members -->
-        <div class="help-slide" data-step="5">
-          <div class="help-demo">
-            <div class="demo-panel">
-              <div class="demo-label">Room Info</div>
-              <div class="demo-info-row">
-                <span>👑 Owner</span><span class="demo-chip">dan</span>
-              </div>
-              <div class="demo-info-row">
-                <span>🛡 Admins</span>
-                <span class="demo-chip">sam <span class="demo-x">×</span></span>
-              </div>
-              <div class="demo-info-row" style="margin-top:6px">
-                <span>👥 Members</span>
-                <span class="demo-chip">zane <span class="demo-x">×</span></span>
-              </div>
-              <div class="demo-add-row">
-                <div class="demo-input sm-input">Client ID…</div>
-                <div class="demo-btn sm-btn">+ Add</div>
-              </div>
-            </div>
-          </div>
-          <div class="help-text">
-            <h3>⑤ Admins &amp; members</h3>
-            <p>As the room <strong>Owner</strong>, open <strong>⚙️ Settings → View Info</strong> to add or remove admins and members by their Client ID. Admins can manage the room but can never remove the owner.</p>
-            <ul class="help-tips">
-              <li>🆔 Your Client ID is shown under your username</li>
-              <li>🛡 Admins can delete rooms, clear messages, add members</li>
-              <li>👥 Members have access to private rooms without a passkey</li>
-            </ul>
-          </div>
-        </div>
-
-      </div><!-- /help-slides -->
-
-      <!-- Navigation -->
-      <div class="help-nav">
-        <button class="help-prev secondary" id="help-prev">← Back</button>
-        <span class="help-step-counter" id="help-step-counter">1 / 5</span>
-        <button class="help-next" id="help-next">Next →</button>
+      <p>Delete room "<strong id="delete-room-name"></strong>"?</p>
+      <div class="modal-actions">
+        <button type="button" id="cancel-delete-room" class="secondary">Cancel</button>
+        <button id="confirm-delete-room" class="danger">Delete Permanently</button>
       </div>
     </div>
   </div>
-
   <script src="/socket.io/socket.io.js"></script>
-  <script src="./client.js" defer></script>
+  <script src="/client.js"></script>
 </body>
 </html>

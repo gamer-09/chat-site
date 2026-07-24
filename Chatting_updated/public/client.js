@@ -73,6 +73,11 @@
     toastContainer:   document.getElementById('toast-container'),
   };
 
+  // Check for critical missing elements
+  if (!elements.messages || !elements.form || !elements.username || !elements.text) {
+    console.error('Critical DOM elements missing. Chat functionality may not work.');
+  }
+
   // ── State ──────────────────────────────────────────────────────────────────
   const state = {
     currentRoom: 'general',
@@ -173,8 +178,8 @@
       return data;
     },
 
-    save: (username, avatar) => {
-      const data = { username, avatar };
+    save: (username, avatar, termsAgreed = true) => {
+      const data = { username, avatar, termsAgreed };
       utils.saveToStorage(CONSTANTS.STORAGE_KEY, data);
       profile.updateUI(username, avatar, state.myClientId);
       return data;
@@ -183,11 +188,11 @@
     updateUI: (username, avatar, clientId) => {
       const seed = encodeURIComponent(username || 'Anonymous');
       const avatarUrl = avatar || `${CONSTANTS.DEFAULT_AVATAR}${seed}`;
-      elements.userAvatarPreview.src = avatarUrl;
-      elements.userUsername.textContent = username || 'Anonymous';
-      elements.userClientId.textContent = clientId ? `ID: ${clientId.slice(0, 16)}…` : 'Not connected';
-      elements.editUsername.value = username || '';
-      elements.editAvatar.value   = avatar   || '';
+      if (elements.userAvatarPreview) elements.userAvatarPreview.src = avatarUrl;
+      if (elements.userUsername) elements.userUsername.textContent = username || 'Anonymous';
+      if (elements.userClientId) elements.userClientId.textContent = clientId ? `ID: ${clientId.slice(0, 16)}…` : 'Not connected';
+      if (elements.editUsername) elements.editUsername.value = username || '';
+      if (elements.editAvatar) elements.editAvatar.value = avatar || '';
       if (elements.mobileUsername) elements.mobileUsername.value = username || '';
     },
 
@@ -226,7 +231,7 @@
     },
 
     // Validate then save; returns a Promise<boolean>
-    validateAndSave: (username, avatar) => new Promise((resolve) => {
+    validateAndSave: (username, avatar, termsAgreed = true) => new Promise((resolve) => {
       const val = String(username || '').trim();
       if (!val || val.length < 2) {
         showToast('Username must be at least 2 characters', 'error');
@@ -237,7 +242,7 @@
           showToast('Username already taken — please choose another', 'error');
           return resolve(false);
         }
-        profile.save(val, avatar);
+        profile.save(val, avatar, termsAgreed);
         resolve(true);
       });
     }),
@@ -268,6 +273,7 @@
     fetch: () => socket.emit('list-rooms'),
 
     render: () => {
+      if (!elements.roomList) return;
       elements.roomList.innerHTML = '';
       state.rooms.forEach(roomData => {
         const el = document.createElement('div');
@@ -568,6 +574,7 @@
   // ── Messages ───────────────────────────────────────────────────────────────
   const messages = {
     render: (msg, prepend = false) => {
+      if (!elements.messages) return;
       const isMe = msg.clientId === state.myClientId;
       const el = document.createElement('div');
       el.className = `msg${isMe ? ' me' : ''}`;
@@ -727,6 +734,7 @@
   // ── Online users ───────────────────────────────────────────────────────────
   const online = {
     update: (users) => {
+      if (!elements.onlineList) return;
       elements.onlineList.innerHTML = '';
       (users || []).forEach(user => {
         const seed = encodeURIComponent(user.username || 'Anonymous');
@@ -790,7 +798,7 @@
 
     'history': (data) => {
       if (data.room !== state.currentRoom) return;
-      elements.messages.innerHTML = '';
+      if (elements.messages) elements.messages.innerHTML = '';
       data.messages.forEach(msg => messages.render(msg));
     },
 
@@ -924,40 +932,58 @@
     });
 
     // Send message
-    elements.form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const text = elements.text.value.trim();
-      if (text) { 
-        messages.send(text); 
-        elements.text.value = ''; 
-      }
-    });
+    if (elements.form) {
+      elements.form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = elements.text ? elements.text.value.trim() : '';
+        if (text) {
+          messages.send(text);
+          if (elements.text) elements.text.value = '';
+        }
+      });
+    }
 
     // Typing indicator
-    elements.text.addEventListener('input', () => {
-      if (!state.joined) return;
-      socket.emit('typing', { isTyping: true });
-      clearTimeout(state.typingTimer);
-      state.typingTimer = setTimeout(() => socket.emit('typing', { isTyping: false }), 2000);
-    });
+    if (elements.text) {
+      elements.text.addEventListener('input', () => {
+        if (!state.joined) return;
+        socket.emit('typing', { isTyping: true });
+        clearTimeout(state.typingTimer);
+        state.typingTimer = setTimeout(() => socket.emit('typing', { isTyping: false }), 2000);
+      });
+    }
 
     // Username live check (main sidebar input)
-    elements.username.addEventListener('input', () =>
-      profile.checkUsername(elements.username, elements.username.value));
+    if (elements.username) {
+      elements.username.addEventListener('input', () =>
+        profile.checkUsername(elements.username, elements.username.value));
+    }
 
-    elements.username.addEventListener('change', async () => {
-      const val = elements.username.value.trim();
-      if (!val) return;
-      const ok = await profile.validateAndSave(val, elements.avatar.value);
-      if (ok && state.joined) {
-        socket.emit('update-profile', {
-          room: state.currentRoom, clientId: state.myClientId,
-          username: val, avatar: elements.avatar.value,
-        });
-      }
-      // Sync mobile input
-      if (elements.mobileUsername) elements.mobileUsername.value = val;
-    });
+    if (elements.username) {
+      elements.username.addEventListener('change', async () => {
+        const val = elements.username.value.trim();
+        if (!val) return;
+        const data = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
+        if (!data.termsAgreed) {
+          elements.username.value = data.username || '';
+          elements.editUsername.value = val;
+          elements.editClientId.textContent = state.myClientId || '';
+          document.querySelector('#edit-profile-modal h3').textContent = 'Create Account';
+          modals.open(elements.editProfileModal);
+          showToast('Please agree to the Terms and Conditions to create an account.', 'info');
+          return;
+        }
+        const ok = await profile.validateAndSave(val, elements.avatar ? elements.avatar.value : '', data.termsAgreed);
+        if (ok && state.joined) {
+          socket.emit('update-profile', {
+            room: state.currentRoom, clientId: state.myClientId,
+            username: val, avatar: elements.avatar ? elements.avatar.value : '',
+          });
+        }
+        // Sync mobile input
+        if (elements.mobileUsername) elements.mobileUsername.value = val;
+      });
+    }
 
     // Mobile username input (sidebar on mobile view)
     if (elements.mobileUsername) {
@@ -967,42 +993,62 @@
       elements.mobileUsername.addEventListener('change', async () => {
         const val = elements.mobileUsername.value.trim();
         if (!val) return;
-        const ok = await profile.validateAndSave(val, elements.avatar.value);
+        const data = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
+        if (!data.termsAgreed) {
+          elements.mobileUsername.value = data.username || '';
+          elements.editUsername.value = val;
+          elements.editClientId.textContent = state.myClientId || '';
+          document.querySelector('#edit-profile-modal h3').textContent = 'Create Account';
+          modals.open(elements.editProfileModal);
+          showToast('Please agree to the Terms and Conditions to create an account.', 'info');
+          return;
+        }
+        const ok = await profile.validateAndSave(val, elements.avatar ? elements.avatar.value : '', data.termsAgreed);
         if (ok && state.joined) {
           socket.emit('update-profile', {
             room: state.currentRoom, clientId: state.myClientId,
-            username: val, avatar: elements.avatar.value,
+            username: val, avatar: elements.avatar ? elements.avatar.value : '',
           });
         }
         // Sync desktop input
-        elements.username.value = val;
+        if (elements.username) elements.username.value = val;
       });
     }
 
     // Image upload
-    elements.imageBtn.addEventListener('click', () => elements.imageFile.click());
-    elements.imageFile.addEventListener('change', async () => {
-      const file = elements.imageFile.files?.[0];
-      if (!file) return;
-      if (!file.type?.startsWith('image/')) { showToast('Please select an image file', 'error'); return; }
-      if (file.size > 10 * 1024 * 1024) { showToast('Image too large (max 10MB)', 'error'); return; }
-      const reader = new FileReader();
-      reader.onload = () => { messages.sendImage(reader.result, file.name); elements.imageFile.value = ''; };
-      reader.readAsDataURL(file);
-    });
+    if (elements.imageBtn && elements.imageFile) {
+      elements.imageBtn.addEventListener('click', () => elements.imageFile.click());
+      elements.imageFile.addEventListener('change', async () => {
+        const file = elements.imageFile.files?.[0];
+        if (!file) return;
+        if (!file.type?.startsWith('image/')) { showToast('Please select an image file', 'error'); return; }
+        if (file.size > 10 * 1024 * 1024) { showToast('Image too large (max 10MB)', 'error'); return; }
+        const reader = new FileReader();
+        reader.onload = () => { messages.sendImage(reader.result, file.name); elements.imageFile.value = ''; };
+        reader.readAsDataURL(file);
+      });
+    }
 
     // Room sidebar
-    elements.createRoomBtn.addEventListener('click', () => modals.open(elements.createRoomModal));
-    elements.refreshRoomsBtn.addEventListener('click', rooms.fetch);
+    if (elements.createRoomBtn && elements.createRoomModal) {
+      elements.createRoomBtn.addEventListener('click', () => modals.open(elements.createRoomModal));
+    }
+    if (elements.refreshRoomsBtn) {
+      elements.refreshRoomsBtn.addEventListener('click', rooms.fetch);
+    }
 
-    elements.createRoomForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      rooms.create(elements.createRoomName.value, elements.createRoomPrivate.checked);
-    });
-    elements.cancelCreateRoomBtn.addEventListener('click', () => {
-      modals.close(elements.createRoomModal);
-      elements.createRoomForm.reset();
-    });
+    if (elements.createRoomForm && elements.createRoomName && elements.createRoomPrivate) {
+      elements.createRoomForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        rooms.create(elements.createRoomName.value, elements.createRoomPrivate.checked);
+      });
+    }
+    if (elements.cancelCreateRoomBtn && elements.createRoomModal && elements.createRoomForm) {
+      elements.cancelCreateRoomBtn.addEventListener('click', () => {
+        modals.close(elements.createRoomModal);
+        elements.createRoomForm.reset();
+      });
+    }
 
     elements.leaveBtn.addEventListener('click', () => {
       socket.emit('leave', { room: state.currentRoom });
@@ -1087,6 +1133,12 @@
     // Edit profile
     elements.editProfileBtn.addEventListener('click', () => {
       elements.editClientId.textContent = state.myClientId || '';
+      const data = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
+      document.querySelector('#edit-profile-modal h3').textContent = data.username ? 'Edit Profile' : 'Create Account';
+      const termsCheckbox = document.getElementById('edit-terms');
+      if (termsCheckbox) {
+        termsCheckbox.checked = !!data.termsAgreed;
+      }
       modals.open(elements.editProfileModal);
     });
     elements.cancelEditProfileBtn.addEventListener('click', () => modals.close(elements.editProfileModal));
@@ -1107,8 +1159,16 @@
       e.preventDefault();
       const newUsername = elements.editUsername.value.trim();
       const newAvatar   = elements.editAvatar.value;
+      const termsCheckbox = document.getElementById('edit-terms');
+      const termsAgreed = termsCheckbox ? termsCheckbox.checked : true;
+
       if (!newUsername) return;
-      const ok = await profile.validateAndSave(newUsername, newAvatar);
+      if (termsCheckbox && !termsAgreed) {
+        showToast('You must agree to the Terms and Conditions to create an account.', 'error');
+        return;
+      }
+
+      const ok = await profile.validateAndSave(newUsername, newAvatar, termsAgreed);
       if (!ok) return;
       elements.username.value = newUsername;
       elements.avatar.value   = newAvatar;
@@ -1208,56 +1268,97 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // MOBILE SUPPORT - Dynamically loaded for ≤640px screens
+  // MOBILE SUPPORT - Dynamically loaded for ≤640px screens.
+  // Turns the 3-pane desktop layout into 3 tabs (Rooms / Chat / Online)
+  // switched via the bottom nav bar, driven by body.ptr29-view-* classes.
   // ═══════════════════════════════════════════════════════════════════════════
-  const initMobile = () => {
-    const isMobile = window.matchMedia('(max-width: 640px)').matches;
-    if (!isMobile) return;
+  const MOBILE_BREAKPOINT = '(max-width: 640px)';
+  let mobileInitialized = false;
+  let currentMobileView = 'rooms';
 
-    // Add mobile classes to body
+  const setMobileView = (view) => {
+    currentMobileView = view;
+    document.body.classList.remove('ptr29-view-rooms', 'ptr29-view-chat', 'ptr29-view-online');
+    document.body.classList.add(`ptr29-view-${view}`);
+    document.querySelectorAll('.mobile-nav-btn').forEach(btn =>
+      btn.classList.toggle('active', btn.dataset.view === view));
+  };
+
+  const loadMobileStyles = () => new Promise((resolve) => {
+    if (document.getElementById('ptr29-mobile-styles')) return resolve();
+    const link = document.createElement('link');
+    link.id = 'ptr29-mobile-styles';
+    link.rel = 'stylesheet';
+    link.href = '/mobile.css';
+    link.onload = () => resolve();
+    link.onerror = () => resolve();
+    document.head.appendChild(link);
+  });
+
+  const enableMobile = async () => {
     document.body.classList.add('ptr29-mobile');
+    await loadMobileStyles();
+    setMobileView(state.joined ? 'chat' : 'rooms');
 
-    // Load mobile CSS if not already loaded
-    if (!document.getElementById('ptr29-mobile-styles')) {
-      const link = document.createElement('link');
-      link.id = 'ptr29-mobile-styles';
-      link.rel = 'stylesheet';
-      link.href = '/mobile.css';
-      document.head.appendChild(link);
-    }
+    if (mobileInitialized) return;
+    mobileInitialized = true;
 
-    // Mobile back button handler
+    // Bottom nav tab clicks
+    document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => setMobileView(btn.dataset.view));
+    });
+
+    // Back button (visible only in chat view) returns to the room list
     const backBtn = document.getElementById('mobile-back-btn');
     if (backBtn) {
       backBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        document.body.classList.remove('ptr29-chat-view');
+        setMobileView('rooms');
       });
     }
 
-    // Handle room clicks - switch to chat view
+    // After successfully joining a room, jump straight to the chat view
     const originalJoin = rooms.join;
     rooms.join = (roomName, passkey) => {
       const result = originalJoin(roomName, passkey);
-      // After successful join, show chat view on mobile
-      if (state.joined) {
-        document.body.classList.add('ptr29-chat-view');
+      if (state.joined && document.body.classList.contains('ptr29-mobile')) {
+        setMobileView('chat');
       }
       return result;
     };
 
-    // Handle leave - switch back to rooms view
+    // Leaving a room sends you back to the room list
     const originalLeave = socketHandlers.leave;
     socketHandlers.leave = (data) => {
-      document.body.classList.remove('ptr29-chat-view');
+      if (document.body.classList.contains('ptr29-mobile')) setMobileView('rooms');
       if (originalLeave) originalLeave(data);
     };
 
-    // Listen for resize to add/remove mobile class
-    window.addEventListener('resize', () => {
-      const isMobileNow = window.matchMedia('(max-width: 640px)').matches;
-      document.body.classList.toggle('ptr29-mobile', isMobileNow);
-    });
+    // Keep the Online tab badge in sync with the online users list
+    const originalOnlineUpdate = online.update;
+    online.update = (users) => {
+      originalOnlineUpdate(users);
+      const badge = document.getElementById('mobile-nav-online-badge');
+      if (badge) {
+        const count = (users || []).length;
+        badge.textContent = count > 99 ? '99+' : String(count);
+        badge.style.display = count > 0 ? 'flex' : 'none';
+      }
+    };
+  };
+
+  const disableMobile = () => {
+    document.body.classList.remove('ptr29-mobile', 'ptr29-view-rooms', 'ptr29-view-chat', 'ptr29-view-online');
+  };
+
+  const initMobile = () => {
+    const mq = window.matchMedia(MOBILE_BREAKPOINT);
+    const sync = () => { if (mq.matches) enableMobile(); else disableMobile(); };
+    sync();
+    // addEventListener('change', ...) is the modern API; addListener is the
+    // Safari <14 fallback some ptr_29 users still run.
+    if (mq.addEventListener) mq.addEventListener('change', sync);
+    else if (mq.addListener) mq.addListener(sync);
   };
 
   init();

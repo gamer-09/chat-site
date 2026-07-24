@@ -1,7 +1,302 @@
 {
   "rooms": {
     "general": {
-      "messages": [],
+      "messages": [
+        {
+          "id": "1782240968158-lyEXnu4oDXrvkemSAAAH",
+          "room": "general",
+          "userId": "lyEXnu4oDXrvkemSAAAH",
+          "clientId": "8835fdd1-f5d3-4a80-b519-befc5914fdc2",
+          "username": "danny",
+          "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=danny",
+          "message": "the mobile view of this site is not that good for now so it is best to use laptop",
+          "timestamp": 1782240968158,
+          "readBy": [
+            {
+              "userId": "lyEXnu4oDXrvkemSAAAH",
+              "username": "danny",
+              "at": 1782240968158
+            },
+            {
+              "userId": "0VCEor6Hp_G45_6UAAAB",
+              "username": "Sammy",
+              "at": 1784221434297
+            },
+            {
+              "userId": "kik2cWAkA8tnwXtZAAAF",
+              "username": "andy",
+              "at": 1784283327984
+            },
+            {
+              "userId": "qmUxZ3PzNbHMHcOYAAAH",
+              "username": "andy",
+              "at": 1784283416700
+            },
+            {
+              "userId": "HKqM6dGHtG8oaUj8AAAB",
+              "username": "Sammy",
+              "at": 1784467972713
+            },
+            {
+              "userId": "soZADToRiUQD7rT3AAAD",
+              "username": "Sammy",
+              "at": 1784468019241
+            },
+            {
+              "userId": "DKBIIqjzUuHvi-VTAAAF",
+              "username": "as",
+              "at": 1784468079972
+            },
+            {
+              "userId": "0xsmBgfNn844tcY4AAAJ",
+              "username": "Sammy",
+              "at": 1784468453153
+            },
+            {
+              "userId": "1qfhyiIywC949INdAAAB",
+              "username": "Sammy",
+              "at": 1784468750626
+            },
+            {
+              "userId": "9i5fXR5ek63a_e4oAAAD",
+              "username": "lfu",
+              "at": 1784468951711
+            },
+            {
+              "userId": "Qky2StdCx9M3KzC8AAAF",
+              "username": "lfu",
+              "at": 1784469272176
+            },
+            {
+              "userId": "i1anB3QZkRwHOXzIAAAJ",
+              "username": "lfu",
+              "at": 1784469629090
+            },
+            {
+              "userId": "8WF7r9DfZ40JU9FEAAAN",
+              "username": "lfu",
+              "at": 1784469677214
+            },
+            {
+              "userId": "P2Lm3y7X9uTOXI1GAAAF",
+              "username": "Sammy",
+              "at": 1784470459838
+            },
+            {
+              "userId": "gDmphaw_NbQbcaNXAAAI",
+              "username": "sd",
+              "at": 1784470829183
+            },
+            {
+              "userId": "hAJQcvQiDd_cTuDSAAAB",
+              "username": "mn",
+              "at": 1784488200016
+            },
+            {
+              "userId": "3s6GcHH3YgrDnPIQAAAF",
+              "username": "ok",
+              "at": 1784488421610
+            },
+            {
+              "userId": "d6m-MXS7L5--XTdhAAAH",
+              "username": "ok",
+              "at": 1784488639026
+            },
+            {
+              "userId": "AH7gfSQDM_Ej_9AKAAAL",
+              "username": "shj",
+              "at": 1784489118019
+            },
+            {
+              "userId": "PWvhrTlINNoSZWncAAAN",
+              "username": "Sammy",
+              "at": 1784489157552
+            },
+            {
+              "userId": "4bEShynJW_I8JTXEAAAB",
+              "username": "saa",
+              "at": 1784892865810
+            },
+            {
+              "userId": "yQy5iC3kLePzR3f5AAAH",
+              "username": "saa",
+              "at": 1784893385936
+            },
+            {
+              "userId": "1jMWlqb8IvLLwHjqAAAi",
+              "username": "shj",
+              "at": 1784898405814
+            },
+            {
+              "userId": "dChJcfRXgeutXop1AAAm",
+              "username": "shj",
+              "at": 1784898418741
+            },
+            {
+              "userId": "F8eUfb-R2BNJ-tshAAAo",
+              "username": "shj",
+              "at": 1784899295578
+            },
+            {
+              "userId": "82qfXgFn7gfXe_z5AAAt",
+              "username": "shj",
+              "at": 1784899971781
+            },
+            {
+              "userId": "_EP_9BUs2ZoSZ3duAAA2",
+              "username": "shj",
+              "at": 1784900960029
+            },
+            {
+              "userId": "DQBOSyVcCQAI6ppjAABL",
+              "username": "ko",
+              "at": 1784902715423
+            },
+            {
+              "userId": "w3p3b091BcaLpjy6AABT",
+              "username": "ko",
+              "at": 1784910572697
+            },
+            {
+              "userId": "jdrbK0sfg17lHqg0AABo",
+              "username": "ko",
+              "at": 1784916827078
+            },
+            {
+              "userId": "W2zSqthAVDy6KfmTAABs",
+              "username": "ko",
+              "at": 1784919268989
+            }
+          ]
+        },
+        {
+          "id": "1784221504843-0VCEor6Hp_G45_6UAAAB",
+          "room": "general",
+          "userId": "0VCEor6Hp_G45_6UAAAB",
+          "clientId": "e1e9077a-2f8b-4451-825e-aa9fac0a962e",
+          "username": "Sammy",
+          "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=Sammy",
+          "message": "Ok i think mobile view is good for now",
+          "timestamp": 1784221504843,
+          "readBy": [
+            {
+              "userId": "0VCEor6Hp_G45_6UAAAB",
+              "username": "Sammy",
+              "at": 1784221504843
+            },
+            {
+              "userId": "kik2cWAkA8tnwXtZAAAF",
+              "username": "andy",
+              "at": 1784283327992
+            },
+            {
+              "userId": "qmUxZ3PzNbHMHcOYAAAH",
+              "username": "andy",
+              "at": 1784283416709
+            },
+            {
+              "userId": "DKBIIqjzUuHvi-VTAAAF",
+              "username": "as",
+              "at": 1784468079976
+            },
+            {
+              "userId": "9i5fXR5ek63a_e4oAAAD",
+              "username": "lfu",
+              "at": 1784468951717
+            },
+            {
+              "userId": "Qky2StdCx9M3KzC8AAAF",
+              "username": "lfu",
+              "at": 1784469272181
+            },
+            {
+              "userId": "i1anB3QZkRwHOXzIAAAJ",
+              "username": "lfu",
+              "at": 1784469629097
+            },
+            {
+              "userId": "8WF7r9DfZ40JU9FEAAAN",
+              "username": "lfu",
+              "at": 1784469677220
+            },
+            {
+              "userId": "gDmphaw_NbQbcaNXAAAI",
+              "username": "sd",
+              "at": 1784470829196
+            },
+            {
+              "userId": "hAJQcvQiDd_cTuDSAAAB",
+              "username": "mn",
+              "at": 1784488200023
+            },
+            {
+              "userId": "3s6GcHH3YgrDnPIQAAAF",
+              "username": "ok",
+              "at": 1784488421615
+            },
+            {
+              "userId": "d6m-MXS7L5--XTdhAAAH",
+              "username": "ok",
+              "at": 1784488639051
+            },
+            {
+              "userId": "AH7gfSQDM_Ej_9AKAAAL",
+              "username": "shj",
+              "at": 1784489118024
+            },
+            {
+              "userId": "yQy5iC3kLePzR3f5AAAH",
+              "username": "saa",
+              "at": 1784893385955
+            },
+            {
+              "userId": "1jMWlqb8IvLLwHjqAAAi",
+              "username": "shj",
+              "at": 1784898405925
+            },
+            {
+              "userId": "dChJcfRXgeutXop1AAAm",
+              "username": "shj",
+              "at": 1784898418754
+            },
+            {
+              "userId": "F8eUfb-R2BNJ-tshAAAo",
+              "username": "shj",
+              "at": 1784899295731
+            },
+            {
+              "userId": "82qfXgFn7gfXe_z5AAAt",
+              "username": "shj",
+              "at": 1784899971833
+            },
+            {
+              "userId": "_EP_9BUs2ZoSZ3duAAA2",
+              "username": "shj",
+              "at": 1784900960050
+            },
+            {
+              "userId": "DQBOSyVcCQAI6ppjAABL",
+              "username": "ko",
+              "at": 1784902715843
+            },
+            {
+              "userId": "w3p3b091BcaLpjy6AABT",
+              "username": "ko",
+              "at": 1784910572745
+            },
+            {
+              "userId": "jdrbK0sfg17lHqg0AABo",
+              "username": "ko",
+              "at": 1784916827107
+            },
+            {
+              "userId": "W2zSqthAVDy6KfmTAABs",
+              "username": "ko",
+              "at": 1784919269002
+            }
+          ]
+        }
+      ],
       "meta": {
         "isPrivate": false,
         "ownerId": null,
@@ -32,13 +327,13 @@
       "clientId": "8835fdd1-f5d3-4a80-b519-befc5914fdc2",
       "username": "danny",
       "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=danny",
-      "lastSeen": 1776077492265
+      "lastSeen": 1782240916044
     },
     "e1e9077a-2f8b-4451-825e-aa9fac0a962e": {
       "clientId": "e1e9077a-2f8b-4451-825e-aa9fac0a962e",
       "username": "Sammy",
       "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=Sammy",
-      "lastSeen": 1776170602601
+      "lastSeen": 1784489170250
     },
     "9b59c9f5-4919-457b-a784-e855d770551d": {
       "clientId": "9b59c9f5-4919-457b-a784-e855d770551d",
@@ -51,6 +346,12 @@
       "username": "Duke",
       "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=Duke",
       "lastSeen": 1776759423901
+    },
+    "37e0624c-670a-4ddf-ab35-fac2af0bafd8": {
+      "clientId": "37e0624c-670a-4ddf-ab35-fac2af0bafd8",
+      "username": "ko",
+      "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=ko",
+      "lastSeen": 1784920087830
     }
   }
 }

@@ -89,7 +89,7 @@ app.get('/api/rooms/:room/messages', (req, res) => {
   return res.json({ room, messages: getMessages(room, limit) });
 });
 
-// ── REST: image upload ───────────────────────────────────────────────────────
+// ── REST: file/image upload ───────────────────────────────────────────────────────
 app.post('/api/rooms/:room/images', async (req, res) => {
   try {
     const room = sanitizeRoomName(req.params.room) || DEFAULT_ROOM;
@@ -124,11 +124,69 @@ app.post('/api/rooms/:room/images', async (req, res) => {
     const payload = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       room, userId: null, clientId: cid || null, username, avatar,
-      message: '', type: 'image', imageUrl, timestamp: Date.now(), readBy: [],
+      message: '', type: 'image', imageUrl, timestamp: Date.now(), readBy: [], reactions: {}
     };
     addMessage(room, payload);
     io.to(room).emit('chat-message', payload);
     notifyNewMessage(room, username, '[image]', cid);
+    return res.status(201).json({ ok: true, message: payload });
+  } catch {
+    return res.status(500).json({ error: 'upload_failed' });
+  }
+});
+
+app.post('/api/rooms/:room/files', async (req, res) => {
+  try {
+    const room = sanitizeRoomName(req.params.room) || DEFAULT_ROOM;
+    ensureRoom(room);
+    const { dataUrl, clientId, filename } = req.body || {};
+    const cid = (clientId || '').trim();
+    if (!canAccessRoom(room, cid) && !hasEphemeralAccess(room, cid)) {
+      return res.status(403).json({ error: 'forbidden' });
+    }
+    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
+      return res.status(400).json({ error: 'invalid_file' });
+    }
+    
+    // Parse the data URL
+    const commaIdx = dataUrl.indexOf(',');
+    if (commaIdx === -1) return res.status(400).json({ error: 'invalid_data_url' });
+    const header = dataUrl.slice(0, commaIdx);
+    const base64Data = dataUrl.slice(commaIdx + 1);
+    
+    // Default to binary if mime is missing, we extract whatever is before ;base64
+    const mimeMatch = header.match(/^data:([^;]+);base64$/);
+    const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+
+    const buf = Buffer.from(base64Data, 'base64');
+    if (!Number.isFinite(buf.length) || buf.length <= 0) return res.status(400).json({ error: 'empty_file' });
+    if (buf.length > 25 * 1024 * 1024) return res.status(413).json({ error: 'too_large' }); // 25MB max for files
+
+    // Sanitize and keep the original filename for the actual user facing display, but create a unique safe server filename
+    const originalName = String(filename || 'file').trim();
+    const extMatch = originalName.match(/\.([0-9a-z]+)(?:[\?#]|$)/i);
+    const ext = extMatch ? extMatch[1].toLowerCase() : 'bin';
+    const safeBase = originalName.replace(/\.[^/.]+$/, '').replace(/[^a-z0-9_-]/gi, '').slice(0, 30) || 'file';
+    
+    const serverFileName = `${safeBase}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    fs.writeFileSync(path.join(UPLOAD_DIR, serverFileName), buf);
+    const fileUrl = `/uploads/${serverFileName}`;
+
+    let username = 'Anonymous', avatar = '';
+    try {
+      const u = getAllUsers().find(x => x.clientId === cid);
+      if (u) { username = u.username || 'Anonymous'; avatar = u.avatar || ''; }
+    } catch {}
+    if (!avatar) avatar = `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(username)}`;
+
+    const payload = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      room, userId: null, clientId: cid || null, username, avatar,
+      message: originalName, type: 'file', fileUrl, fileSize: buf.length, mimeType: mime, timestamp: Date.now(), readBy: [], reactions: {}
+    };
+    addMessage(room, payload);
+    io.to(room).emit('chat-message', payload);
+    notifyNewMessage(room, username, `[File: ${originalName}]`, cid);
     return res.status(201).json({ ok: true, message: payload });
   } catch {
     return res.status(500).json({ error: 'upload_failed' });
@@ -239,6 +297,25 @@ app.post('/api/admins/prune', (req, res) => {
   const result = pruneAdminsToUsernames(names);
   broadcastRooms();
   return res.json({ ok: true, ...result, usernames: names });
+});
+
+// ── REST: search ──────────────────────────────────────────────────────────────
+app.get('/api/rooms/:room/search', (req, res) => {
+  const room = sanitizeRoomName(req.params.room) || DEFAULT_ROOM;
+  const q = String(req.query.q || '').trim().toLowerCase();
+  const clientId = String(req.query.clientId || '').trim();
+  
+  if (!q) return res.json({ room, results: [] });
+  ensureRoom(room);
+  
+  if (!canAccessRoom(room, clientId) && !hasEphemeralAccess(room, clientId)) {
+    return res.status(403).json({ error: 'forbidden' });
+  }
+  
+  const allMessages = getMessages(room, 1000); // Search up to last 1000 messages
+  const results = allMessages.filter(m => (m.message || '').toLowerCase().includes(q) || (m.username || '').toLowerCase().includes(q));
+  
+  return res.json({ room, query: q, results });
 });
 
 // ── Server & Socket.IO ───────────────────────────────────────────────────────
@@ -496,6 +573,7 @@ io.on('connection', (socket) => {
       message: msg.slice(0, 2000),
       timestamp: Date.now(),
       readBy: [{ userId: socket.data.userId, username: socket.data.username, at: Date.now() }],
+      reactions: {},
       ...(replySnapshot ? { replyTo: replySnapshot } : {}),
     };
     addMessage(room, payload);
@@ -523,6 +601,35 @@ io.on('connection', (socket) => {
     const result = deleteMessage(room, messageId, socket.data.userId, socket.data.clientId);
     if (result.ok) { io.to(room).emit('message-deleted', { messageId, room }); }
     else { socket.emit('error', { action: 'delete-message', error: result.error }); }
+  });
+
+  socket.on('react-message', ({ messageId, emoji } = {}) => {
+    const room = socket.data.currentRoom;
+    if (!room || !messageId || !emoji) return;
+    const hasEphemeral = socket.data.passkeyAccess.has(room);
+    if (!canAccessRoom(room, socket.data.clientId) && !hasEphemeral) return;
+    
+    const msg = getMessageById(room, messageId);
+    if (!msg) return;
+    
+    const userId = socket.data.clientId || socket.data.userId;
+    const username = socket.data.username || 'Anonymous';
+    
+    if (!msg.reactions) msg.reactions = {};
+    if (!msg.reactions[emoji]) msg.reactions[emoji] = [];
+    
+    const existingIdx = msg.reactions[emoji].findIndex(r => r.userId === userId);
+    
+    if (existingIdx !== -1) {
+      // Toggle off
+      msg.reactions[emoji].splice(existingIdx, 1);
+      if (msg.reactions[emoji].length === 0) delete msg.reactions[emoji];
+    } else {
+      // Toggle on
+      msg.reactions[emoji].push({ userId, username });
+    }
+    
+    io.to(room).emit('message-reaction', { messageId, room, reactions: msg.reactions });
   });
 
   socket.on('mark-read', ({ room, messageId }) => {
