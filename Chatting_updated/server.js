@@ -619,15 +619,26 @@ io.on('connection', (socket) => {
     if (!msg.reactions) msg.reactions = {};
     if (!msg.reactions[emoji]) msg.reactions[emoji] = [];
     
-    const existingIdx = msg.reactions[emoji].findIndex(r => r.userId === userId);
-    
+    // Match by userId, or by username as a fallback for reactions stored
+    // in older sessions that used the transient socket.id as userId.
+    const existingIdx = msg.reactions[emoji].findIndex(
+      r => r.userId === userId || (username !== 'Anonymous' && r.username === username)
+    );
+
     if (existingIdx !== -1) {
       // Toggle off
       msg.reactions[emoji].splice(existingIdx, 1);
       if (msg.reactions[emoji].length === 0) delete msg.reactions[emoji];
     } else {
-      // Toggle on
-      msg.reactions[emoji].push({ userId, username });
+      // Guard against duplicate reaction from same user on same emoji
+      // (shouldn't happen with correct toggle, but be safe)
+      const alreadyHas = msg.reactions[emoji].some(
+        r => r.userId === userId || (username !== 'Anonymous' && r.username === username)
+      );
+      if (!alreadyHas) {
+        // Toggle on — always store with persistent clientId as userId
+        msg.reactions[emoji].push({ userId, username });
+      }
     }
 
     // Persist reactions to storage so they survive refreshes

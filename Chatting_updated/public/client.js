@@ -195,6 +195,9 @@
     load: () => {
       const data = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
       state.myClientId = utils.getOrCreateClientId();
+      // Set myUsername immediately so reaction "mine" detection works
+      // before the socket connect handler fires.
+      state.myUsername = data.username || '';
       elements.username.value = data.username || '';
       elements.avatar.value   = data.avatar   || '';
       profile.updateUI(data.username || 'Anonymous', data.avatar || '', state.myClientId);
