@@ -599,10 +599,31 @@
           </div>`;
       }
 
+      // Build body based on message type
+      const bodyHtml = msg.type === 'image'
+        ? `<img class="msg-image" src="${msg.imageUrl}" alt="Shared image" loading="lazy">`
+        : msg.type === 'file'
+          ? `<a class="file-attachment" href="${msg.fileUrl}" download="${utils.escapeHtml(msg.message || 'file')}" target="_blank" rel="noopener"><span>📎</span><span>${utils.escapeHtml(msg.message || 'File')}</span>${msg.fileSize ? `<span style="color:var(--text-dim);font-size:11px">${utils.formatFileSize(msg.fileSize)}</span>` : ''}</a>`
+          : `<span class="msg-content">${utils.renderMarkdown(msg.message || '')}</span>`;
+
+      const reactionEntries = msg.reactions ? Object.entries(msg.reactions).filter(([,u]) => u.length > 0) : [];
+      const reactionsHtml = reactionEntries.length > 0
+        ? `<div class="reactions">${reactionEntries.map(([emoji, users]) => {
+            const mine = users.some(u => u.userId === state.myUserId || u.username === state.myUsername);
+            return `<button class="reaction-pill${mine ? ' active' : ''}" data-emoji="${emoji}" data-msg-id="${msg.id}" title="${users.map(u=>u.username).join(', ')}">${emoji} ${users.length}</button>`;
+          }).join('')}</div>`
+        : '<div class="reactions"></div>';
+
+      const readByOthers = (msg.readBy || []).filter(r => r.username !== (msg.username || 'Anonymous'));
+      const receiptsHtml = isMe && readByOthers.length > 0
+        ? `<div class="receipts">✓ Read by ${readByOthers.map(r => utils.escapeHtml(r.username)).join(', ')}</div>`
+        : '<div class="receipts"></div>';
+
       content += `
         <div class="msg-actions">
           <button class="msg-action-btn" data-action="reply" title="Reply">↩</button>
-          ${msg.message ? `<button class="msg-action-btn" data-action="copy" title="Copy">📋</button>` : ''}
+          <button class="msg-action-btn" data-action="react" title="React">😊</button>
+          ${msg.message && msg.type === 'text' ? `<button class="msg-action-btn" data-action="copy" title="Copy">📋</button>` : ''}
           ${canEdit  ? `<button class="msg-action-btn" data-action="edit"   title="Edit">✏️</button>` : ''}
           ${isMe     ? `<button class="msg-action-btn danger" data-action="delete" title="Delete">🗑</button>` : ''}
         </div>
@@ -612,9 +633,9 @@
           <span class="time">${utils.formatTime(msg.timestamp)}</span>
           ${msg.edited ? '<span class="edited">(edited)</span>' : ''}
         </div>
-        <div class="body">${msg.type === 'image'
-          ? `<img class="msg-image" src="${msg.imageUrl}" alt="Shared image" loading="lazy">`
-          : utils.escapeHtml(msg.message)}</div>`;
+        <div class="body">${bodyHtml}</div>
+        ${reactionsHtml}
+        ${receiptsHtml}`;
 
       el.innerHTML = content;
 
@@ -623,6 +644,13 @@
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           messages.handleAction(btn.dataset.action, el, msg);
+        });
+      });
+      // Reaction pill clicks
+      el.querySelectorAll('.reaction-pill').forEach(pill => {
+        pill.addEventListener('click', (e) => {
+          e.stopPropagation();
+          socket.emit('react-message', { messageId: msg.id, emoji: pill.dataset.emoji });
         });
       });
 
@@ -688,6 +716,45 @@
       elements.replyPreviewBar.style.display = 'none';
     },
 
+    sendFile: async (dataUrl, filename) => {
+      try {
+        const res = await fetch(`/api/rooms/${encodeURIComponent(state.currentRoom)}/files`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dataUrl, clientId: state.myClientId, filename }),
+        });
+        if (!res.ok) { const e = await res.json(); showToast(e.error || 'Failed to upload file', 'error'); }
+        else showToast('File sent!', 'success');
+      } catch { showToast('Failed to upload file', 'error'); }
+    },
+
+    renderReactions: (msgEl, reactions) => {
+      let div = msgEl.querySelector('.reactions');
+      if (!div) { div = document.createElement('div'); div.className = 'reactions'; msgEl.appendChild(div); }
+      const entries = reactions ? Object.entries(reactions).filter(([,u]) => u.length > 0) : [];
+      if (entries.length === 0) { div.innerHTML = ''; return; }
+      div.innerHTML = entries.map(([emoji, users]) => {
+        const mine = users.some(u => u.username === state.myUsername);
+        return `<button class="reaction-pill${mine ? ' active' : ''}" data-emoji="${emoji}" title="${users.map(u=>u.username).join(', ')}">${emoji} ${users.length}</button>`;
+      }).join('');
+      const msgId = msgEl.dataset.id;
+      div.querySelectorAll('.reaction-pill').forEach(pill => {
+        pill.addEventListener('click', (e) => {
+          e.stopPropagation();
+          socket.emit('react-message', { messageId: msgId, emoji: pill.dataset.emoji });
+        });
+      });
+    },
+
+    renderReceipts: (msgEl, readBy) => {
+      let div = msgEl.querySelector('.receipts');
+      if (!div) { div = document.createElement('div'); div.className = 'receipts'; msgEl.appendChild(div); }
+      const senderUsername = msgEl.dataset.username;
+      const isMyMsg = msgEl.dataset.clientId === state.myClientId;
+      const readByOthers = (readBy || []).filter(r => r.username !== senderUsername);
+      div.textContent = (isMyMsg && readByOthers.length > 0) ? `✓ Read by ${readByOthers.map(r=>r.username).join(', ')}` : '';
+    },
+
     showContextMenu: (e, msgEl, msg) => {
       const isMe = msg.clientId === state.myClientId;
       const canEdit = isMe && (Date.now() - msg.timestamp) < CONSTANTS.EDIT_WINDOW_MS;
@@ -727,7 +794,40 @@
         case 'delete':
           if (confirm('Delete this message?')) messages.delete(msg.id);
           break;
+        case 'react':
+          messages.showEmojiReactPicker(msgEl, msg);
+          break;
       }
+    },
+
+    showEmojiReactPicker: (msgEl, msg) => {
+      const existing = document.getElementById('react-picker-popup');
+      if (existing) existing.remove();
+      const QUICK_EMOJIS = ['👍','❤️','😂','😮','😢','🔥','👏','🎉','✅','💯'];
+      const picker = document.createElement('div');
+      picker.id = 'react-picker-popup';
+      picker.style.cssText = 'position:fixed;z-index:99999;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;box-shadow:0 4px 16px rgba(0,0,0,0.4)';
+      QUICK_EMOJIS.forEach(em => {
+        const btn = document.createElement('button');
+        btn.textContent = em; btn.type = 'button';
+        btn.style.cssText = 'background:none;border:none;font-size:20px;cursor:pointer;padding:4px;border-radius:6px';
+        btn.onmouseenter = () => btn.style.background = 'rgba(255,255,255,0.1)';
+        btn.onmouseleave = () => btn.style.background = 'none';
+        btn.addEventListener('click', () => {
+          socket.emit('react-message', { messageId: msg.id, emoji: em });
+          picker.remove();
+        });
+        picker.appendChild(btn);
+      });
+      const rect = msgEl.getBoundingClientRect();
+      picker.style.top = `${Math.min(rect.bottom + 4, window.innerHeight - 130)}px`;
+      picker.style.left = `${Math.min(rect.left, window.innerWidth - 210)}px`;
+      document.body.appendChild(picker);
+      setTimeout(() => {
+        document.addEventListener('click', function once(e) {
+          if (!picker.contains(e.target)) { picker.remove(); document.removeEventListener('click', once); }
+        });
+      }, 0);
     },
   };
 
@@ -758,6 +858,7 @@
   const socketHandlers = {
     connect: () => {
       state.myClientId = utils.getOrCreateClientId();
+      try { const d = JSON.parse(localStorage.getItem('ptr29_user') || '{}'); state.myUsername = d.username || ''; } catch {}
 
       // Re-enter saved passkeys so the server restores ephemeral access after reconnect
       const savedPasskeys = utils.loadFromStorage(CONSTANTS.PASSKEYS_KEY, {});
@@ -870,6 +971,23 @@
         not_found:           'Message not found',
       };
       showToast(map[data?.error] || data?.error || 'Action failed', 'error');
+    },
+
+    'read-receipt': (data) => {
+      const msgEl = document.querySelector(`[data-id="${data.messageId}"]`);
+      if (!msgEl) return;
+      const div = msgEl.querySelector('.receipts');
+      if (!div) return;
+      if (msgEl.dataset.clientId !== state.myClientId) return;
+      const current = div.textContent.replace('✓ Read by ', '');
+      const names = current ? current.split(', ').filter(Boolean) : [];
+      if (!names.includes(data.username)) names.push(data.username);
+      div.textContent = `✓ Read by ${names.join(', ')}`;
+    },
+
+    'message-reaction': (data) => {
+      const msgEl = document.querySelector(`[data-id="${data.messageId}"]`);
+      if (msgEl) messages.renderReactions(msgEl, data.reactions);
     },
   };
 
@@ -1215,6 +1333,105 @@
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.context-menu')) elements.contextMenu.classList.remove('open');
       if (!e.target.closest('.msg'))           document.querySelectorAll('.msg.actions-visible').forEach(m => m.classList.remove('actions-visible'));
+    });
+
+    // ── Emoji picker for input ──────────────────────────────────────────────
+    const EMOJI_LIST = ['😀','😂','😍','🥺','😎','🤔','😅','😭','🥳','🤩','👍','❤️','🔥','🎉','✅','💯','😊','🙏','🤝','💪','🙄','😤','😜','🤗','💀','👀','😏','🤣','🫡','💬'];
+    const emojiPopup = document.createElement('div');
+    emojiPopup.id = 'emoji-input-popup';
+    emojiPopup.style.cssText = 'display:none;position:absolute;z-index:9999;background:var(--panel2);border:1px solid var(--border-light);border-radius:10px;padding:8px;grid-template-columns:repeat(6,1fr);gap:4px;box-shadow:0 4px 16px rgba(0,0,0,0.5);bottom:64px;left:12px;max-width:220px';
+    EMOJI_LIST.forEach(em => {
+      const btn = document.createElement('button');
+      btn.textContent = em; btn.type = 'button';
+      btn.style.cssText = 'background:none;border:none;font-size:20px;cursor:pointer;padding:4px 6px;border-radius:6px';
+      btn.onmouseenter = () => btn.style.background = 'rgba(255,255,255,0.1)';
+      btn.onmouseleave = () => btn.style.background = 'none';
+      btn.addEventListener('click', () => {
+        const inp = elements.text;
+        const pos = inp.selectionStart != null ? inp.selectionStart : inp.value.length;
+        inp.value = inp.value.slice(0, pos) + em + inp.value.slice(pos);
+        inp.selectionStart = inp.selectionEnd = pos + [...em].length;
+        inp.focus();
+      });
+      emojiPopup.appendChild(btn);
+    });
+    const inputArea = document.getElementById('input-area');
+    if (inputArea) inputArea.style.position = 'relative', inputArea.appendChild(emojiPopup);
+    const emojiBtn = document.getElementById('emoji-btn');
+    if (emojiBtn) {
+      emojiBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        emojiPopup.style.display = emojiPopup.style.display === 'grid' ? 'none' : 'grid';
+      });
+    }
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#emoji-btn') && !e.target.closest('#emoji-input-popup'))
+        emojiPopup.style.display = 'none';
+    });
+
+    // ── File upload ─────────────────────────────────────────────────────────
+    const fileBtn = document.getElementById('file-btn');
+    const generalFile = document.getElementById('general-file');
+    if (fileBtn && generalFile) {
+      fileBtn.addEventListener('click', () => {
+        if (!state.joined) { showToast('Join a room first', 'error'); return; }
+        generalFile.click();
+      });
+      generalFile.addEventListener('change', async () => {
+        const file = generalFile.files[0];
+        if (!file) return;
+        if (file.size > 25 * 1024 * 1024) { showToast('File too large (max 25 MB)', 'error'); generalFile.value = ''; return; }
+        showToast('Uploading…', 'info');
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+          await messages.sendFile(ev.target.result, file.name);
+        };
+        reader.readAsDataURL(file);
+        generalFile.value = '';
+      });
+    }
+
+    // ── Search messages ─────────────────────────────────────────────────────
+    const searchInput = document.getElementById('search-messages-input');
+    if (searchInput) {
+      let searchTimer = null;
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        const q = searchInput.value.trim();
+        if (!q) { document.querySelectorAll('.msg').forEach(m => m.style.display = ''); return; }
+        searchTimer = setTimeout(async () => {
+          try {
+            const url = `/api/rooms/${encodeURIComponent(state.currentRoom)}/search?q=${encodeURIComponent(q)}&clientId=${encodeURIComponent(state.myClientId || '')}`;
+            const res = await fetch(url);
+            if (!res.ok) return;
+            const data = await res.json();
+            const matchIds = new Set((data.results || []).map(m => m.id));
+            document.querySelectorAll('.msg').forEach(m => {
+              m.style.display = matchIds.has(m.dataset.id) ? '' : 'none';
+            });
+          } catch {}
+        }, 300);
+      });
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          searchInput.value = '';
+          document.querySelectorAll('.msg').forEach(m => m.style.display = '');
+        }
+      });
+    }
+
+    // ── Browser notifications ───────────────────────────────────────────────
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    socket.on('system', (data) => {
+      if (data.type !== 'notify') return;
+      if (document.hasFocus()) return;
+      if (Notification.permission !== 'granted') return;
+      try {
+        const n = new Notification('ptr_29 Chat', { body: data.message, icon: '/favicon.ico' });
+        setTimeout(() => n.close(), 5000);
+      } catch {}
     });
   };
 
