@@ -96,7 +96,7 @@
   pointer-events: auto;
 }
 
-.ptr29-mobile #sidebar       { background: var(--panel); overflow-y: auto; }
+.ptr29-mobile #sidebar       { background: var(--panel); /* overflow stays hidden — only #room-list scrolls */ }
 .ptr29-mobile #chat          { background: var(--bg); }
 .ptr29-mobile #online-panel  { background: var(--panel); }
 
@@ -239,6 +239,12 @@
 
 /* Desktop search hidden; mobile toggle shown */
 .ptr29-mobile #search-messages-input { display: none !important; }
+
+/* Hide Clear + Leave from room bar on mobile — bar only needs Back / room name / Search / Settings.
+   Leaving is handled by the Rooms tab or the ← Back button.
+   Clearing is only for managers and is accessible via ⚙️ Settings. */
+.ptr29-mobile #clear-room-btn { display: none !important; }
+.ptr29-mobile #leave-btn      { display: none !important; }
 
 /* ── Mobile collapsible search bar ───────────────────────────────────── */
 #mobile-search-bar {
