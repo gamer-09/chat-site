@@ -783,6 +783,7 @@
       const canEdit = isMe && (Date.now() - msg.timestamp) < CONSTANTS.EDIT_WINDOW_MS;
       elements.contextMenu.innerHTML = `
         <button data-action="reply">↩️ Reply</button>
+        <button data-action="react">😊 React</button>
         ${msg.message ? '<button data-action="copy">📋 Copy</button>' : ''}
         ${canEdit ? '<button data-action="edit">✏️ Edit</button>' : ''}
         ${isMe ? '<button data-action="delete" class="danger">🗑️ Delete</button>' : ''}
