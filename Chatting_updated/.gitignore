@@ -5,7 +5,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Runtime data
+# Runtime data / generated data files
+db.json
 *.log
 server.log
 logs/
