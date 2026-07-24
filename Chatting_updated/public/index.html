@@ -1392,12 +1392,19 @@
           <span id="room-type-tag" class="room-tag">Public</span>
           <span id="room-role-tag" class="room-tag" style="display:none"></span>
         </div>
-        <div style="display:flex; gap:8px">
+        <div style="display:flex; gap:8px; align-items:center">
           <input type="text" id="search-messages-input" placeholder="Search..." style="padding:4px 8px; font-size:12px; width:120px;" autocomplete="off">
+          <button type="button" id="mobile-search-btn" class="secondary mobile-only" title="Search messages">🔍</button>
           <button id="room-settings-btn" class="secondary">⚙️ <span>Settings</span></button>
           <button id="clear-room-btn" class="secondary">🗑️ <span>Clear</span></button>
-          <button id="leave-btn" class="secondary"><span>Leave</span></button>
+          <button id="leave-btn" class="secondary">🚪 <span>Leave</span></button>
         </div>
+      </div>
+
+      <!-- Mobile-only collapsible search bar -->
+      <div id="mobile-search-bar" class="mobile-only" style="display:none">
+        <input id="mobile-search-input" type="text" placeholder="Search messages…" autocomplete="off">
+        <button type="button" id="mobile-search-close-btn" class="secondary">×</button>
       </div>
       
       <div id="room-settings-panel">

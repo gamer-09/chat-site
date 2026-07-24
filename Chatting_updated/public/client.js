@@ -1541,7 +1541,7 @@
   // Turns the 3-pane desktop layout into 3 tabs (Rooms / Chat / Online)
   // switched via the bottom nav bar, driven by body.ptr29-view-* classes.
   // ═══════════════════════════════════════════════════════════════════════════
-  const MOBILE_BREAKPOINT = '(max-width: 640px)';
+  const MOBILE_BREAKPOINT = '(max-width: 768px)';
   let mobileInitialized = false;
   let currentMobileView = 'rooms';
 
@@ -1601,6 +1601,64 @@
     socketHandlers.leave = (data) => {
       if (document.body.classList.contains('ptr29-mobile')) setMobileView('rooms');
       if (originalLeave) originalLeave(data);
+    };
+
+    // ── Mobile search bar toggle ────────────────────────────────────────
+    const mobileSearchBtn       = document.getElementById('mobile-search-btn');
+    const mobileSearchBar       = document.getElementById('mobile-search-bar');
+    const mobileSearchInput     = document.getElementById('mobile-search-input');
+    const mobileSearchCloseBtn  = document.getElementById('mobile-search-close-btn');
+
+    const clearMobileSearch = () => {
+      if (mobileSearchInput) mobileSearchInput.value = '';
+      if (mobileSearchBar)   mobileSearchBar.style.display = 'none';
+      document.querySelectorAll('.msg').forEach(m => m.style.display = '');
+    };
+
+    if (mobileSearchBtn && mobileSearchBar && mobileSearchInput) {
+      mobileSearchBtn.addEventListener('click', () => {
+        const visible = mobileSearchBar.style.display === 'flex';
+        if (visible) {
+          clearMobileSearch();
+        } else {
+          mobileSearchBar.style.display = 'flex';
+          setTimeout(() => mobileSearchInput.focus(), 50);
+        }
+      });
+
+      if (mobileSearchCloseBtn) {
+        mobileSearchCloseBtn.addEventListener('click', clearMobileSearch);
+      }
+
+      let mobileSearchTimer = null;
+      mobileSearchInput.addEventListener('input', () => {
+        clearTimeout(mobileSearchTimer);
+        const q = mobileSearchInput.value.trim();
+        if (!q) { document.querySelectorAll('.msg').forEach(m => m.style.display = ''); return; }
+        mobileSearchTimer = setTimeout(async () => {
+          try {
+            const url = `/api/rooms/${encodeURIComponent(state.currentRoom)}/search?q=${encodeURIComponent(q)}&clientId=${encodeURIComponent(state.myClientId || '')}`;
+            const res = await fetch(url);
+            if (!res.ok) return;
+            const data = await res.json();
+            const matchIds = new Set((data.results || []).map(m => m.id));
+            document.querySelectorAll('.msg').forEach(m => {
+              m.style.display = matchIds.has(m.dataset.id) ? '' : 'none';
+            });
+          } catch {}
+        }, 300);
+      });
+
+      mobileSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') clearMobileSearch();
+      });
+    }
+
+    // Also collapse the search bar whenever you switch rooms
+    const originalRoomsJoin = rooms.join;
+    rooms.join = (roomName, passkey) => {
+      clearMobileSearch();
+      return originalRoomsJoin(roomName, passkey);
     };
 
     // Keep the Online tab badge in sync with the online users list

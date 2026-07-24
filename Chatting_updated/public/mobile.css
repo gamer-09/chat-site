@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    MOBILE STYLES - ptr_29 Chat
-   Loaded dynamically when screen width <= 640px.
+   Loaded dynamically when screen width <= 768px.
    Turns the 3-pane desktop layout into a 3-tab single-view app:
    Rooms / Chat / Online, switched via the bottom nav bar.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -21,15 +21,35 @@
   font-size: 13px;
 }
 
+/* ── Header: hide Terms/Privacy links; keep Help + Theme ─────────────── */
 .ptr29-mobile header {
-  padding: 10px 12px;
+  padding: 8px 12px;
   flex-shrink: 0;
 }
 
 .ptr29-mobile header h1 {
-  font-size: 15px;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* Hide Terms and Privacy link-buttons from header on mobile */
+.ptr29-mobile header .header-actions a.secondary {
+  display: none !important;
+}
+
+.ptr29-mobile header .header-actions {
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ptr29-mobile header .header-actions button {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* ── Main layout ──────────────────────────────────────────────────────── */
 .ptr29-mobile main {
   flex-direction: column;
   flex: 1;
@@ -169,17 +189,23 @@
   padding: 0 4px;
 }
 
-/* ── Room bar with back button ───────────────────────────────────────── */
+/* ── Room bar ─────────────────────────────────────────────────────────── */
 .ptr29-mobile #room-bar {
-  padding: 8px 10px;
+  padding: 7px 10px;
   gap: 6px;
   flex-shrink: 0;
   min-height: auto;
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .ptr29-mobile #room-info {
   flex: 1;
   overflow: hidden;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .ptr29-mobile #room-name-display {
@@ -187,11 +213,25 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
-/* Hide button text labels, keep icons */
+.ptr29-mobile #room-type-tag,
+.ptr29-mobile #room-role-tag {
+  flex-shrink: 0;
+}
+
+/* Hide button text spans, keep emojis/icons only */
 .ptr29-mobile #room-bar button span { display: none; }
 .ptr29-mobile #room-bar #mobile-back-btn span { display: inline; }
+
+/* Hide desktop search from room bar — replaced by mobile search bar */
+.ptr29-mobile #search-messages-input { display: none !important; }
+
+/* Show mobile search toggle */
+.ptr29-mobile #mobile-search-btn { display: flex !important; }
+
 .ptr29-mobile #room-bar button {
   padding: 6px 10px;
   min-height: 34px;
@@ -200,43 +240,142 @@
   flex-shrink: 0;
 }
 
+/* ── Mobile search bar (below room bar, collapsible) ──────────────────── */
+#mobile-search-bar {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--panel2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#mobile-search-bar input {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  padding: 7px 12px;
+  border-radius: 18px;
+  height: 36px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+#mobile-search-bar input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+#mobile-search-bar button {
+  padding: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Room settings panel ──────────────────────────────────────────────── */
 .ptr29-mobile #room-settings-panel {
-  padding: 6px 10px;
-  font-size: 11px;
-  max-height: 40vh;
+  padding: 10px 12px;
+  font-size: 12px;
+  max-height: 45vh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .ptr29-mobile #room-settings-panel h3 {
-  font-size: 12px;
-  margin: 0 0 6px 0;
+  font-size: 13px;
+  margin: 0 0 8px 0;
 }
 
 .ptr29-mobile #room-settings-panel .settings-section {
-  margin-bottom: 8px;
-  padding-bottom: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
 }
 
 .ptr29-mobile #room-settings-panel .settings-row {
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .ptr29-mobile #room-settings-panel .settings-label {
   font-size: 11px;
-  min-width: 50px;
+  min-width: 56px;
+  flex-shrink: 0;
 }
 
-.ptr29-mobile #room-settings-panel input[type="text"],
-.ptr29-mobile #room-settings-panel button {
+.ptr29-mobile #room-settings-panel input[type="text"] {
   padding: 5px 8px;
   font-size: 12px;
   height: 32px;
   min-height: 32px;
+  flex: 1;
+  min-width: 80px;
 }
 
-.ptr29-mobile #room-info-section {
+.ptr29-mobile #room-settings-panel button {
+  padding: 5px 8px;
   font-size: 11px;
+  height: 32px;
+  min-height: 32px;
+  white-space: nowrap;
+}
+
+/* Passkey row: wrap buttons onto their own line */
+.ptr29-mobile #room-settings-panel .settings-row:has(#passkey-input) {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.ptr29-mobile #room-settings-panel .settings-row:has(#passkey-input) .settings-label {
+  margin-bottom: 0;
+}
+
+.ptr29-mobile #room-settings-panel .settings-row:has(#passkey-input) input {
+  width: 100%;
+}
+
+/* Passkey action buttons as a flex row */
+.ptr29-mobile #generate-passkey-btn,
+.ptr29-mobile #copy-passkey-btn,
+.ptr29-mobile #save-passkey-btn,
+.ptr29-mobile #clear-passkey-btn {
+  flex: 1;
+  min-width: 0;
+}
+
+.ptr29-mobile #room-settings-panel #room-info-section {
+  font-size: 11px;
+}
+
+/* ── Room info banner ─────────────────────────────────────────────────── */
+.ptr29-mobile #room-info-banner {
+  flex-wrap: nowrap !important;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 5px 10px;
+  gap: 6px;
+  font-size: 11px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.ptr29-mobile #room-info-banner::-webkit-scrollbar { display: none; }
+
+.ptr29-mobile #room-info-banner .banner-sep { display: none; }
+
+.ptr29-mobile #room-info-banner .banner-view-btn {
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 2px 8px;
 }
 
 /* ── Messages ─────────────────────────────────────────────────────────── */
@@ -290,10 +429,23 @@
   font-size: 12px;
 }
 
+/* Images: full width on mobile */
+.ptr29-mobile .msg img.msg-image {
+  max-width: 100%;
+  max-height: 200px;
+}
+
+/* ── Typing indicator ─────────────────────────────────────────────────── */
+.ptr29-mobile #typing {
+  padding: 3px 10px;
+  font-size: 12px;
+  min-height: 20px;
+}
+
 /* ── Input area ───────────────────────────────────────────────────────── */
 .ptr29-mobile #input-area {
   padding: 8px 10px;
-  padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
   border-top: 1px solid var(--border);
   flex-shrink: 0;
   background: var(--panel);
@@ -305,10 +457,9 @@
   align-items: center;
 }
 
-/* Hide the desktop username input on mobile - the sidebar's mobile-username
-   field and stored profile handle it instead */
-.ptr29-mobile #username { display: none; }
-.ptr29-mobile #avatar { display: none; }
+/* Hide the desktop username input on mobile */
+.ptr29-mobile #username { display: none !important; }
+.ptr29-mobile #avatar   { display: none !important; }
 
 .ptr29-mobile #text {
   flex: 1;
@@ -319,8 +470,9 @@
   height: 40px;
 }
 
+/* Send button: circle */
 .ptr29-mobile #send-btn {
-  padding: 8px 12px;
+  padding: 0;
   border-radius: 50%;
   aspect-ratio: 1;
   height: 40px;
@@ -332,10 +484,13 @@
 }
 
 .ptr29-mobile #send-btn .send-label { display: none; }
-.ptr29-mobile #send-btn .send-icon { display: inline; }
+.ptr29-mobile #send-btn .send-icon  { display: inline; }
 
-.ptr29-mobile #image-btn {
-  padding: 8px;
+/* Emoji, Image, File buttons: uniform circles */
+.ptr29-mobile #emoji-btn,
+.ptr29-mobile #image-btn,
+.ptr29-mobile #file-btn {
+  padding: 0;
   border-radius: 50%;
   height: 40px;
   width: 40px;
@@ -343,6 +498,22 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  font-size: 18px;
+}
+
+/* ── Reply preview bar ────────────────────────────────────────────────── */
+.ptr29-mobile #reply-preview-bar {
+  padding: 6px 10px;
+  font-size: 12px;
+  margin-bottom: 6px;
+  gap: 6px;
+}
+
+.ptr29-mobile #reply-preview-bar .excerpt {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Rooms view (sidebar) ─────────────────────────────────────────────── */
@@ -389,13 +560,14 @@
   font-size: 12px;
   height: 34px;
   min-height: 34px;
+  flex-shrink: 0;
 }
 
 .ptr29-mobile .room {
   padding: 10px 10px;
   border-radius: 8px;
   margin-bottom: 3px;
-  min-height: 40px;
+  min-height: 44px;
   font-size: 13px;
 }
 
@@ -413,13 +585,13 @@
 
 .ptr29-mobile #mobile-username {
   width: 100%;
-  font-size: 13px;
+  font-size: 14px; /* prevents iOS auto-zoom */
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
-  height: 36px;
+  height: 40px;
 }
 
 .ptr29-mobile .user-actions {
@@ -434,8 +606,8 @@
   flex: 1;
   min-width: 0;
   white-space: nowrap;
-  height: 34px;
-  min-height: 34px;
+  height: 36px;
+  min-height: 36px;
 }
 
 .ptr29-mobile #user-profile {
@@ -446,7 +618,7 @@
 }
 
 .ptr29-mobile #user-avatar-preview { width: 36px; height: 36px; border-radius: 50%; }
-.ptr29-mobile #user-info .username { font-size: 13px; }
+.ptr29-mobile #user-info .username  { font-size: 13px; }
 .ptr29-mobile #user-info .client-id { font-size: 10px; }
 
 /* ── Online view ──────────────────────────────────────────────────────── */
@@ -472,22 +644,117 @@
   font-size: 13px;
 }
 
+/* ── Toast container: top-center on mobile ────────────────────────────── */
+.ptr29-mobile .toast-container {
+  top: 8px;
+  right: 12px;
+  left: 12px;
+  align-items: center;
+}
+
+.ptr29-mobile .toast {
+  max-width: 100%;
+  width: 100%;
+  text-align: center;
+  font-size: 13px;
+  padding: 10px 14px;
+}
+
 /* ── Modals ───────────────────────────────────────────────────────────── */
 .ptr29-mobile .modal {
-  width: 92%;
+  width: 94%;
   padding: 16px;
   max-height: 85vh;
   overflow-y: auto;
+  border-radius: 16px;
 }
 
 .ptr29-mobile .modal h3 { font-size: 16px; }
 
-.ptr29-mobile .help-modal-inner {
-  width: 94%;
-  max-height: 88vh;
+.ptr29-mobile .modal-actions {
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.ptr29-mobile .help-slides { min-height: 220px; }
+.ptr29-mobile .modal-actions button {
+  flex: 1;
+  min-width: 80px;
+}
+
+/* ── Help modal ───────────────────────────────────────────────────────── */
+.ptr29-mobile .help-modal-inner {
+  width: 96%;
+  max-height: 90dvh;
+  border-radius: 16px;
+}
+
+.ptr29-mobile .help-slides {
+  min-height: 200px;
+  overflow-y: auto;
+}
+
+/* Stack demo panel above text on mobile */
+.ptr29-mobile .help-slide {
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.ptr29-mobile .help-demo {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.ptr29-mobile .demo-panel {
+  min-height: auto;
+}
+
+.ptr29-mobile .help-text h3 {
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.ptr29-mobile .help-text p {
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.ptr29-mobile .help-tips li {
+  font-size: 11px;
+  padding: 6px 8px;
+}
+
+.ptr29-mobile .help-nav {
+  padding: 10px 16px 14px;
+}
+
+.ptr29-mobile .help-prev,
+.ptr29-mobile .help-next {
+  padding: 8px 14px;
+  font-size: 12px;
+}
+
+.ptr29-mobile .help-step-counter {
+  font-size: 12px;
+}
+
+.ptr29-mobile .help-header {
+  padding: 14px 16px 12px;
+  gap: 10px;
+}
+
+.ptr29-mobile .help-logo { font-size: 24px; }
+.ptr29-mobile .help-title { font-size: 16px; }
+.ptr29-mobile .help-sub { font-size: 11px; }
+
+/* ── Emoji picker: full width on very small screens ───────────────────── */
+.ptr29-mobile #react-picker-popup,
+.ptr29-mobile #emoji-input-popup {
+  left: 8px !important;
+  right: 8px !important;
+  width: auto !important;
+}
 
 /* ── Touch improvements ───────────────────────────────────────────────── */
 .ptr29-mobile button,
@@ -503,11 +770,19 @@
   appearance: none;
 }
 
-/* Landscape mode adjustments */
-@media (max-width: 700px) and (orientation: landscape) {
-  .ptr29-mobile .msg { max-width: 75%; }
-  #mobile-nav { height: 48px; }
-  :root { --mobile-nav-h: 48px; }
-  .mobile-nav-btn .mobile-nav-icon { font-size: 16px; }
+/* Reaction pills larger touch target */
+.ptr29-mobile .reaction-pill {
+  padding: 4px 8px;
+  font-size: 13px;
+  min-height: 30px;
+}
+
+/* ── Landscape mode adjustments ───────────────────────────────────────── */
+@media (max-width: 768px) and (orientation: landscape) {
+  .ptr29-mobile .msg    { max-width: 72%; }
+  #mobile-nav           { height: 48px; }
+  :root                 { --mobile-nav-h: 48px; }
+  .mobile-nav-btn .mobile-nav-icon  { font-size: 16px; }
   .mobile-nav-btn .mobile-nav-label { display: none; }
+  .ptr29-mobile #room-settings-panel { max-height: 30vh; }
 }
