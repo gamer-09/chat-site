@@ -315,6 +315,60 @@
               "at": 1784924912846
             }
           ]
+        },
+        {
+          "id": "1784926259892-GQAS8nebAIKLrgofAAAJ",
+          "room": "general",
+          "userId": "GQAS8nebAIKLrgofAAAJ",
+          "clientId": "37e0624c-670a-4ddf-ab35-fac2af0bafd8",
+          "username": "ko",
+          "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=ko",
+          "message": "hi",
+          "timestamp": 1784926259892,
+          "readBy": [
+            {
+              "userId": "GQAS8nebAIKLrgofAAAJ",
+              "username": "ko",
+              "at": 1784926259892
+            }
+          ],
+          "reactions": {}
+        },
+        {
+          "id": "1784926267859-GQAS8nebAIKLrgofAAAJ",
+          "room": "general",
+          "userId": "GQAS8nebAIKLrgofAAAJ",
+          "clientId": "37e0624c-670a-4ddf-ab35-fac2af0bafd8",
+          "username": "ko",
+          "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=ko",
+          "message": "hi",
+          "timestamp": 1784926267859,
+          "readBy": [
+            {
+              "userId": "GQAS8nebAIKLrgofAAAJ",
+              "username": "ko",
+              "at": 1784926267859
+            }
+          ],
+          "reactions": {}
+        },
+        {
+          "id": "1784926270967-GQAS8nebAIKLrgofAAAJ",
+          "room": "general",
+          "userId": "GQAS8nebAIKLrgofAAAJ",
+          "clientId": "37e0624c-670a-4ddf-ab35-fac2af0bafd8",
+          "username": "ko",
+          "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=ko",
+          "message": "d",
+          "timestamp": 1784926270967,
+          "readBy": [
+            {
+              "userId": "GQAS8nebAIKLrgofAAAJ",
+              "username": "ko",
+              "at": 1784926270967
+            }
+          ],
+          "reactions": {}
         }
       ],
       "meta": {
@@ -331,6 +385,18 @@
         "isPrivate": true,
         "ownerId": "9b59c9f5-4919-457b-a784-e855d770551d",
         "admins": [],
+        "members": [],
+        "passkey": ""
+      }
+    },
+    "s": {
+      "messages": [],
+      "meta": {
+        "isPrivate": false,
+        "ownerId": "37e0624c-670a-4ddf-ab35-fac2af0bafd8",
+        "admins": [
+          "37e0624c-670a-4ddf-ab35-fac2af0bafd8"
+        ],
         "members": [],
         "passkey": ""
       }
@@ -371,7 +437,7 @@
       "clientId": "37e0624c-670a-4ddf-ab35-fac2af0bafd8",
       "username": "ko",
       "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=ko",
-      "lastSeen": 1784924912822
+      "lastSeen": 1784926276999
     }
   }
 }
