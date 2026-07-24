@@ -149,6 +149,29 @@
       const s = String(str ?? '');
       return s.length > maxLen ? s.slice(0, maxLen) + '…' : s;
     },
+
+    formatFileSize: (bytes) => {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    },
+
+    renderMarkdown: (text) => {
+      try {
+        let safe = utils.escapeHtml(text);
+        // Bold: **text** — replace first so double-* is consumed before italic pass
+        safe = safe.replace(/**([^*<>
+]+)**/g, '<strong>$1</strong>');
+        // Italic: *text* — only remaining single * pairs after bold consumed
+        safe = safe.replace(/*([^*<>
+]+)*/g, '<em>$1</em>');
+        // @mentions
+        safe = safe.replace(/@([w.-]+)/g, '<span class="mention">@$1</span>');
+        return safe;
+      } catch (e) {
+        return utils.escapeHtml(text);
+      }
+    },
   };
 
   // ── Toast ──────────────────────────────────────────────────────────────────
@@ -1340,11 +1363,11 @@
     const emojiPopup = document.createElement('div');
     emojiPopup.id = 'emoji-input-popup';
     // Use fixed positioning so it escapes overflow:hidden parents
-    emojiPopup.style.cssText = 'display:none;position:fixed;z-index:99999;background:var(--panel2);border:1px solid var(--border-light);border-radius:10px;padding:8px;grid-template-columns:repeat(6,1fr);gap:4px;box-shadow:0 4px 20px rgba(0,0,0,0.6);max-width:240px';
+    emojiPopup.style.cssText = 'display:none;position:fixed;z-index:99999;background:var(--panel2);border:1px solid var(--border-light);border-radius:12px;padding:10px;grid-template-columns:repeat(5,40px);gap:4px;box-shadow:0 8px 28px rgba(0,0,0,0.7);width:220px;box-sizing:border-box';
     EMOJI_LIST.forEach(em => {
       const btn = document.createElement('button');
       btn.textContent = em; btn.type = 'button';
-      btn.style.cssText = 'background:none;border:none;font-size:20px;cursor:pointer;padding:4px 6px;border-radius:6px';
+      btn.style.cssText = 'background:none;border:none;font-size:20px;cursor:pointer;width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0';
       btn.onmouseenter = () => btn.style.background = 'rgba(255,255,255,0.1)';
       btn.onmouseleave = () => btn.style.background = 'none';
       btn.addEventListener('click', () => {
@@ -1362,19 +1385,16 @@
       const emojiBtn = document.getElementById('emoji-btn');
       if (!emojiBtn) return;
       const rect = emojiBtn.getBoundingClientRect();
-      const popupH = 220; // approximate height
-      const spaceAbove = rect.top;
-      if (spaceAbove > popupH) {
-        // Open upward
-        emojiPopup.style.bottom = '';
-        emojiPopup.style.top = '';
-        emojiPopup.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
-      } else {
-        // Open downward
-        emojiPopup.style.bottom = '';
-        emojiPopup.style.top = (rect.bottom + 4) + 'px';
-      }
-      const left = Math.min(rect.left, window.innerWidth - 250);
+      // Always open upward (input bar is at bottom of screen)
+      const popupWidth = 220;
+      const popupHeight = emojiPopup.offsetHeight || 260;
+      let top = rect.top - popupHeight - 8;
+      if (top < 8) top = rect.bottom + 8; // fallback: open downward if no space
+      let left = rect.left;
+      if (left + popupWidth > window.innerWidth - 8) left = window.innerWidth - popupWidth - 8;
+      if (left < 8) left = 8;
+      emojiPopup.style.top = top + 'px';
+      emojiPopup.style.bottom = '';
       emojiPopup.style.left = left + 'px';
     };
 

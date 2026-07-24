@@ -1,4 +1,47 @@
-node_modules
+# Dependencies
+node_modules/
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime data
+*.log
+server.log
+logs/
+
+# Uploads (user-generated, not source code)
+uploads/*
+!uploads/.gitkeep
+
+# Environment variables
 .env
+.env.local
+.env.*.local
+
+# OS files
 .DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor directories
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Build artifacts
+dist/
+build/
+.cache/
+
+# Docker
+.dockerignore
+
+# Misc
+*.bak
+*.backup*
+*.tmp
