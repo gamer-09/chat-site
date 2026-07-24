@@ -204,6 +204,7 @@
     save: (username, avatar, termsAgreed = true) => {
       const data = { username, avatar, termsAgreed };
       utils.saveToStorage(CONSTANTS.STORAGE_KEY, data);
+      state.myUsername = username || '';
       profile.updateUI(username, avatar, state.myClientId);
       return data;
     },
@@ -632,7 +633,7 @@
       const reactionEntries = msg.reactions ? Object.entries(msg.reactions).filter(([,u]) => u.length > 0) : [];
       const reactionsHtml = reactionEntries.length > 0
         ? `<div class="reactions">${reactionEntries.map(([emoji, users]) => {
-            const mine = users.some(u => u.userId === state.myUserId || u.username === state.myUsername);
+            const mine = users.some(u => u.userId === state.myClientId || u.username === state.myUsername);
             return `<button class="reaction-pill${mine ? ' active' : ''}" data-emoji="${emoji}" data-msg-id="${msg.id}" title="${users.map(u=>u.username).join(', ')}">${emoji} ${users.length}</button>`;
           }).join('')}</div>`
         : '<div class="reactions"></div>';
@@ -757,7 +758,7 @@
       const entries = reactions ? Object.entries(reactions).filter(([,u]) => u.length > 0) : [];
       if (entries.length === 0) { div.innerHTML = ''; return; }
       div.innerHTML = entries.map(([emoji, users]) => {
-        const mine = users.some(u => u.username === state.myUsername);
+        const mine = users.some(u => u.userId === state.myClientId || u.username === state.myUsername);
         return `<button class="reaction-pill${mine ? ' active' : ''}" data-emoji="${emoji}" title="${users.map(u=>u.username).join(', ')}">${emoji} ${users.length}</button>`;
       }).join('');
       const msgId = msgEl.dataset.id;
@@ -882,7 +883,7 @@
   const socketHandlers = {
     connect: () => {
       state.myClientId = utils.getOrCreateClientId();
-      try { const d = JSON.parse(localStorage.getItem('ptr29_user') || '{}'); state.myUsername = d.username || ''; } catch {}
+      try { const d = JSON.parse(localStorage.getItem(CONSTANTS.STORAGE_KEY) || '{}'); state.myUsername = d.username || ''; } catch {}
 
       // Re-enter saved passkeys so the server restores ephemeral access after reconnect
       const savedPasskeys = utils.loadFromStorage(CONSTANTS.PASSKEYS_KEY, {});

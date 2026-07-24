@@ -545,10 +545,22 @@ function transferRoomOwnership(room, newOwnerId) {
   return { ok: true };
 }
 
+function updateMessageReactions(room, messageId, newReactions) {
+  ensureRoom(room);
+  const db = read();
+  const list = db.rooms[room] && db.rooms[room].messages ? db.rooms[room].messages : [];
+  const msg = list.find(m => m && m.id === messageId);
+  if (!msg) return false;
+  msg.reactions = newReactions || {};
+  write(db);
+  return true;
+}
+
 module.exports = {
   MAX_MESSAGES_PER_ROOM,
   EDIT_WINDOW_MS,
   ensureRoom,
+  updateMessageReactions,
   getRoomNames,
   getRooms,
   getRoomsFor,

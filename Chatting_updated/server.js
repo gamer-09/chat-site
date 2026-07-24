@@ -35,6 +35,7 @@ const {
   setRoomPrivacy,
   deleteUser,
   transferRoomOwnership,
+  updateMessageReactions,
 } = require('./data/store');
 
 const HOST = process.env.HOST || '127.0.0.1';
@@ -628,7 +629,10 @@ io.on('connection', (socket) => {
       // Toggle on
       msg.reactions[emoji].push({ userId, username });
     }
-    
+
+    // Persist reactions to storage so they survive refreshes
+    updateMessageReactions(room, messageId, msg.reactions);
+
     io.to(room).emit('message-reaction', { messageId, room, reactions: msg.reactions });
   });
 
