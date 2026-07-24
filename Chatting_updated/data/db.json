@@ -176,6 +176,11 @@
               "userId": "-phFAlRBbrD2tOikAAAD",
               "username": "ko",
               "at": 1784924912838
+            },
+            {
+              "userId": "VPnujRGF575kGDWMAAAP",
+              "username": "ko",
+              "at": 1784927016359
             }
           ]
         },
@@ -313,59 +318,28 @@
               "userId": "-phFAlRBbrD2tOikAAAD",
               "username": "ko",
               "at": 1784924912846
+            },
+            {
+              "userId": "VPnujRGF575kGDWMAAAP",
+              "username": "ko",
+              "at": 1784927016431
             }
           ]
         },
         {
-          "id": "1784926259892-GQAS8nebAIKLrgofAAAJ",
+          "id": "1784927059809-VPnujRGF575kGDWMAAAP",
           "room": "general",
-          "userId": "GQAS8nebAIKLrgofAAAJ",
+          "userId": "VPnujRGF575kGDWMAAAP",
           "clientId": "37e0624c-670a-4ddf-ab35-fac2af0bafd8",
           "username": "ko",
           "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=ko",
-          "message": "hi",
-          "timestamp": 1784926259892,
+          "message": "sure",
+          "timestamp": 1784927059809,
           "readBy": [
             {
-              "userId": "GQAS8nebAIKLrgofAAAJ",
+              "userId": "VPnujRGF575kGDWMAAAP",
               "username": "ko",
-              "at": 1784926259892
-            }
-          ],
-          "reactions": {}
-        },
-        {
-          "id": "1784926267859-GQAS8nebAIKLrgofAAAJ",
-          "room": "general",
-          "userId": "GQAS8nebAIKLrgofAAAJ",
-          "clientId": "37e0624c-670a-4ddf-ab35-fac2af0bafd8",
-          "username": "ko",
-          "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=ko",
-          "message": "hi",
-          "timestamp": 1784926267859,
-          "readBy": [
-            {
-              "userId": "GQAS8nebAIKLrgofAAAJ",
-              "username": "ko",
-              "at": 1784926267859
-            }
-          ],
-          "reactions": {}
-        },
-        {
-          "id": "1784926270967-GQAS8nebAIKLrgofAAAJ",
-          "room": "general",
-          "userId": "GQAS8nebAIKLrgofAAAJ",
-          "clientId": "37e0624c-670a-4ddf-ab35-fac2af0bafd8",
-          "username": "ko",
-          "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=ko",
-          "message": "d",
-          "timestamp": 1784926270967,
-          "readBy": [
-            {
-              "userId": "GQAS8nebAIKLrgofAAAJ",
-              "username": "ko",
-              "at": 1784926270967
+              "at": 1784927059809
             }
           ],
           "reactions": {}
@@ -437,7 +411,7 @@
       "clientId": "37e0624c-670a-4ddf-ab35-fac2af0bafd8",
       "username": "ko",
       "avatar": "https://api.dicebear.com/7.x/thumbs/svg?seed=ko",
-      "lastSeen": 1784926276999
+      "lastSeen": 1784927400066
     }
   }
 }
