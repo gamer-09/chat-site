@@ -1339,7 +1339,8 @@
     const EMOJI_LIST = ['😀','😂','😍','🥺','😎','🤔','😅','😭','🥳','🤩','👍','❤️','🔥','🎉','✅','💯','😊','🙏','🤝','💪','🙄','😤','😜','🤗','💀','👀','😏','🤣','🫡','💬'];
     const emojiPopup = document.createElement('div');
     emojiPopup.id = 'emoji-input-popup';
-    emojiPopup.style.cssText = 'display:none;position:absolute;z-index:9999;background:var(--panel2);border:1px solid var(--border-light);border-radius:10px;padding:8px;grid-template-columns:repeat(6,1fr);gap:4px;box-shadow:0 4px 16px rgba(0,0,0,0.5);bottom:64px;left:12px;max-width:220px';
+    // Use fixed positioning so it escapes overflow:hidden parents
+    emojiPopup.style.cssText = 'display:none;position:fixed;z-index:99999;background:var(--panel2);border:1px solid var(--border-light);border-radius:10px;padding:8px;grid-template-columns:repeat(6,1fr);gap:4px;box-shadow:0 4px 20px rgba(0,0,0,0.6);max-width:240px';
     EMOJI_LIST.forEach(em => {
       const btn = document.createElement('button');
       btn.textContent = em; btn.type = 'button';
@@ -1355,13 +1356,39 @@
       });
       emojiPopup.appendChild(btn);
     });
-    const inputArea = document.getElementById('input-area');
-    if (inputArea) inputArea.style.position = 'relative', inputArea.appendChild(emojiPopup);
+    document.body.appendChild(emojiPopup);
+
+    const positionEmojiPopup = () => {
+      const emojiBtn = document.getElementById('emoji-btn');
+      if (!emojiBtn) return;
+      const rect = emojiBtn.getBoundingClientRect();
+      const popupH = 220; // approximate height
+      const spaceAbove = rect.top;
+      if (spaceAbove > popupH) {
+        // Open upward
+        emojiPopup.style.bottom = '';
+        emojiPopup.style.top = '';
+        emojiPopup.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+      } else {
+        // Open downward
+        emojiPopup.style.bottom = '';
+        emojiPopup.style.top = (rect.bottom + 4) + 'px';
+      }
+      const left = Math.min(rect.left, window.innerWidth - 250);
+      emojiPopup.style.left = left + 'px';
+    };
+
     const emojiBtn = document.getElementById('emoji-btn');
     if (emojiBtn) {
       emojiBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        emojiPopup.style.display = emojiPopup.style.display === 'grid' ? 'none' : 'grid';
+        const visible = emojiPopup.style.display === 'grid';
+        if (!visible) {
+          emojiPopup.style.display = 'grid';
+          positionEmojiPopup();
+        } else {
+          emojiPopup.style.display = 'none';
+        }
       });
     }
     document.addEventListener('click', (e) => {
