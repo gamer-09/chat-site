@@ -1,26 +1,28 @@
 # Chat Site
 
-A real-time multi-room chat application built with Node.js, Express, and Socket.io. Supports multiple rooms, image sharing, typing indicators, private rooms with passkeys, and admin management — all with no account required.
+A real-time multi-room chat app built with Node.js, Express, and Socket.io. No accounts required — pick a username and start chatting instantly.
 
 ---
 
 ## Features
 
-- **Multiple rooms** — join any room or create your own
-- **Private rooms** — lock a room with a passkey so only invited users can join
-- **Real-time messaging** — messages appear instantly for everyone in the room via WebSocket
-- **Image sharing** — upload and send images up to 10 MB
-- **Typing indicators** — see when others are typing
-- **Message editing and deletion** — edit or delete your own messages within the allowed time window
-- **Read receipts** — see who has read each message
-- **User presence** — sidebar shows who is currently online in each room
-- **Unique usernames** — the server enforces that no two users share the same name
-- **Avatar support** — auto-generated avatars via DiceBear, or supply your own URL
-- **Admin tools** — room owners can rename, clear, delete, or transfer ownership of rooms
-- **Help guide** — built-in slide-by-slide help modal accessible from the UI
-- **Mobile friendly** — responsive layout with a dedicated mobile sidebar
-- **Progressive Web App** — includes a service worker for offline caching
-- **Docker ready** — includes a `Dockerfile` for containerised deployment
+| Feature | Details |
+|---|---|
+| Real-time messaging | Instant delivery via WebSocket (Socket.io) |
+| Multiple rooms | Join existing rooms or create your own |
+| Private rooms | Lock any room with a passkey |
+| Image sharing | Upload and send images up to 10 MB |
+| Typing indicators | See when others are typing |
+| Edit & delete | Edit or delete your own messages within the time window |
+| Read receipts | See who has read each message |
+| User presence | Sidebar shows who is currently online per room |
+| Unique usernames | Server enforces no two users share the same name |
+| Auto avatars | DiceBear avatars generated from your username, or supply your own URL |
+| Admin tools | Rename, clear, delete, transfer ownership, manage admins and members |
+| Built-in help | Slide-by-slide help guide accessible from the toolbar |
+| Mobile layout | Responsive design with a dedicated mobile sidebar |
+| PWA | Service worker included for offline caching |
+| Docker ready | `Dockerfile` included for container deployments |
 
 ---
 
@@ -28,27 +30,27 @@ A real-time multi-room chat application built with Node.js, Express, and Socket.
 
 ```
 Chatting_updated/
-├── server.js              # Express + Socket.io server (entry point)
+├── server.js            # Express + Socket.io server — entry point
 ├── package.json
 ├── Dockerfile
-├── Procfile               # For Heroku-style platforms (web: node server.js)
+├── Procfile             # For Heroku-style platforms
 ├── data/
-│   ├── store.js           # JSON-file data layer (rooms, messages, users)
-│   └── db.json            # Persistent data store (auto-created)
+│   ├── store.js         # JSON data layer (rooms, messages, users)
+│   └── db.json          # Persistent store — auto-created on first run
 ├── public/
-│   ├── index.html         # Main chat UI
-│   ├── client.js          # Frontend Socket.io logic
-│   ├── mobile.css         # Mobile-specific styles
-│   └── sw.js              # Service worker
-└── uploads/               # Uploaded images (auto-created)
+│   ├── index.html       # Main chat UI
+│   ├── client.js        # Frontend Socket.io logic
+│   ├── mobile.css       # Mobile styles
+│   └── sw.js            # Service worker
+└── uploads/             # Uploaded images — auto-created on first run
 ```
 
 ---
 
 ## Requirements
 
-- **Node.js** 18 or newer (20 recommended)
-- **npm** 8 or newer
+- Node.js 18 or newer (20 recommended)
+- npm 8 or newer
 
 ---
 
@@ -60,9 +62,9 @@ npm install
 npm start
 ```
 
-The server starts on `http://localhost:3000`.
+Open `http://localhost:3000` in your browser.
 
-For development with auto-reload on file changes:
+For development with auto-reload:
 
 ```bash
 npm run dev
@@ -70,42 +72,31 @@ npm run dev
 
 ### Environment variables
 
-| Variable | Default       | Description                        |
-|----------|---------------|------------------------------------|
-| `PORT`   | `3000`        | Port the server listens on         |
-| `HOST`   | `127.0.0.1`   | Host/interface to bind to          |
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `3000` | Port the server listens on |
+| `HOST` | `127.0.0.1` | Interface to bind to |
 
-To listen on all interfaces (required for Docker or a VPS):
-
-```bash
-HOST=0.0.0.0 PORT=3000 node server.js
-```
-
-Or create a `.env` file and load it yourself — the server reads `process.env.HOST` and `process.env.PORT` directly.
+> Set `HOST=0.0.0.0` when running on a VPS or inside Docker so the server is reachable from outside.
 
 ---
 
-## Running with Docker
-
-Build the image:
+## Docker
 
 ```bash
 cd Chatting_updated
+
+# Build
 docker build -t chat-site .
+
+# Run
+docker run -p 3000:3000 -e HOST=0.0.0.0 chat-site
 ```
 
-Run the container:
+To keep messages and uploads after the container restarts:
 
 ```bash
-docker run -p 3000:3000 chat-site
-```
-
-The server will be available at `http://localhost:3000`.
-
-To persist messages and uploads across restarts, mount the `data` and `uploads` directories:
-
-```bash
-docker run -p 3000:3000 \
+docker run -p 3000:3000 -e HOST=0.0.0.0 \
   -v "$(pwd)/data:/app/data" \
   -v "$(pwd)/uploads:/app/uploads" \
   chat-site
@@ -115,133 +106,143 @@ docker run -p 3000:3000 \
 
 ## Deploying to a VPS
 
-1. SSH into your server.
-2. Install Node.js 20+ (`nvm` is recommended).
-3. Clone this repository:
+```bash
+# 1. SSH into your server and clone
+git clone https://github.com/gamer-09/chat-site.git
+cd chat-site/Chatting_updated
 
-   ```bash
-   git clone https://github.com/gamer-09/chat-site.git
-   cd chat-site/Chatting_updated
-   ```
+# 2. Install dependencies
+npm install --omit=dev
 
-4. Install dependencies:
+# 3. Start with PM2 so it survives reboots
+npm install -g pm2
+HOST=0.0.0.0 PORT=3000 pm2 start server.js --name chat-site
+pm2 save
+pm2 startup   # copy and run the command it prints
+```
 
-   ```bash
-   npm install --omit=dev
-   ```
+Then open port 3000 in your firewall, or put Nginx or Caddy in front on port 80/443 with HTTPS.
 
-5. Start with a process manager so the server restarts on reboot:
+### Updating from GitHub
 
-   ```bash
-   npm install -g pm2
-   HOST=0.0.0.0 PORT=3000 pm2 start server.js --name chat-site
-   pm2 save
-   pm2 startup
-   ```
-
-6. Open port 3000 in your firewall (or put Nginx/Caddy in front on port 80/443).
+```bash
+cd chat-site/Chatting_updated
+git pull --ff-only
+npm install --omit=dev
+pm2 restart chat-site
+```
 
 ---
 
-## Deploying to Heroku / Railway / Render
+## Deploying to Railway / Render / Heroku
 
-The included `Procfile` is already configured:
+The `Procfile` is already configured:
 
 ```
 web: node server.js
 ```
 
-Set the environment variable `HOST=0.0.0.0` in your hosting provider's dashboard so the server binds to the public interface. `PORT` is set automatically by most platforms.
+Set `HOST=0.0.0.0` in your hosting dashboard's environment variables. `PORT` is set automatically by most platforms.
 
 ---
 
-## Using the Chat Site
+## How to Use
 
 ### Joining a room
 
-1. Open the site in your browser.
-2. Enter a **username** in the sidebar (minimum 2 characters, must be unique).
-3. Click a room in the room list, or create a new one.
-4. Press **Join** to enter the room.
+1. Enter a **username** in the sidebar — minimum 2 characters, must be unique across all connected users.
+2. Click a room from the list, or click **+ New Room** to create one.
+3. Click **Join**.
 
-### Sending messages
+### Sending a message
 
 - Type in the message box and press **Enter** or click **Send**.
-- Click the image icon to upload and send a photo (max 10 MB).
+- Click the image icon to attach and send a photo (max 10 MB).
 
 ### Creating a room
 
-1. Click **+ New Room** in the sidebar.
-2. Enter a room name (letters, numbers, hyphens, underscores).
-3. Optionally toggle **Private** and set a passkey — users will need the passkey to join.
+1. Click **+ New Room**.
+2. Enter a room name (letters, numbers, hyphens, underscores — max 50 characters).
+3. Toggle **Private** if you want to restrict access, then set a passkey.
 4. Click **Create**.
 
 ### Joining a private room
 
-1. Click the private room in the list.
-2. Enter the passkey when prompted.
+Click the room name and enter the passkey when prompted. The passkey is checked against the server — it is not stored in your browser.
 
-### Editing or deleting your messages
+### Editing or deleting messages
 
-- Hover over a message you sent and click the **edit** or **delete** icon.
-- Editing is only available within the allowed time window after sending.
+Hover over one of your own messages and click the **edit** or **delete** icon. Editing is only available within the time window set by the server.
 
-### Admin actions (room owners)
+### Admin actions (room owner)
 
-Room owners can access a settings panel to:
+Room owners have a settings panel with:
 
-- **Rename** the room
-- **Clear** all messages
-- **Delete** the room
-- **Transfer ownership** to another user
-- **Add or remove** admins and members
+- Rename the room
+- Clear all messages
+- Delete the room
+- Transfer ownership to another user
+- Add or remove admins and members
 
 ---
 
-## API Endpoints
+## API Reference
 
-The server exposes a small REST API alongside the WebSocket connection.
+### HTTP endpoints
 
-| Method | Path                           | Description                          |
-|--------|--------------------------------|--------------------------------------|
-| GET    | `/health`                      | Health check — returns `{ status: "ok" }` |
-| GET    | `/api/rooms`                   | List all rooms                       |
-| POST   | `/api/rooms`                   | Create a room                        |
-| GET    | `/api/rooms/:room/messages`    | Fetch message history for a room     |
-| POST   | `/api/rooms/:room/images`      | Upload an image to a room            |
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/health` | Health check — returns `{ status: "ok" }` |
+| `GET` | `/api/rooms` | List all rooms |
+| `POST` | `/api/rooms` | Create a room |
+| `GET` | `/api/rooms/:room/messages?clientId=&limit=` | Fetch message history |
+| `POST` | `/api/rooms/:room/images` | Upload an image |
 
----
+### WebSocket events (client → server)
 
-## WebSocket Events
+| Event | Payload | Description |
+|---|---|---|
+| `join` | `{ room, username, avatar, clientId }` | Enter a room |
+| `message` | `{ room, text, clientId }` | Send a text message |
+| `typing` | `{ isTyping }` | Broadcast typing state |
+| `update-profile` | `{ room, clientId, username, avatar }` | Change display name or avatar |
+| `check-username` | `{ username }` | Check if a username is available |
+| `edit-message` | `{ room, id, text, clientId }` | Edit a sent message |
+| `delete-message` | `{ room, id, clientId }` | Delete a message |
+| `list-users` | — | Request list of all users |
 
-Connect to the server with [Socket.io](https://socket.io/). The client emits:
+### WebSocket events (server → client)
 
-| Event            | Payload                          | Description                     |
-|------------------|----------------------------------|---------------------------------|
-| `join`           | `{ room, username, avatar, clientId }` | Join a room               |
-| `message`        | `{ room, text, clientId }`       | Send a text message             |
-| `typing`         | `{ isTyping }`                   | Broadcast typing indicator      |
-| `update-profile` | `{ room, clientId, username, avatar }` | Update display name/avatar |
-| `check-username` | `{ username }`                   | Check if a username is available |
-| `edit-message`   | `{ room, id, text, clientId }`   | Edit a sent message             |
-| `delete-message` | `{ room, id, clientId }`         | Delete a sent message           |
-| `list-users`     | —                                | Request list of all users       |
-
-The server emits events including `message`, `presence`, `system`, `typing`, `users`, and `receipt`.
+`message`, `presence`, `system`, `typing`, `users`, `receipt`, `room-renamed`, `room-deleted`
 
 ---
 
 ## Data Storage
 
-All data is persisted in `data/db.json`. This is a plain JSON file — no database server is required. Back up this file regularly if you care about message history.
+All data is written to `data/db.json` — a plain JSON file, no database server needed. Back this file up regularly if message history matters.
 
-Data is written synchronously on each change. For high-traffic deployments, consider migrating the data layer in `data/store.js` to a proper database.
+For high-traffic deployments, replace the read/write calls in `data/store.js` with a proper database (PostgreSQL, SQLite, MongoDB, etc.).
 
 ---
 
-## Security Notes
+## Legal & Safety
 
-- Never commit `.env` files or any file containing secrets to GitHub.
-- The `uploads/` directory is publicly served — do not store sensitive files there.
-- Room passkeys are stored in the JSON data file — do not use important passwords as passkeys.
-- For production, run behind a reverse proxy (Nginx or Caddy) with HTTPS.
+Running a public chat platform makes you the operator. These steps protect you:
+
+### 1. Add a Terms of Service
+State what users may and may not do, that you can remove content and ban users, and that you are not liable for user-generated content. Place a link to it in the site footer.
+
+### 2. Add a Privacy Policy
+Required by law if any EU or California users can access the site (GDPR / CCPA). Explain what you store — usernames, messages, uploaded images, and server IP logs — and how users can request deletion.
+
+### 3. Add an abuse contact
+Add a visible `abuse@yourdomain.com` email address. This is evidence that you act responsibly if a legal complaint is ever made about content on your site.
+
+### 4. Enable server-side IP logging
+The server does not currently log IP addresses. Adding IP logging to `server.js` means you can cooperate with law enforcement if something illegal is reported, which reduces your own liability.
+
+### 5. Run behind HTTPS
+Use Nginx or Caddy with a free Let's Encrypt certificate. Never run a public chat site over plain HTTP — messages and uploads would be visible to anyone on the same network.
+
+### 6. Keep `.env` and `data/db.json` off GitHub
+`db.json` contains all usernames and messages. Never commit it to a public repository. The `.gitignore` already excludes `.env` — make sure `data/db.json` is also excluded if you fork or redeploy.
