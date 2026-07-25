@@ -60,45 +60,52 @@
 }
 
 /* ── Main container ───────────────────────────────────────────────────── */
+/*
+   padding-bottom reserves space for the fixed bottom nav + iOS safe area.
+   For flex children (the panels), padding-bottom is excluded from the
+   flex content area, so panels can never grow into the nav bar space.
+*/
 .ptr29-mobile main {
   flex-direction: column;
   flex: 1;
-  position: relative;
   overflow: hidden;
-  /* NO padding-bottom — the views stop at --mobile-nav-h themselves */
+  padding-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px));
 }
 
-/* ── View panels: stop above the fixed bottom nav ────────────────────── */
+/* ── View panels: normal flex children, NOT absolutely positioned ─────── */
+/*
+   display:none / display:flex switching is reliable across all browsers.
+   Panels get flex:1 + min-height:0 so they fill the remaining space
+   inside main (above the padding-bottom reserved for the nav bar).
+*/
 .ptr29-mobile #sidebar,
 .ptr29-mobile #chat,
 .ptr29-mobile #online-panel {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: var(--mobile-nav-h); /* ← critical: clears the nav bar */
-  width: 100%;
-  border: none;
-  display: flex;
+  display: none;        /* hidden by default */
+  flex: 1;
+  min-height: 0;        /* critical: lets flex children scroll properly */
   flex-direction: column;
   overflow: hidden;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.18s ease;
+  width: 100%;
+  border: none;
+}
+
+/* Fade-in animation when a tab becomes active */
+@keyframes ptr29TabIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .ptr29-mobile.ptr29-view-rooms  #sidebar,
 .ptr29-mobile.ptr29-view-chat   #chat,
 .ptr29-mobile.ptr29-view-online #online-panel {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
+  display: flex;
+  animation: ptr29TabIn 0.15s ease;
 }
 
-.ptr29-mobile #sidebar       { background: var(--panel); /* overflow stays hidden — only #room-list scrolls */ }
-.ptr29-mobile #chat          { background: var(--bg); }
-.ptr29-mobile #online-panel  { background: var(--panel); }
+.ptr29-mobile #sidebar      { background: var(--panel); }
+.ptr29-mobile #chat         { background: var(--bg); }
+.ptr29-mobile #online-panel { background: var(--panel); }
 
 /* ── Bottom tab bar ───────────────────────────────────────────────────── */
 #mobile-nav {
