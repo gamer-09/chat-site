@@ -38,7 +38,7 @@ const {
   updateMessageReactions,
 } = require('./data/store');
 
-const HOST = process.env.HOST || '127.0.0.1';
+const HOST = process.env.HOST || '0.0.0.0';   // listen on all interfaces → LAN accessible
 const PORT = process.env.PORT || 3000;
 const DEFAULT_ROOM = 'general';
 ensureRoom(DEFAULT_ROOM, {});
@@ -897,5 +897,16 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`Chat server running on http://${HOST}:${PORT}`);
+  // Print every LAN IP so you know what to type on other devices
+  const { networkInterfaces } = require('os');
+  const nets = networkInterfaces();
+  const lanIPs = [];
+  for (const iface of Object.values(nets)) {
+    for (const addr of iface) {
+      if (addr.family === 'IPv4' && !addr.internal) lanIPs.push(addr.address);
+    }
+  }
+  console.log(`Chat server running — open one of these on any device on the same Wi-Fi:`);
+  lanIPs.forEach(ip => console.log(`  http://${ip}:${PORT}`));
+  if (lanIPs.length === 0) console.log(`  http://localhost:${PORT}  (no LAN interface found)`);
 });
