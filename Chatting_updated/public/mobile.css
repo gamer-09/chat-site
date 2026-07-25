@@ -655,6 +655,8 @@
   padding: 20px 16px;
   max-height: 88dvh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* momentum scroll on iOS */
+  overscroll-behavior: contain;      /* don't scroll the page behind the modal */
   border-radius: 16px;
 }
 

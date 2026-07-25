@@ -185,7 +185,15 @@
 
   // ── Modals ─────────────────────────────────────────────────────────────────
   const modals = {
-    open:     (m) => m?.classList.add('open'),
+    open: (m) => {
+      // Dismiss the on-screen keyboard before showing the modal so it
+      // doesn't cover the modal content (especially the checkbox / Save
+      // button at the bottom of the terms-agreement form on mobile).
+      if (document.activeElement && document.activeElement !== document.body) {
+        document.activeElement.blur();
+      }
+      m?.classList.add('open');
+    },
     close:    (m) => m?.classList.remove('open'),
     closeAll: ()  => document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open')),
   };
