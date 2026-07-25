@@ -896,8 +896,8 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(PORT, HOST, () => {
-  // Print every LAN IP so you know what to type on other devices
+server.listen(PORT, HOST, async () => {
+  // ── Print every LAN IP (same Wi-Fi) ──────────────────────────────────
   const { networkInterfaces } = require('os');
   const nets = networkInterfaces();
   const lanIPs = [];
@@ -906,7 +906,24 @@ server.listen(PORT, HOST, () => {
       if (addr.family === 'IPv4' && !addr.internal) lanIPs.push(addr.address);
     }
   }
-  console.log(`Chat server running — open one of these on any device on the same Wi-Fi:`);
+  console.log('Chat server running — same Wi-Fi:');
   lanIPs.forEach(ip => console.log(`  http://${ip}:${PORT}`));
-  if (lanIPs.length === 0) console.log(`  http://localhost:${PORT}  (no LAN interface found)`);
+  if (lanIPs.length === 0) console.log(`  http://localhost:${PORT}`);
+
+  // ── Public tunnel (any network / different Wi-Fi) ─────────────────────
+  // Start with:  TUNNEL=1 node server.js
+  if (process.env.TUNNEL === '1') {
+    try {
+      const localtunnel = require('localtunnel');
+      const tunnel = await localtunnel({ port: PORT });
+      console.log('\nPublic URL (any network):');
+      console.log(`  ${tunnel.url}`);
+      console.log('  Share this link — works from any Wi-Fi or mobile data.\n');
+      tunnel.on('close', () => console.log('Tunnel closed.'));
+      tunnel.on('error', err => console.error('Tunnel error:', err.message));
+    } catch (err) {
+      console.error('Could not open tunnel:', err.message);
+      console.error('Run  npm install  inside Chatting_updated/ first.');
+    }
+  }
 });
