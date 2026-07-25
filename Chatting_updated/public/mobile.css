@@ -7,10 +7,13 @@
    ─────────────────────────────────────────────────────────────────────────
    • body  →  100dvh, flex column, overflow:hidden
    • header  →  flex-shrink:0  (~44 px)
-   • main   →  flex:1, position:relative, overflow:hidden  (no padding-bottom)
-   • #sidebar / #chat / #online-panel  →  position:absolute,
-       top:0 / left:0 / right:0 / bottom:var(--mobile-nav-h)
-       so they stop exactly where the fixed bottom nav begins.
+   • main   →  display:flex, flex-direction:column, flex:1, overflow:hidden
+               padding-bottom: calc(--mobile-nav-h + safe-area-inset-bottom)
+               Padding-bottom reserves space for the fixed nav WITHOUT any
+               pixel math — flex children physically cannot enter that zone.
+   • #sidebar / #chat / #online-panel  →  normal flex children (NOT absolute)
+               display:none by default; display:flex when tab is active.
+               flex:1 + min-height:0 so they fill the space above the padding.
    • #mobile-nav  →  position:fixed, bottom:0, height:var(--mobile-nav-h)
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -61,11 +64,14 @@
 
 /* ── Main container ───────────────────────────────────────────────────── */
 /*
+   display:flex + flex-direction:column declared explicitly so the panel
+   flex children lay out correctly regardless of the base stylesheet.
    padding-bottom reserves space for the fixed bottom nav + iOS safe area.
-   For flex children (the panels), padding-bottom is excluded from the
-   flex content area, so panels can never grow into the nav bar space.
+   For flex children, padding-bottom is excluded from the flex content area,
+   so panels can never grow into the nav bar space — no fragile math needed.
 */
 .ptr29-mobile main {
+  display: flex;
   flex-direction: column;
   flex: 1;
   overflow: hidden;
@@ -437,8 +443,8 @@
 .ptr29-mobile #input-area {
   flex-shrink: 0;
   padding: 8px 10px;
-  /* safe-area-inset-bottom handles notch/home bar devices */
-  padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+  /* safe-area-inset-bottom is already handled by main's padding-bottom —
+     do NOT add it here again or the input bar floats up on notch devices */
   border-top: 1px solid var(--border);
   background: var(--panel);
 }
