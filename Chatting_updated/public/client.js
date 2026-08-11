@@ -531,6 +531,11 @@
       socket.emit('set-room-passkey', { room: state.currentRoom, passkey }, (resp) => {
         if (resp && resp.ok) {
           showToast('Passkey saved', 'success');
+          // Remember it so you can re-join your own room without typing it again
+          const passkeys = utils.loadFromStorage(CONSTANTS.PASSKEYS_KEY, {});
+          if (passkey) passkeys[state.currentRoom] = passkey;
+          else delete passkeys[state.currentRoom];
+          utils.saveToStorage(CONSTANTS.PASSKEYS_KEY, passkeys);
           rooms.fetchMeta(state.currentRoom);
         } else {
           showToast(resp?.error || 'Failed to save passkey', 'error');
@@ -539,11 +544,12 @@
     },
 
     delete: async () => {
+      modals.close(elements.deleteRoomModal);
+      showToast('Deleting room…', 'info');
       try {
         const data = await window.ChatAPI.deleteRoom(state.currentRoom);
         if (data.ok) {
           showToast(`Room "#${data.room}" deleted`, 'success');
-          modals.close(elements.deleteRoomModal);
           rooms.join('general');
           rooms.fetch();
         } else {

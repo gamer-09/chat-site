@@ -242,15 +242,15 @@ begin
     return '{"ok":true}'::jsonb;
   end if;
 
-  -- Private rooms must have a passkey, and it must match, for new joiners.
-  -- (Owner/admin/members are already handled above; a private room with no
-  -- passkey set is only accessible to them.)
-  if r.passkey = '' or r.passkey <> coalesce(passkey, '') then
-    return '{"ok":false,"error":"invalid_passkey"}'::jsonb;
-  end if;
-
+  -- Owner, admins and existing members NEVER need the passkey.
   if r.owner_id = uid or uid = any (r.admins) or uid = any (r.members) then
     return '{"ok":true}'::jsonb;
+  end if;
+
+  -- New joiners of a private room need a matching (non-empty) passkey.
+  -- A private room with no passkey set is only accessible to its members.
+  if r.passkey = '' or r.passkey <> coalesce(passkey, '') then
+    return '{"ok":false,"error":"invalid_passkey"}'::jsonb;
   end if;
 
   update public.rooms set members = members || uid

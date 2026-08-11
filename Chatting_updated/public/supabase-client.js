@@ -272,21 +272,22 @@
     doJoin: function (p) {
       if (!api.uid) return;
       var room = sanitizeRoom(p.room);
-      return sb.rpc('join_room', { room_name: room, passkey: String(p.passkey || '') })
-        .then(function (res) {
-          if (!res.data || !res.data.ok) {
-            var err = (res.data && res.data.error) || 'forbidden';
-            var msg = err === 'invalid_passkey'
-              ? '#' + room + ' is private. Enter its passkey to join.'
-              : (err === 'not_authenticated' ? 'Not signed in yet.' : 'Access denied to #' + room);
-            dispatch('system', { type: 'error', message: msg });
-            api.refreshRooms();
-            return;
-          }
-          api._currentRoom = room;
-          api._joined = true;
-          var username = String(p.username || '').trim() || api._username || 'Anonymous';
-          var avatar = String(p.avatar || '').trim() || api._avatar || defaultAvatar(username);
+      // Owners / admins / existing members never need the passkey: check
+      // membership first so re-joining your own private room just works.
+      var proceed = function (res) {
+        if (!res || !res.ok) {
+          var err = (res && res.error) || 'forbidden';
+          var msg = err === 'invalid_passkey'
+            ? '#' + room + ' is private. Enter its passkey to join.'
+            : (err === 'not_authenticated' ? 'Not signed in yet.' : 'Access denied to #' + room);
+          dispatch('system', { type: 'error', message: msg });
+          api.refreshRooms();
+          return;
+        }
+        api._currentRoom = room;
+        api._joined = true;
+        var username = String(p.username || '').trim() || api._username || 'Anonymous';
+        var avatar = String(p.avatar || '').trim() || api._avatar || defaultAvatar(username);
           api.upsertProfile(username, avatar);
           api.heartbeat(true);
 
@@ -296,10 +297,25 @@
           api.getRoomMeta(room).then(function (meta) {
             if (meta) dispatch('room-meta', { room: room, meta: meta });
           });
-          api.refreshRooms();
-          api.pushPresence();
-          dispatch('system', { type: 'welcome', message: 'Joined #' + room });
-        });
+        api.refreshRooms();
+        api.pushPresence();
+        dispatch('system', { type: 'welcome', message: 'Joined #' + room });
+      };
+      var viaRpc = function () {
+        sb.rpc('join_room', { room_name: room, passkey: String(p.passkey || '') })
+          .then(function (res) { proceed(res.data || { ok: false, error: 'rpc_error' }); })
+          .catch(function () { proceed({ ok: false, error: 'rpc_error' }); });
+      };
+      api.getRoomMeta(room).then(function (meta) {
+        var isMember = meta && (meta.ownerId === api.uid
+          || meta.admins.indexOf(api.uid) !== -1
+          || meta.members.indexOf(api.uid) !== -1);
+        if (isMember) {
+          proceed({ ok: true });
+        } else {
+          viaRpc();
+        }
+      }).catch(viaRpc);
     },
 
     doLeave: function (room) {
