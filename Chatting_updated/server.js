@@ -3,6 +3,7 @@ const fs = require('fs');
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
+const crypto = require('crypto');
 const { Server } = require('socket.io');
 const {
   ensureRoom,
@@ -51,7 +52,25 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-app.use('/uploads', express.static(UPLOAD_DIR));
+
+// ── Signed upload URLs ─────────────────────────────────────────────────────
+// Uploaded images/files can only be opened through a signed ?sig= link that
+// the server embeds in chat messages, so files are not publicly guessable.
+// Set UPLOAD_SECRET to a fixed value in production so links survive restarts.
+const UPLOAD_SECRET = process.env.UPLOAD_SECRET || crypto.randomBytes(32).toString('hex');
+function signUpload(name) { return crypto.createHmac('sha256', UPLOAD_SECRET).update(String(name)).digest('hex'); }
+function sigMatches(a, b) {
+  try {
+    const ba = Buffer.from(String(a || ''));
+    const bb = Buffer.from(String(b || ''));
+    return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
+  } catch { return false; }
+}
+app.use('/uploads', (req, res, next) => {
+  const name = path.basename(req.path);
+  if (!name || !sigMatches(req.query.sig, signUpload(name))) return res.status(403).send('forbidden');
+  next();
+}, express.static(UPLOAD_DIR));
 
 app.get('/favicon.ico', (req, res) => {
   const b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
@@ -113,7 +132,7 @@ app.post('/api/rooms/:room/images', async (req, res) => {
     const safeBase = String(filename || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 24) || 'img';
     const fileName = `${safeBase}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     fs.writeFileSync(path.join(UPLOAD_DIR, fileName), buf);
-    const imageUrl = `/uploads/${fileName}`;
+    const imageUrl = `/uploads/${fileName}?sig=${signUpload(fileName)}`;
 
     let username = 'Anonymous', avatar = '';
     try {
@@ -171,7 +190,7 @@ app.post('/api/rooms/:room/files', async (req, res) => {
     
     const serverFileName = `${safeBase}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     fs.writeFileSync(path.join(UPLOAD_DIR, serverFileName), buf);
-    const fileUrl = `/uploads/${serverFileName}`;
+    const fileUrl = `/uploads/${serverFileName}?sig=${signUpload(serverFileName)}`;
 
     let username = 'Anonymous', avatar = '';
     try {
