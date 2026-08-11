@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
   <title>Privacy Policy - ptr_29 Chat</title>
   <link rel="icon" href="data:,">
@@ -133,6 +133,13 @@
       .section {
         padding: 16px;
       }
+    }
+      @media (max-width: 768px) {
+      .container { padding: 20px 16px; padding-left: max(16px, env(safe-area-inset-left, 16px)); padding-right: max(16px, env(safe-area-inset-right, 16px)); }
+      h1 { font-size: 24px; word-break: break-word; }
+      h2 { font-size: 20px; word-break: break-word; }
+      body { overflow-x: hidden; }
+      * { overflow-wrap: anywhere; word-break: break-word; }
     }
   </style>
 </head>

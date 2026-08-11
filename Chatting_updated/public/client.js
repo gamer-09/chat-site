@@ -1562,7 +1562,18 @@
   };
 
   const loadMobileStyles = () => new Promise((resolve) => {
-    if (document.getElementById('ptr29-mobile-styles')) return resolve();
+    const existing = document.getElementById('ptr29-mobile-styles');
+    if (existing) {
+      // If preloaded with media="(max-width:768px)", remove media filter when JS confirms mobile
+      if (existing.media && existing.media !== 'all') existing.media = 'all';
+      // Already loaded or loading — resolve on next tick once styles applied
+      if (existing.sheet) return resolve();
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener('error', () => resolve(), { once: true });
+      // If already in DOM but sheet not yet ready, fallback timeout
+      setTimeout(resolve, 400);
+      return;
+    }
     const link = document.createElement('link');
     link.id = 'ptr29-mobile-styles';
     link.rel = 'stylesheet';
@@ -1575,6 +1586,9 @@
   const enableMobile = async () => {
     document.body.classList.add('ptr29-mobile');
     await loadMobileStyles();
+    // Ensure the preloaded media query link is fully active
+    const ml = document.getElementById('ptr29-mobile-styles');
+    if (ml && ml.media && ml.media !== 'all') ml.media = 'all';
     setMobileView(state.joined ? 'chat' : 'rooms');
 
     if (mobileInitialized) return;
@@ -1593,16 +1607,6 @@
         setMobileView('rooms');
       });
     }
-
-    // After successfully joining a room, jump straight to the chat view
-    const originalJoin = rooms.join;
-    rooms.join = (roomName, passkey) => {
-      const result = originalJoin(roomName, passkey);
-      if (state.joined && document.body.classList.contains('ptr29-mobile')) {
-        setMobileView('chat');
-      }
-      return result;
-    };
 
     // Leaving a room sends you back to the room list
     const originalLeave = socketHandlers.leave;
@@ -1662,11 +1666,20 @@
       });
     }
 
-    // Also collapse the search bar whenever you switch rooms
-    const originalRoomsJoin = rooms.join;
+    // Unified rooms.join wrapper: clear search AND switch to chat view
+    const _originalJoin = rooms.join;
     rooms.join = (roomName, passkey) => {
       clearMobileSearch();
-      return originalRoomsJoin(roomName, passkey);
+      const result = _originalJoin(roomName, passkey);
+      if (state.joined && document.body.classList.contains('ptr29-mobile')) {
+        setMobileView('chat');
+        // ensure messages scrolled to bottom after switch
+        setTimeout(() => {
+          const msgs = document.getElementById('messages');
+          if (msgs) msgs.scrollTop = msgs.scrollHeight;
+        }, 100);
+      }
+      return result;
     };
 
     // Keep the Online tab badge in sync with the online users list
@@ -1680,6 +1693,31 @@
         badge.style.display = count > 0 ? 'flex' : 'none';
       }
     };
+
+    // ── VisualViewport: keep input visible when keyboard opens (iOS/Android) ─
+    if (window.visualViewport) {
+      let lastVVHeight = window.visualViewport.height;
+      window.visualViewport.addEventListener('resize', () => {
+        if (!document.body.classList.contains('ptr29-mobile')) return;
+        const vv = window.visualViewport;
+        const keyboardOpen = vv.height < lastVVHeight - 80;
+        // When keyboard opens, scroll messages to bottom so latest is visible
+        if (keyboardOpen && document.body.classList.contains('ptr29-view-chat')) {
+          const msgs = document.getElementById('messages');
+          if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 80);
+        }
+        // When keyboard closes, restore
+        if (!keyboardOpen) lastVVHeight = vv.height;
+      });
+    }
+
+    // ── Prevent double-tap zoom on fast button presses ──────────────────
+    let lastTouch = 0;
+    document.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if (now - lastTouch < 300) e.preventDefault();
+      lastTouch = now;
+    }, { passive: false });
   };
 
   const disableMobile = () => {

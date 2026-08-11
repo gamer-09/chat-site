@@ -1,43 +1,38 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MOBILE STYLES  —  ptr_29 Chat
-   Applied when screen width ≤ 768 px.
-   Three-tab layout: Rooms / Chat / Online, bottom nav bar.
-
-   KEY LAYOUT CONTRACT
-   ─────────────────────────────────────────────────────────────────────────
-   • body  →  100dvh, flex column, overflow:hidden
-   • header  →  flex-shrink:0  (~44 px)
-   • main   →  display:flex, flex-direction:column, flex:1, overflow:hidden
-               padding-bottom: calc(--mobile-nav-h + safe-area-inset-bottom)
-               Padding-bottom reserves space for the fixed nav WITHOUT any
-               pixel math — flex children physically cannot enter that zone.
-   • #sidebar / #chat / #online-panel  →  normal flex children (NOT absolute)
-               display:none by default; display:flex when tab is active.
-               flex:1 + min-height:0 so they fill the space above the padding.
-   • #mobile-nav  →  position:fixed, bottom:0, height:var(--mobile-nav-h)
+   MOBILE STYLES  —  ptr_29 Chat  —  REVISED 2026-08-11
+   Applied when screen width ≤ 768 px via media query OR .ptr29-mobile class.
+   Fixes: viewport-fit cover, safe-area, 100dvh, clipping, shortened content,
+          off-screen panels, keyboard overlap, help modal scroll, tap targets.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root { --mobile-nav-h: 56px; }
 
-/* ── Utility classes ──────────────────────────────────────────────────── */
+/* ── Utility ──────────────────────────────────────────────────────────── */
 .mobile-only  { display: flex !important; }
 .desktop-only { display: none !important; }
 
 /* ── Body / shell ─────────────────────────────────────────────────────── */
 .ptr29-mobile body {
   height: 100dvh;
+  height: -webkit-fill-available;
+  min-height: 100dvh;
   overflow: hidden;
-  touch-action: pan-y;
+  touch-action: manipulation;
   font-size: 13px;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 /* ── Header ───────────────────────────────────────────────────────────── */
 .ptr29-mobile header {
   padding: 8px 12px;
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
   flex-shrink: 0;
   min-height: 0;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
 }
-
 .ptr29-mobile header h1 {
   font-size: 14px;
   white-space: nowrap;
@@ -46,69 +41,52 @@
   flex: 1;
   min-width: 0;
 }
-
-/* Hide Terms / Privacy links — keep only Help + Theme buttons */
 .ptr29-mobile header .header-actions a.secondary { display: none !important; }
-
 .ptr29-mobile header .header-actions {
   gap: 6px;
   flex-shrink: 0;
 }
-
 .ptr29-mobile header .header-actions button {
   padding: 6px 10px;
   font-size: 14px;
   min-height: 36px;
   height: 36px;
+  min-width: 36px;
 }
 
 /* ── Main container ───────────────────────────────────────────────────── */
-/*
-   display:flex + flex-direction:column declared explicitly so the panel
-   flex children lay out correctly regardless of the base stylesheet.
-   padding-bottom reserves space for the fixed bottom nav + iOS safe area.
-   For flex children, padding-bottom is excluded from the flex content area,
-   so panels can never grow into the nav bar space — no fragile math needed.
-*/
 .ptr29-mobile main {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-height: 0;
+  min-width: 0;
   overflow: hidden;
   padding-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px));
+  max-width: 100vw;
 }
 
-/* ── View panels: normal flex children, NOT absolutely positioned ─────── */
-/*
-   display:none / display:flex switching is reliable across all browsers.
-   Panels get flex:1 + min-height:0 so they fill the remaining space
-   inside main (above the padding-bottom reserved for the nav bar).
-*/
+/* ── View panels ──────────────────────────────────────────────────────── */
 .ptr29-mobile #sidebar,
 .ptr29-mobile #chat,
 .ptr29-mobile #online-panel {
-  display: none;        /* hidden by default */
+  display: none;
   flex: 1;
-  min-height: 0;        /* critical: lets flex children scroll properly */
+  min-height: 0;
+  min-width: 0;
   flex-direction: column;
   overflow: hidden;
   width: 100%;
+  max-width: 100%;
   border: none;
 }
-
-/* Fade-in animation when a tab becomes active */
-@keyframes ptr29TabIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
+@keyframes ptr29TabIn { from { opacity: 0; } to { opacity: 1; } }
 .ptr29-mobile.ptr29-view-rooms  #sidebar,
 .ptr29-mobile.ptr29-view-chat   #chat,
 .ptr29-mobile.ptr29-view-online #online-panel {
   display: flex;
   animation: ptr29TabIn 0.15s ease;
 }
-
 .ptr29-mobile #sidebar      { background: var(--panel); }
 .ptr29-mobile #chat         { background: var(--bg); }
 .ptr29-mobile #online-panel { background: var(--panel); }
@@ -118,17 +96,15 @@
   display: none;
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  height: var(--mobile-nav-h);
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  height: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--panel2);
   border-top: 1px solid var(--border);
   z-index: 50;
   align-items: stretch;
   justify-content: space-around;
 }
-
 .ptr29-mobile #mobile-nav { display: flex !important; }
-
 .mobile-nav-btn {
   flex: 1;
   display: flex;
@@ -142,15 +118,15 @@
   font-size: 10px;
   font-weight: 600;
   padding: 6px 4px;
+  padding-bottom: max(6px, env(safe-area-inset-bottom, 0px));
   cursor: pointer;
   position: relative;
   -webkit-tap-highlight-color: transparent;
-  min-height: 36px;
+  min-height: 44px;
+  min-width: 0;
 }
-
 .mobile-nav-btn .mobile-nav-icon { font-size: 20px; line-height: 1; }
 .mobile-nav-btn.active { color: var(--accent); }
-
 .mobile-nav-badge {
   position: absolute;
   top: 4px;
@@ -170,17 +146,7 @@
 
 /* ═══════════════════════════════════════════════════════════════════════
    CHAT VIEW
-   Column layout (top → bottom, each flex-shrink:0 except #messages):
-     #room-bar
-     #mobile-search-bar   (collapsed by default)
-     #room-settings-panel (collapsed by default)
-     #typing
-     #messages            (flex:1  — the only growing element)
-     #input-area
    ═══════════════════════════════════════════════════════════════════════ */
-
-/* Hide the inline room-info-banner on mobile — it eats vertical space;
-   the same info is available in the Settings panel */
 .ptr29-mobile #room-info-banner { display: none !important; }
 
 /* ── Room bar ─────────────────────────────────────────────────────────── */
@@ -190,9 +156,10 @@
   gap: 6px;
   align-items: center;
   flex-wrap: nowrap;
-  min-height: 0;
+  min-height: 44px;
+  min-width: 0;
+  overflow: hidden;
 }
-
 .ptr29-mobile #room-info {
   flex: 1;
   min-width: 0;
@@ -201,7 +168,6 @@
   align-items: center;
   gap: 4px;
 }
-
 .ptr29-mobile #room-name-display {
   font-size: 13px;
   font-weight: 600;
@@ -211,12 +177,8 @@
   flex-shrink: 1;
   min-width: 0;
 }
-
-/* Hide type/role tags from the bar — they appear in Settings */
 .ptr29-mobile #room-type-tag,
 .ptr29-mobile #room-role-tag { display: none !important; }
-
-/* Room bar buttons: icon only, compact */
 .ptr29-mobile #room-bar button {
   flex-shrink: 0;
   padding: 0;
@@ -229,8 +191,6 @@
   justify-content: center;
   border-radius: 8px;
 }
-
-/* Back button keeps text */
 .ptr29-mobile #mobile-back-btn {
   display: none !important;
   width: auto !important;
@@ -241,39 +201,27 @@
   color: var(--accent);
   border: 1px solid var(--border);
 }
-
-.ptr29-mobile.ptr29-view-chat #mobile-back-btn {
-  display: flex !important;
-}
-
-/* All spans in room-bar buttons hidden (icon-only), back button span shown */
+.ptr29-mobile.ptr29-view-chat #mobile-back-btn { display: flex !important; }
 .ptr29-mobile #room-bar button span  { display: none; }
 .ptr29-mobile #room-bar #mobile-back-btn span { display: inline; }
-
-/* Desktop search hidden; mobile toggle shown */
 .ptr29-mobile #search-messages-input { display: none !important; }
-
-/* Hide Clear + Leave from room bar on mobile — bar only needs Back / room name / Search / Settings.
-   Leaving is handled by the Rooms tab or the ← Back button.
-   Clearing is only for managers and is accessible via ⚙️ Settings. */
 .ptr29-mobile #clear-room-btn { display: none !important; }
 .ptr29-mobile #leave-btn      { display: none !important; }
 
 /* ── Mobile collapsible search bar ───────────────────────────────────── */
 #mobile-search-bar {
-  /* JS toggles display between none and flex */
   flex-shrink: 0;
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
   background: var(--panel2);
   border-bottom: 1px solid var(--border);
+  min-width: 0;
 }
-
 #mobile-search-bar input {
   flex: 1;
   min-width: 0;
-  font-size: 16px; /* prevents iOS zoom */
+  font-size: 16px;
   padding: 7px 12px;
   border-radius: 20px;
   height: 36px;
@@ -281,10 +229,9 @@
   background: var(--bg);
   color: var(--text);
   outline: none;
+  max-width: 100%;
 }
-
 #mobile-search-bar input:focus { border-color: var(--accent); }
-
 #mobile-search-bar button {
   flex-shrink: 0;
   width: 36px;
@@ -303,40 +250,29 @@
   padding: 10px 12px;
   font-size: 12px;
   max-height: 42vh;
+  max-height: 42dvh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  min-width: 0;
 }
-
-.ptr29-mobile #room-settings-panel h3 {
-  font-size: 13px;
-  margin: 0 0 8px 0;
-}
-
-.ptr29-mobile #room-settings-panel .settings-section {
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-}
-
+.ptr29-mobile #room-settings-panel h3 { font-size: 13px; margin: 0 0 8px 0; }
+.ptr29-mobile #room-settings-panel .settings-section { margin-bottom: 10px; padding-bottom: 10px; }
 .ptr29-mobile #room-settings-panel .settings-row {
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 6px;
+  min-width: 0;
 }
-
-.ptr29-mobile #room-settings-panel .settings-label {
-  font-size: 11px;
-  min-width: 54px;
-  flex-shrink: 0;
-}
-
+.ptr29-mobile #room-settings-panel .settings-label { font-size: 11px; min-width: 54px; flex-shrink: 0; }
 .ptr29-mobile #room-settings-panel input[type="text"] {
   padding: 5px 8px;
   font-size: 13px;
   height: 32px;
   flex: 1;
   min-width: 60px;
+  max-width: 100%;
 }
-
 .ptr29-mobile #room-settings-panel button {
   padding: 5px 10px;
   font-size: 12px;
@@ -344,17 +280,11 @@
   min-height: 32px;
   white-space: nowrap;
 }
-
-/* Passkey row: stack input then buttons on their own line */
 .ptr29-mobile #room-settings-panel .settings-row:has(#passkey-input) {
   flex-direction: column;
   align-items: stretch;
 }
-
-.ptr29-mobile #room-settings-panel .settings-row:has(#passkey-input) #passkey-input {
-  width: 100%;
-}
-
+.ptr29-mobile #room-settings-panel .settings-row:has(#passkey-input) #passkey-input { width: 100%; }
 .ptr29-mobile #generate-passkey-btn,
 .ptr29-mobile #copy-passkey-btn,
 .ptr29-mobile #save-passkey-btn,
@@ -363,56 +293,73 @@
   min-width: 0;
   text-align: center;
 }
+/* fallback for browsers without :has */
+@supports not selector(:has(*)) {
+  .ptr29-mobile #room-settings-panel .settings-row { flex-direction: row; }
+}
 
-/* ── Typing indicator ─────────────────────────────────────────────────── */
+/* ── Typing ───────────────────────────────────────────────────────────── */
 .ptr29-mobile #typing {
   flex-shrink: 0;
   padding: 3px 10px;
   font-size: 12px;
-  min-height: 0;      /* collapse when empty */
+  min-height: 0;
   line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Messages ─────────────────────────────────────────────────────────── */
 .ptr29-mobile #messages {
   flex: 1;
-  min-height: 0;      /* crucial for flex overflow-scroll */
+  min-height: 0;
+  min-width: 0;
   padding: 10px 8px;
   gap: 8px;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
-
 .ptr29-mobile .msg {
   max-width: 85%;
+  min-width: 0;
   border-radius: 14px;
   padding: 8px 12px;
   font-size: 13px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
-
 .ptr29-mobile .msg.me { align-self: flex-end; }
-
-.ptr29-mobile .meta { margin-bottom: 4px; }
+.ptr29-mobile .meta { margin-bottom: 4px; flex-wrap: wrap; min-width: 0; }
 .ptr29-mobile .meta .avatar { width: 22px; height: 22px; }
-.ptr29-mobile .meta .name   { font-size: 12px; }
+.ptr29-mobile .meta .name   { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px; }
 .ptr29-mobile .meta .time   { font-size: 11px; }
-
-.ptr29-mobile .body { font-size: 13px; line-height: 1.45; }
-
-/* Images fill the bubble */
+.ptr29-mobile .body { font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; word-break: break-word; min-width: 0; }
 .ptr29-mobile .msg img.msg-image {
   max-width: 100%;
   max-height: 220px;
+  width: auto;
+  height: auto;
 }
-
-/* Reaction pills — larger tap target */
+.ptr29-mobile .file-attachment {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-wrap: wrap;
+  word-break: break-all;
+}
+.ptr29-mobile .reply-preview {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
 .ptr29-mobile .reaction-pill {
   padding: 4px 8px;
   font-size: 13px;
   min-height: 28px;
 }
-
-/* Tap-to-reveal action bar (no hover on touch) */
 .ptr29-mobile .msg-actions {
   position: relative;
   top: auto; right: auto;
@@ -427,9 +374,7 @@
   box-shadow: none;
   padding: 0;
 }
-
-.ptr29-mobile .msg.actions-visible .msg-actions { display: flex; }
-
+.ptr29-mobile .msg.actions-visible .msg-actions { display: flex; flex-wrap: wrap; }
 .ptr29-mobile .msg-action-btn {
   background: var(--panel2);
   border: 1px solid var(--border);
@@ -443,33 +388,31 @@
 .ptr29-mobile #input-area {
   flex-shrink: 0;
   padding: 8px 10px;
-  /* safe-area-inset-bottom is already handled by main's padding-bottom —
-     do NOT add it here again or the input bar floats up on notch devices */
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border);
   background: var(--panel);
+  min-width: 0;
 }
-
 .ptr29-mobile #chat-form {
   flex-wrap: nowrap;
   gap: 6px;
   align-items: center;
+  min-width: 0;
 }
-
-/* Desktop-only inputs hidden on mobile */
 .ptr29-mobile #username { display: none !important; }
 .ptr29-mobile #avatar   { display: none !important; }
-
 .ptr29-mobile #text {
   flex: 1;
   min-width: 0;
-  font-size: 16px;   /* prevents iOS auto-zoom */
+  max-width: 100%;
+  font-size: 16px;
   padding: 8px 14px;
   border-radius: 20px;
   height: 40px;
   line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-/* Icon buttons in the input row — uniform 40×40 circles */
 .ptr29-mobile #emoji-btn,
 .ptr29-mobile #file-btn,
 .ptr29-mobile #image-btn,
@@ -485,7 +428,6 @@
   justify-content: center;
   font-size: 18px;
 }
-
 .ptr29-mobile #send-btn .send-label { display: none; }
 .ptr29-mobile #send-btn .send-icon  { display: inline; font-size: 16px; }
 
@@ -496,8 +438,9 @@
   font-size: 12px;
   margin-bottom: 6px;
   gap: 6px;
+  min-width: 0;
+  overflow: hidden;
 }
-
 .ptr29-mobile #reply-preview-bar .excerpt {
   flex: 1;
   min-width: 0;
@@ -505,11 +448,16 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.ptr29-mobile #reply-preview-bar .who {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 90px;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════
    SIDEBAR (Rooms) VIEW
    ═══════════════════════════════════════════════════════════════════════ */
-
 .ptr29-mobile #rooms-header {
   flex-shrink: 0;
   padding: 10px 14px;
@@ -519,27 +467,28 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-width: 0;
 }
-
 .ptr29-mobile #rooms-header h2 { font-size: 12px; margin: 0; }
-
+.ptr29-mobile #rooms-header button { min-width: 36px; min-height: 36px; width: 36px; height: 36px; padding: 0; }
 .ptr29-mobile #room-list {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 6px;
 }
-
 .ptr29-mobile .room {
   padding: 10px 12px;
   border-radius: 8px;
   margin-bottom: 4px;
   min-height: 44px;
   font-size: 13px;
+  min-width: 0;
 }
-
-/* Join-by-passkey row */
+.ptr29-mobile .room-name { min-width: 0; }
 .ptr29-mobile #join-by-passkey {
   flex-shrink: 0;
   padding: 8px 12px;
@@ -548,16 +497,16 @@
   display: flex;
   gap: 8px;
   align-items: center;
+  min-width: 0;
 }
-
 .ptr29-mobile #join-by-passkey input {
   flex: 1;
   min-width: 0;
+  max-width: 100%;
   font-size: 14px;
   padding: 7px 10px;
   height: 36px;
 }
-
 .ptr29-mobile #join-by-passkey button {
   flex-shrink: 0;
   padding: 6px 14px;
@@ -565,46 +514,39 @@
   height: 36px;
   min-height: 36px;
 }
-
-/* User section at the bottom of the sidebar */
 .ptr29-mobile #user-section {
   flex-shrink: 0;
   padding: 12px 14px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border);
   background: var(--panel);
+  min-width: 0;
 }
-
-.ptr29-mobile .mobile-username-row {
-  margin-bottom: 10px;
-}
-
+.ptr29-mobile .mobile-username-row { margin-bottom: 10px; min-width: 0; }
 .ptr29-mobile #mobile-username {
   width: 100%;
-  font-size: 16px;   /* prevents iOS auto-zoom */
+  max-width: 100%;
+  font-size: 16px;
   padding: 9px 12px;
   border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
   height: 42px;
+  min-width: 0;
 }
-
 .ptr29-mobile #user-profile {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 10px;
+  min-width: 0;
 }
-
-.ptr29-mobile #user-avatar-preview { width: 38px; height: 38px; border-radius: 50%; }
+.ptr29-mobile #user-avatar-preview { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; }
+.ptr29-mobile #user-info { min-width: 0; }
 .ptr29-mobile #user-info .username  { font-size: 13px; }
 .ptr29-mobile #user-info .client-id { font-size: 10px; }
-
-.ptr29-mobile .user-actions {
-  display: flex;
-  gap: 8px;
-}
-
+.ptr29-mobile .user-actions { display: flex; gap: 8px; min-width: 0; }
 .ptr29-mobile .user-actions button {
   flex: 1;
   min-width: 0;
@@ -620,7 +562,6 @@
 /* ═══════════════════════════════════════════════════════════════════════
    ONLINE PANEL VIEW
    ═══════════════════════════════════════════════════════════════════════ */
-
 .ptr29-mobile #online-header {
   flex-shrink: 0;
   padding: 10px 14px;
@@ -628,145 +569,172 @@
   border-bottom: 1px solid var(--border);
   background: var(--panel2);
 }
-
 .ptr29-mobile #online-header h2 { font-size: 12px; margin: 0; }
-
 .ptr29-mobile #online-list {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 8px;
 }
-
 .ptr29-mobile .online-item {
   padding: 10px 8px;
   font-size: 13px;
   min-height: 44px;
+  min-width: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
    MODALS
    ═══════════════════════════════════════════════════════════════════════ */
-
+.ptr29-mobile .modal-overlay {
+  padding: 12px;
+  align-items: flex-start;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
 .ptr29-mobile .modal {
   width: 94%;
   max-width: 420px;
   padding: 20px 16px;
   max-height: 88dvh;
+  max-height: 88vh;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch; /* momentum scroll on iOS */
-  overscroll-behavior: contain;      /* don't scroll the page behind the modal */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   border-radius: 16px;
+  margin: auto;
+  min-width: 0;
 }
-
-.ptr29-mobile .modal h3 { font-size: 17px; margin-bottom: 10px; }
-
-.ptr29-mobile .modal p {
-  font-size: 13px;
-  margin-bottom: 12px;
-}
-
-.ptr29-mobile .modal-actions {
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.ptr29-mobile .modal-actions button {
-  flex: 1;
-  min-width: 80px;
-  height: 40px;
-  min-height: 40px;
-}
+.ptr29-mobile .modal h3 { font-size: 17px; margin-bottom: 10px; word-break: break-word; }
+.ptr29-mobile .modal p { font-size: 13px; margin-bottom: 12px; word-break: break-word; }
+.ptr29-mobile .modal-actions { gap: 10px; flex-wrap: wrap; }
+.ptr29-mobile .modal-actions button { flex: 1; min-width: 80px; height: 40px; min-height: 40px; }
+.ptr29-mobile .modal input[type="text"],
+.ptr29-mobile .modal input[type="url"] { font-size: 16px; max-width: 100%; }
 
 /* ── Help modal ───────────────────────────────────────────────────────── */
 .ptr29-mobile .help-modal-inner {
   width: 96%;
+  max-width: 96vw;
   max-height: 92dvh;
+  max-height: 92vh;
   border-radius: 16px;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
-
-.ptr29-mobile .help-header {
-  padding: 14px 16px 12px;
-  gap: 10px;
-}
-
+.ptr29-mobile .help-header { padding: 14px 16px 12px; gap: 10px; }
 .ptr29-mobile .help-logo  { font-size: 24px; }
-.ptr29-mobile .help-title { font-size: 15px; }
+.ptr29-mobile .help-title { font-size: 15px; word-break: break-word; }
 .ptr29-mobile .help-sub   { font-size: 11px; }
-
-/* Stack demo above text on mobile */
-.ptr29-mobile .help-slides { min-height: 180px; overflow: hidden; }
-
+.ptr29-mobile .help-dots { padding: 10px 0 6px; }
+.ptr29-mobile .help-dot { width: 10px; height: 10px; min-width: 10px; min-height: 10px; }
+.ptr29-mobile .help-dot.active { width: 24px; }
+.ptr29-mobile .help-slides {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
 .ptr29-mobile .help-slide {
+  position: relative;
+  inset: auto;
   flex-direction: column;
   gap: 14px;
   padding: 14px 16px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  min-height: 0;
+  flex: 1;
 }
-
-.ptr29-mobile .help-demo {
-  width: 100%;
-  flex-shrink: 0;
-}
-
-.ptr29-mobile .demo-panel { min-height: auto; padding: 12px; }
-
-.ptr29-mobile .help-text h3   { font-size: 15px; margin-bottom: 6px; }
+.ptr29-mobile .help-demo { width: 100%; flex-shrink: 0; min-width: 0; }
+.ptr29-mobile .demo-panel { min-height: auto; padding: 12px; min-width: 0; }
+.ptr29-mobile .help-text { min-width: 0; }
+.ptr29-mobile .help-text h3   { font-size: 15px; margin-bottom: 6px; word-break: break-word; }
 .ptr29-mobile .help-text p    { font-size: 12px; margin-bottom: 8px; }
-.ptr29-mobile .help-tips li   { font-size: 12px; padding: 6px 10px; }
-
+.ptr29-mobile .help-tips li   { font-size: 12px; padding: 6px 10px; word-break: break-word; }
 .ptr29-mobile .help-nav {
-  padding: 10px 14px 12px;
+  padding: 10px 14px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  gap: 8px;
 }
-
 .ptr29-mobile .help-prev,
-.ptr29-mobile .help-next  { padding: 8px 16px; font-size: 13px; }
-.ptr29-mobile .help-step-counter { font-size: 12px; }
+.ptr29-mobile .help-next  { padding: 8px 14px; font-size: 13px; min-height: 40px; flex-shrink: 0; }
+.ptr29-mobile .help-step-counter { font-size: 12px; text-align: center; }
 
 /* ── Toast — top-center ───────────────────────────────────────────────── */
 .ptr29-mobile .toast-container {
-  top: 10px;
-  left: 16px;
-  right: 16px;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  left: 12px;
+  right: 12px;
   align-items: stretch;
 }
-
 .ptr29-mobile .toast {
   max-width: 100%;
   font-size: 13px;
   padding: 10px 14px;
   text-align: center;
+  word-break: break-word;
 }
 
 /* ── Emoji / react pickers: clamp to viewport ─────────────────────────── */
 .ptr29-mobile #react-picker-popup,
-.ptr29-mobile #emoji-input-popup {
+.ptr29-mobile #emoji-input-popup,
+.ptr29-mobile .emoji-picker-popup {
   left: 8px !important;
   right: 8px !important;
   width: auto !important;
+  max-width: calc(100vw - 16px) !important;
+  box-sizing: border-box;
 }
+
+/* ── Lightbox ─────────────────────────────────────────────────────────── */
+.ptr29-mobile .lightbox img {
+  max-width: 96vw;
+  max-height: 90dvh;
+}
+
+/* ── Context menu ─────────────────────────────────────────────────────── */
+.ptr29-mobile .context-menu {
+  max-width: calc(100vw - 16px);
+  font-size: 14px;
+}
+.ptr29-mobile .context-menu button { padding: 14px; min-height: 44px; }
 
 /* ── Touch baseline ───────────────────────────────────────────────────── */
 .ptr29-mobile button,
 .ptr29-mobile .room,
 .ptr29-mobile .mobile-nav-btn {
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
-
 .ptr29-mobile input,
 .ptr29-mobile button {
   -webkit-appearance: none;
   appearance: none;
 }
 
-/* ── Landscape adjustments ────────────────────────────────────────────── */
+/* ── Very narrow (320px) ─────────────────────────────────────────────── */
+@media (max-width: 360px) {
+  .ptr29-mobile #room-bar { gap: 4px; padding: 6px 8px; }
+  .ptr29-mobile #room-bar button { width: 32px; height: 32px; min-height: 32px; font-size: 14px; }
+  .ptr29-mobile #text { padding: 8px 12px; font-size: 16px; }
+  .ptr29-mobile #emoji-btn, .ptr29-mobile #file-btn, .ptr29-mobile #image-btn, .ptr29-mobile #send-btn { width: 36px; height: 36px; min-height: 36px; font-size: 16px; }
+  .ptr29-mobile .msg { max-width: 90%; }
+}
+
+/* ── Landscape ────────────────────────────────────────────────────────── */
 @media (max-width: 768px) and (orientation: landscape) {
   :root { --mobile-nav-h: 48px; }
   .ptr29-mobile .msg { max-width: 70%; }
   .mobile-nav-btn .mobile-nav-icon  { font-size: 17px; }
-  .mobile-nav-btn .mobile-nav-label { display: none; }
-  .ptr29-mobile #room-settings-panel { max-height: 35vh; }
-  .ptr29-mobile .help-slide { flex-direction: row; }
-  .ptr29-mobile .help-demo  { width: 180px; flex-shrink: 0; }
+  .mobile-nav-btn .mobile-nav-label { font-size: 9px; }
+  .ptr29-mobile #room-settings-panel { max-height: 35vh; max-height: 35dvh; }
+  .ptr29-mobile .help-modal-inner { max-height: 96dvh; }
 }
