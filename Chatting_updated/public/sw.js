@@ -2,7 +2,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const data = event.notification && event.notification.data || {};
   const room = (data && data.room) ? String(data.room) : '';
-  const url = room ? `/?room=${encodeURIComponent(room)}` : '/';
+  const url = room ? `?room=${encodeURIComponent(room)}` : '.';
   event.waitUntil((async () => {
     try {
       const allClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });

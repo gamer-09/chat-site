@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#0f172a">
   <title>ptr_29 Chat</title>
   <link rel="icon" href="data:,">
-  <link id="ptr29-mobile-styles" rel="stylesheet" href="/mobile.css" media="(max-width: 768px)">
+  <link id="ptr29-mobile-styles" rel="stylesheet" href="mobile.css" media="(max-width: 768px)">
   <style>
     :root {
       --bg: #0f172a;
@@ -1371,8 +1371,8 @@
   <header>
     <h1>💬 ptr_29 Chat</h1>
     <div class="header-actions">
-      <a href="/terms.html" class="secondary" style="text-decoration: none; padding: 10px 18px; font-size: 14px; font-weight: 500; border-radius: 8px; border: 1px solid var(--border); background: var(--border); color: var(--text); transition: all 0.15s ease; white-space: nowrap; display: inline-block;">Terms</a>
-      <a href="/privacy.html" class="secondary" style="text-decoration: none; padding: 10px 18px; font-size: 14px; font-weight: 500; border-radius: 8px; border: 1px solid var(--border); background: var(--border); color: var(--text); transition: all 0.15s ease; white-space: nowrap; display: inline-block;">Privacy</a>
+      <a href="terms.html" class="secondary" style="text-decoration: none; padding: 10px 18px; font-size: 14px; font-weight: 500; border-radius: 8px; border: 1px solid var(--border); background: var(--border); color: var(--text); transition: all 0.15s ease; white-space: nowrap; display: inline-block;">Terms</a>
+      <a href="privacy.html" class="secondary" style="text-decoration: none; padding: 10px 18px; font-size: 14px; font-weight: 500; border-radius: 8px; border: 1px solid var(--border); background: var(--border); color: var(--text); transition: all 0.15s ease; white-space: nowrap; display: inline-block;">Privacy</a>
       <button id="help-btn" class="secondary" title="How to use">❓</button>
       <button id="theme-toggle" class="secondary" title="Toggle theme">🌙</button>
     </div>
@@ -1877,7 +1877,7 @@
         <div style="margin-bottom:16px">
           <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size: 13px;">
             <input type="checkbox" id="edit-terms" required>
-            <span>I agree to the <a href="/terms.html" target="_blank" style="color:var(--accent); text-decoration:none;">Terms and Conditions</a></span>
+            <span>I agree to the <a href="terms.html" target="_blank" style="color:var(--accent); text-decoration:none;">Terms and Conditions</a></span>
           </label>
         </div>
         <div class="modal-actions">
@@ -1902,7 +1902,8 @@
       </div>
     </div>
   </div>
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/client.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+  <script src="client.js"></script>
 </body>
 </html>

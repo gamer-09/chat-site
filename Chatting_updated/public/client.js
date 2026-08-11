@@ -1,5 +1,7 @@
 (() => {
-  const socket = io({ reconnection: true, reconnectionAttempts: 10, reconnectionDelay: 1000 });
+  // Socket.IO is replaced by the Supabase adapter (window.ChatAPI) for the
+  // GitHub Pages edition — same event/emit interface, backend lives in the cloud.
+  const socket = window.ChatAPI;
 
   // ── DOM Elements ───────────────────────────────────────────────────────────
   const elements = {
@@ -284,19 +286,14 @@
 
     delete: async () => {
       try {
-        const res = await fetch('/api/users/delete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clientId: state.myClientId }),
-        });
-        if (res.ok) {
+        const ok = await window.ChatAPI.deleteUser();
+        if (ok) {
           [CONSTANTS.STORAGE_KEY, CONSTANTS.CLIENT_ID_KEY, CONSTANTS.PASSKEYS_KEY, CONSTANTS.UNREAD_KEY]
             .forEach(k => localStorage.removeItem(k));
           showToast('Account deleted successfully', 'success');
           setTimeout(() => window.location.reload(), 1500);
         } else {
-          const err = await res.json();
-          showToast(err.error || 'Failed to delete account', 'error');
+          showToast('Failed to delete account', 'error');
         }
       } catch { showToast('Failed to delete account', 'error'); }
     },
@@ -494,12 +491,7 @@
 
     create: async (name, isPrivate) => {
       try {
-        const res = await fetch('/api/rooms', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, isPrivate, ownerId: state.myClientId }),
-        });
-        const data = await res.json();
+        const data = await window.ChatAPI.createRoom(name, isPrivate);
         if (data.ok) {
           showToast(`Room "#${data.name}" created!`, 'success');
           rooms.fetch();
@@ -548,12 +540,7 @@
 
     delete: async () => {
       try {
-        const res = await fetch(`/api/rooms/${encodeURIComponent(state.currentRoom)}/delete`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clientId: state.myClientId }),
-        });
-        const data = await res.json();
+        const data = await window.ChatAPI.deleteRoom(state.currentRoom);
         if (data.ok) {
           showToast(`Room "#${data.room}" deleted`, 'success');
           modals.close(elements.deleteRoomModal);
@@ -568,12 +555,7 @@
     clear: async () => {
       if (!confirm('Clear all messages in this room?')) return;
       try {
-        const res = await fetch(`/api/rooms/${encodeURIComponent(state.currentRoom)}/clear`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clientId: state.myClientId }),
-        });
-        const data = await res.json();
+        const data = await window.ChatAPI.clearRoom(state.currentRoom);
         if (data.ok) {
           showToast('Messages cleared', 'success');
           elements.messages.innerHTML = '';
@@ -636,9 +618,9 @@
 
       // Build body based on message type
       const bodyHtml = msg.type === 'image'
-        ? `<img class="msg-image" src="${msg.imageUrl}" alt="Shared image" loading="lazy">`
+        ? `<img class="msg-image" src="${msg.imageUrl || ''}" alt="Shared image" loading="lazy">`
         : msg.type === 'file'
-          ? `<a class="file-attachment" href="${msg.fileUrl}" download="${utils.escapeHtml(msg.message || 'file')}" target="_blank" rel="noopener"><span>📎</span><span>${utils.escapeHtml(msg.message || 'File')}</span>${msg.fileSize ? `<span style="color:var(--text-dim);font-size:11px">${utils.formatFileSize(msg.fileSize)}</span>` : ''}</a>`
+          ? `<a class="file-attachment" href="${msg.fileUrl || '#'}" download="${utils.escapeHtml(msg.message || 'file')}" target="_blank" rel="noopener"><span>📎</span><span>${utils.escapeHtml(msg.message || 'File')}</span>${msg.fileSize ? `<span style="color:var(--text-dim);font-size:11px">${utils.formatFileSize(msg.fileSize)}</span>` : ''}</a>`
           : `<span class="msg-content">${utils.renderMarkdown(msg.message || '')}</span>`;
 
       const reactionEntries = msg.reactions ? Object.entries(msg.reactions).filter(([,u]) => u.length > 0) : [];
@@ -673,6 +655,17 @@
         ${receiptsHtml}`;
 
       el.innerHTML = content;
+
+      // Resolve storage-backed media to signed URLs (Supabase)
+      if (msg.storagePath && window.PtrMedia) {
+        window.PtrMedia.resolveStorageUrl(msg.storagePath, (url) => {
+          if (!url) return;
+          const img = el.querySelector('img.msg-image');
+          if (img) img.src = url;
+          const link = el.querySelector('a.file-attachment');
+          if (link) link.href = url;
+        });
+      }
 
       // Inline action buttons
       el.querySelectorAll('.msg-action-btn').forEach(btn => {
@@ -719,12 +712,8 @@
 
     sendImage: async (dataUrl, filename) => {
       try {
-        const res = await fetch(`/api/rooms/${encodeURIComponent(state.currentRoom)}/images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dataUrl, clientId: state.myClientId, filename }),
-        });
-        if (!res.ok) { const e = await res.json(); showToast(e.error || 'Failed to upload image', 'error'); }
+        const res = await window.ChatAPI.upload(state.currentRoom, { dataUrl, filename, kind: 'image' });
+        if (!res.ok) showToast(res.error || 'Failed to upload image', 'error');
       } catch { showToast('Failed to upload image', 'error'); }
     },
 
@@ -753,12 +742,8 @@
 
     sendFile: async (dataUrl, filename) => {
       try {
-        const res = await fetch(`/api/rooms/${encodeURIComponent(state.currentRoom)}/files`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dataUrl, clientId: state.myClientId, filename }),
-        });
-        if (!res.ok) { const e = await res.json(); showToast(e.error || 'Failed to upload file', 'error'); }
+        const res = await window.ChatAPI.upload(state.currentRoom, { dataUrl, filename, kind: 'file' });
+        if (!res.ok) showToast(res.error || 'Failed to upload file', 'error');
         else showToast('File sent!', 'success');
       } catch { showToast('Failed to upload file', 'error'); }
     },
@@ -893,7 +878,7 @@
   // ── Socket event handlers ──────────────────────────────────────────────────
   const socketHandlers = {
     connect: () => {
-      state.myClientId = utils.getOrCreateClientId();
+      state.myClientId = (window.ChatAPI && window.ChatAPI.uid) || utils.getOrCreateClientId();
       try { const d = JSON.parse(localStorage.getItem(CONSTANTS.STORAGE_KEY) || '{}'); state.myUsername = d.username || ''; } catch {}
 
       // Re-enter saved passkeys so the server restores ephemeral access after reconnect
@@ -910,6 +895,7 @@
     },
 
     'chat-message': (data) => {
+      if (document.querySelector(`[data-id="${data.id}"]`)) return; // dedupe (realtime + optimistic)
       if (data.room === state.currentRoom) {
         messages.render(data);
         if (data.clientId !== state.myClientId)
@@ -1463,10 +1449,8 @@
         if (!q) { document.querySelectorAll('.msg').forEach(m => m.style.display = ''); return; }
         searchTimer = setTimeout(async () => {
           try {
-            const url = `/api/rooms/${encodeURIComponent(state.currentRoom)}/search?q=${encodeURIComponent(q)}&clientId=${encodeURIComponent(state.myClientId || '')}`;
-            const res = await fetch(url);
-            if (!res.ok) return;
-            const data = await res.json();
+            const data = await window.ChatAPI.searchMessages(state.currentRoom, q);
+            if (!data || !data.results) return;
             const matchIds = new Set((data.results || []).map(m => m.id));
             document.querySelectorAll('.msg').forEach(m => {
               m.style.display = matchIds.has(m.dataset.id) ? '' : 'none';
@@ -1491,7 +1475,7 @@
       if (document.hasFocus()) return;
       if (Notification.permission !== 'granted') return;
       try {
-        const n = new Notification('ptr_29 Chat', { body: data.message, icon: '/favicon.ico' });
+        const n = new Notification('ptr_29 Chat', { body: data.message, icon: 'favicon.ico' });
         setTimeout(() => n.close(), 5000);
       } catch {}
     });
@@ -1579,7 +1563,7 @@
     const link = document.createElement('link');
     link.id = 'ptr29-mobile-styles';
     link.rel = 'stylesheet';
-    link.href = '/mobile.css';
+    link.href = 'mobile.css';
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -1651,10 +1635,8 @@
         if (!q) { document.querySelectorAll('.msg').forEach(m => m.style.display = ''); return; }
         mobileSearchTimer = setTimeout(async () => {
           try {
-            const url = `/api/rooms/${encodeURIComponent(state.currentRoom)}/search?q=${encodeURIComponent(q)}&clientId=${encodeURIComponent(state.myClientId || '')}`;
-            const res = await fetch(url);
-            if (!res.ok) return;
-            const data = await res.json();
+            const data = await window.ChatAPI.searchMessages(state.currentRoom, q);
+            if (!data || !data.results) return;
             const matchIds = new Set((data.results || []).map(m => m.id));
             document.querySelectorAll('.msg').forEach(m => {
               m.style.display = matchIds.has(m.dataset.id) ? '' : 'none';
