@@ -1,5 +1,7 @@
 > ### 🌐 [Open Chat Site →](https://gamer-09.github.io/chat-site/)
 
+![Chat Site interface preview](docs/chat-site-preview.png)
+
 # Chat Site
 
 
