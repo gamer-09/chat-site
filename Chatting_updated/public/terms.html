@@ -4,231 +4,175 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
-  <title>Terms and Conditions - ptr_29 Chat</title>
+  <meta name="description" content="Terms of Use for ptr_29 Chat">
+  <title>Terms of Use — ptr_29 Chat</title>
   <link rel="icon" href="data:,">
   <style>
     :root {
       --bg: #0f172a;
       --panel: #0b1220;
-      --panel2: #111827;
       --border: #1f2937;
       --border-light: #334155;
-      --accent: #2563eb;
-      --accent-hover: #1d4ed8;
+      --accent: #60a5fa;
+      --accent-strong: #2563eb;
       --text: #e2e8f0;
-      --text-muted: #9ca3af;
+      --text-muted: #a8b3c4;
+      --warning-bg: #2a1d0b;
+      --warning-border: #92400e;
+      --warning-text: #fde68a;
     }
-    
     * { box-sizing: border-box; }
-    
+    html { color-scheme: dark; }
     body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      min-height: 100vh;
       margin: 0;
       background: var(--bg);
       color: var(--text);
-      line-height: 1.6;
-      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.65;
     }
-    
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 40px 20px;
-    }
-    
-    header {
-      text-align: center;
-      margin-bottom: 40px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid var(--border);
-    }
-    
-    h1 {
-      font-size: 32px;
-      font-weight: 700;
-      margin: 0 0 10px;
-      color: var(--text);
-    }
-    
-    .subtitle {
-      color: var(--text-muted);
-      font-size: 16px;
-    }
-    
-    .back-link {
-      display: inline-block;
+    .container { width: min(900px, 100%); margin: 0 auto; padding: 34px 20px 52px; }
+    .top-nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
+    .back-link, a { color: var(--accent); }
+    .back-link { font-weight: 650; text-decoration: none; }
+    .back-link:hover, a:hover { text-decoration: underline; }
+    .policy-links { display: flex; gap: 14px; font-size: 14px; }
+    header { margin-bottom: 28px; padding-bottom: 22px; border-bottom: 1px solid var(--border); }
+    h1 { margin: 0 0 7px; font-size: clamp(28px, 5vw, 40px); line-height: 1.15; }
+    h2 { margin: 0 0 12px; font-size: 21px; line-height: 1.3; }
+    h3 { margin: 20px 0 8px; font-size: 16px; }
+    p { margin: 0 0 13px; color: var(--text-muted); }
+    ul { margin: 0 0 13px; padding-left: 22px; color: var(--text-muted); }
+    li { margin: 7px 0; }
+    strong { color: var(--text); }
+    .subtitle, .effective { color: var(--text-muted); }
+    .effective { font-size: 14px; }
+    .notice {
       margin-bottom: 20px;
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 500;
-    }
-    
-    .back-link:hover {
-      text-decoration: underline;
-    }
-    
-    h2 {
-      font-size: 24px;
-      font-weight: 600;
-      margin: 30px 0 15px;
-      color: var(--text);
-    }
-    
-    h3 {
-      font-size: 18px;
-      font-weight: 600;
-      margin: 20px 0 10px;
-      color: var(--text);
-    }
-    
-    p {
-      margin: 0 0 15px;
-      color: var(--text-muted);
-    }
-    
-    ul {
-      margin: 0 0 15px 25px;
-      color: var(--text-muted);
-    }
-    
-    li {
-      margin-bottom: 8px;
-    }
-    
-    .section {
-      background: var(--panel);
-      border: 1px solid var(--border);
+      padding: 16px 18px;
+      border: 1px solid var(--warning-border);
       border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 20px;
+      background: var(--warning-bg);
+      color: var(--warning-text);
     }
-    
-    .highlight {
-      color: var(--accent);
-      font-weight: 500;
-    }
-    
-    .last-updated {
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 14px;
-      margin-top: 40px;
-      padding-top: 20px;
-      border-top: 1px solid var(--border);
-    }
-    
-    @media (max-width: 600px) {
-      .container {
-        padding: 20px 16px;
-      }
-      
-      h1 {
-        font-size: 24px;
-      }
-      
-      h2 {
-        font-size: 20px;
-      }
-      
-      .section {
-        padding: 16px;
-      }
-    }
-      @media (max-width: 768px) {
-      .container { padding: 20px 16px; padding-left: max(16px, env(safe-area-inset-left, 16px)); padding-right: max(16px, env(safe-area-inset-right, 16px)); }
-      h1 { font-size: 24px; word-break: break-word; }
-      h2 { font-size: 20px; word-break: break-word; }
-      body { overflow-x: hidden; }
-      * { overflow-wrap: anywhere; word-break: break-word; }
+    .notice strong { color: var(--warning-text); }
+    .section { margin-bottom: 16px; padding: 22px; border: 1px solid var(--border); border-radius: 13px; background: var(--panel); }
+    .last-updated { margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border); text-align: center; font-size: 13px; }
+    @media (max-width: 640px) {
+      .container { padding: 20px max(16px, env(safe-area-inset-right)) 38px max(16px, env(safe-area-inset-left)); }
+      .top-nav { align-items: flex-start; flex-direction: column; }
+      .section { padding: 17px; }
+      * { overflow-wrap: anywhere; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <a href="index.html" class="back-link">← Back to Chat</a>
-    
+  <main class="container">
+    <nav class="top-nav" aria-label="Legal pages">
+      <a href="index.html" class="back-link">← Back to Chat</a>
+      <div class="policy-links">
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="https://github.com/gamer-09" target="_blank" rel="noopener noreferrer">Operator</a>
+      </div>
+    </nav>
+
     <header>
-      <h1>Terms and Conditions</h1>
-      <p class="subtitle">Last updated: July 2026</p>
+      <h1>Terms of Use</h1>
+      <p class="subtitle">Rules for using ptr_29 Chat</p>
+      <p class="effective">Effective and last updated: August 11, 2026</p>
     </header>
-    
-    <div class="section">
-      <h2>1. Acceptance of Terms</h2>
-      <p>By accessing and using ptr_29 Chat ("the Service"), you accept and agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use the Service.</p>
+
+    <div class="notice" role="note">
+      <strong>Important:</strong> chat messages, room passkeys, and uploaded files are not end-to-end encrypted. Do not use the Service to send passwords, financial information, government identifiers, medical records, or other secrets.
     </div>
-    
-    <div class="section">
-      <h2>2. Description of Service</h2>
-      <p>ptr_29 Chat is a real-time messaging platform that allows users to communicate in chat rooms. The Service is provided "as is" without any warranties, express or implied.</p>
-    </div>
-    
-    <div class="section">
-      <h2>3. User Responsibilities</h2>
-      <p>As a user of the Service, you agree to:</p>
+
+    <section class="section">
+      <h2>1. Agreement and eligibility</h2>
+      <p>These Terms govern access to ptr_29 Chat (the “Service”). By using the Service, you agree to these Terms and the <a href="privacy.html">Privacy Policy</a>. If you do not agree, do not use the Service.</p>
+      <p>The Service is not directed to children under 13. If you are under the age of legal majority where you live, use the Service only with permission and supervision from a parent or legal guardian.</p>
+    </section>
+
+    <section class="section">
+      <h2>2. What the Service provides</h2>
+      <p>The Service provides public and access-controlled chat rooms, anonymous browser-based identities, real-time messages, reactions, read receipts, presence indicators, and file sharing. The production application is hosted on GitHub Pages and uses Supabase for authentication, database, realtime, and file storage.</p>
+      <p>You do not create a traditional password account. The Service assigns an anonymous Supabase identity to the browser. Clearing browser data, changing browsers, or losing that session may permanently remove access to the same identity, rooms, or content.</p>
+    </section>
+
+    <section class="section">
+      <h2>3. Your responsibilities</h2>
+      <p>You are responsible for activity performed through your browser identity and for the content you submit. You agree to:</p>
       <ul>
-        <li>Be at least 13 years of age or have parental consent</li>
-        <li>Provide accurate information when creating your account</li>
-        <li>Maintain the security of your account credentials</li>
-        <li>Not use the Service for any illegal or unauthorized purpose</li>
-        <li>Not harass, abuse, or harm other users</li>
-        <li>Not transmit content that is harmful, threatening, or offensive</li>
-        <li>Respect the privacy and rights of other users</li>
+        <li>Choose a username and avatar that do not impersonate or mislead others.</li>
+        <li>Keep private-room passkeys confidential and share them only with intended participants.</li>
+        <li>Confirm that you have the right and permission to upload or share content.</li>
+        <li>Respect other users, room rules, privacy, intellectual-property rights, and applicable law.</li>
+        <li>Secure your device and browser session against unauthorized access.</li>
       </ul>
-    </div>
-    
-    <div class="section">
-      <h2>4. Content and Conduct</h2>
-      <h3>Prohibited Activities</h3>
-      <p>You may not:</p>
+    </section>
+
+    <section class="section">
+      <h2>4. Prohibited content and conduct</h2>
+      <p>You may not use the Service to:</p>
       <ul>
-        <li>Post or transmit spam, advertisements, or unsolicited messages</li>
-        <li>Share explicit, violent, or hateful content</li>
-        <li>Impersonate another person or entity</li>
-        <li>Attempt to gain unauthorized access to the Service or other users' accounts</li>
-        <li>Use automated tools to access the Service</li>
-        <li>Interfere with or disrupt the Service or servers</li>
+        <li>Break the law, facilitate crime, or distribute illegal content.</li>
+        <li>Exploit or endanger children, including any child sexual abuse material.</li>
+        <li>Threaten, stalk, harass, bully, defame, discriminate against, or expose another person’s private information.</li>
+        <li>Post hateful, sexually exploitative, excessively violent, or non-consensual intimate content.</li>
+        <li>Send spam, scams, phishing, malware, destructive code, or misleading links.</li>
+        <li>Infringe copyright, trademark, privacy, publicity, or other rights.</li>
+        <li>Evade access controls, guess or steal room passkeys, impersonate another user, scrape the Service, or probe for vulnerabilities without written permission.</li>
+        <li>Overload, disrupt, reverse engineer for abuse, or interfere with the Service, Supabase project, storage, or other users.</li>
       </ul>
-    </div>
-    
-    <div class="section">
-      <h2>5. Privacy</h2>
-      <p>Your privacy is important to us. Please review our <a href="privacy.html" style="color: var(--accent);">Privacy Policy</a> to understand how we collect, use, and protect your information.</p>
-    </div>
-    
-    <div class="section">
-      <h2>6. Intellectual Property</h2>
-      <p>The Service and its original content, features, and functionality are owned by ptr_29 Chat and are protected by international copyright, trademark, and other intellectual property laws.</p>
-      <p>You retain ownership of any content you post to the Service. By posting content, you grant us a license to use, modify, and display it for the purpose of providing the Service.</p>
-    </div>
-    
-    <div class="section">
-      <h2>7. Termination</h2>
-      <p>We reserve the right to terminate or suspend your account and access to the Service at our sole discretion, without prior notice, for conduct that we believe violates these Terms or is harmful to other users, us, or third parties.</p>
-    </div>
-    
-    <div class="section">
-      <h2>8. Disclaimers</h2>
-      <p>The Service is provided on an "as is" and "as available" basis. We make no representations or warranties of any kind, express or implied, regarding the operation of the Service or the information, content, or materials included on the Service.</p>
-    </div>
-    
-    <div class="section">
-      <h2>9. Limitation of Liability</h2>
-      <p>In no event shall ptr_29 Chat be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or related to your use of the Service.</p>
-    </div>
-    
-    <div class="section">
-      <h2>10. Changes to Terms</h2>
-      <p>We reserve the right to modify these Terms at any time. We will notify users of any material changes by posting the new Terms on this page. Your continued use of the Service after such modifications constitutes your acceptance of the updated Terms.</p>
-    </div>
-    
-    <div class="section">
-      <h2>11. Contact Information</h2>
-      <p>If you have any questions about these Terms and Conditions, please contact us through the platform or via the appropriate channels provided in the application.</p>
-    </div>
-    
-    <div class="last-updated">
-      <p>These Terms and Conditions were last updated on July 24, 2026.</p>
-    </div>
-  </div>
+    </section>
+
+    <section class="section">
+      <h2>5. Rooms, passkeys, and moderation</h2>
+      <p>Public-room content is available to authenticated visitors who can access that room. Private rooms use Supabase row-level access controls and membership lists. A private-room passkey grants membership and may be retained in the browser for later use.</p>
+      <p><strong>“Private” means access-controlled, not encrypted.</strong> Room owners, administrators, authorized members, service providers, and the operator may be technically able to access content as necessary to provide, secure, moderate, or comply with law.</p>
+      <p>Room owners and administrators may rename rooms, change privacy, manage membership, clear messages, or delete rooms. The operator may remove content, limit access, or preserve records when reasonably necessary for safety, security, legal compliance, or enforcement of these Terms.</p>
+    </section>
+
+    <section class="section">
+      <h2>6. Your content and license</h2>
+      <p>You keep the rights you have in content you submit. You grant the operator a worldwide, non-exclusive, royalty-free license to host, store, reproduce, transmit, display, and technically process that content only as needed to operate, secure, moderate, and improve the Service or comply with law.</p>
+      <p>You represent that you have the rights and permissions required to submit the content and grant this license. You remain responsible for your content and interactions with other users.</p>
+    </section>
+
+    <section class="section">
+      <h2>7. Deletion and data persistence</h2>
+      <p>Deleting a browser profile is not the same as erasing every prior contribution. Messages, reactions, read receipts, room records, uploaded objects, backups, and provider logs may remain until separately deleted, a room is cleared, the operator removes them, or the applicable provider retention period ends.</p>
+      <p>Do not rely on the Service as your only copy of important content. Data can be lost because of user action, moderation, software defects, free-tier limits, provider action, or service shutdown.</p>
+    </section>
+
+    <section class="section">
+      <h2>8. Third-party services</h2>
+      <p>The Service depends on GitHub Pages, Supabase, jsDelivr, and DiceBear. Your use is also affected by those providers’ terms, availability, and privacy practices. The operator does not control those services and is not responsible for their independent acts or outages.</p>
+    </section>
+
+    <section class="section">
+      <h2>9. Availability and changes</h2>
+      <p>The Service may be changed, suspended, limited, or discontinued at any time. Features may fail or be unavailable, and there is no guarantee that messages, rooms, files, identities, or passkeys will always be retained or recoverable.</p>
+      <p>We may update these Terms by posting a revised version and date. Material changes apply prospectively. If you do not accept an update, stop using the Service.</p>
+    </section>
+
+    <section class="section">
+      <h2>10. Disclaimers</h2>
+      <p>To the maximum extent permitted by applicable law, the Service is provided “as is” and “as available,” without warranties of uninterrupted operation, fitness for a particular purpose, non-infringement, data preservation, security, or accuracy. Nothing in these Terms excludes a warranty or right that cannot lawfully be excluded.</p>
+    </section>
+
+    <section class="section">
+      <h2>11. Limitation of liability</h2>
+      <p>To the maximum extent permitted by applicable law, the operator will not be liable for indirect, incidental, special, consequential, exemplary, or punitive damages, or for loss of data, content, access, goodwill, or profits arising from use of or inability to use the Service. This limitation does not apply where liability cannot legally be limited.</p>
+    </section>
+
+    <section class="section">
+      <h2>12. Reports and contact</h2>
+      <p>Report illegal content, abuse, security concerns, or questions using the contact information published on the <a href="https://github.com/gamer-09" target="_blank" rel="noopener noreferrer">operator’s GitHub profile</a>. Do not include passwords, room passkeys, or unnecessary sensitive information in a report.</p>
+    </section>
+
+    <footer class="last-updated">
+      <p>These Terms of Use were last updated on August 11, 2026.</p>
+    </footer>
+  </main>
 </body>
 </html>
