@@ -1602,19 +1602,31 @@
       });
     });
 
-    // In-app back button (visible only in chat view) → room list
+    // In-app back button (visible only in chat view) → room list.
+    // If a history entry was pushed for the chat view, pop it so the
+    // browser/Android back button stays in sync — otherwise a stale entry
+    // lingers and the hardware back button needs two presses (a dead press,
+    // then it exits the site).
     const backBtn = document.getElementById('mobile-back-btn');
     if (backBtn) {
       backBtn.addEventListener('click', (e) => {
         e.preventDefault();
         setMobileView('rooms');
+        if (history.state && history.state.view === 'chat') {
+          try { history.back(); } catch (err) {}
+        }
       });
     }
 
-    // Browser / Android hardware back → chat view returns to the room list
+    // Browser / Android hardware back: restore the chat view when the
+    // pushed state says chat, otherwise collapse chat back to the list.
     window.addEventListener('popstate', () => {
       if (!document.body.classList.contains('ptr29-mobile')) return;
-      if (document.body.classList.contains('ptr29-view-chat')) setMobileView('rooms');
+      if (history.state && history.state.view === 'chat') {
+        setMobileView('chat');
+      } else if (document.body.classList.contains('ptr29-view-chat')) {
+        setMobileView('rooms');
+      }
     });
 
     // Leaving a room sends you back to the room list
