@@ -7,8 +7,14 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0f172a">
+  <meta name="application-name" content="ptr_29 Chat">
+  <meta name="apple-mobile-web-app-title" content="ptr_29 Chat">
   <title>ptr_29 Chat</title>
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
+  <link rel="manifest" href="site.webmanifest">
   <link id="ptr29-mobile-styles" rel="stylesheet" href="mobile.css" media="(max-width: 768px)">
   <style>
     :root {
@@ -1298,6 +1304,7 @@
       line-height: 1.4;
     }
     .help-tips li strong { color: var(--text); }
+    .help-tips a { color: #93c5fd; text-underline-offset: 2px; }
     
     .help-nav {
       display: flex;
@@ -1408,7 +1415,7 @@
         </div>
         <div class="user-actions">
           <button id="edit-profile-btn" class="secondary">Edit Profile</button>
-          <button id="delete-user-btn" class="danger">Delete Account</button>
+          <button id="delete-user-btn" class="danger">Delete Profile</button>
         </div>
       </div>
     </aside>
@@ -1569,17 +1576,17 @@
     </div>
   </div>
   
-  <!-- Delete User Modal -->
+  <!-- Delete Profile Modal -->
   <div id="delete-user-modal" class="modal-overlay">
     <div class="modal">
-      <h3>⚠️ Delete Account</h3>
+      <h3>⚠️ Delete Profile Data</h3>
       <div class="warning">
-        <strong>Warning:</strong> This action cannot be undone. Your account, all your messages, and your presence in all rooms will be permanently deleted.
+        <strong>Important:</strong> This removes your profile and presence records where permitted and clears app-specific browser keys. It does not automatically erase previous messages, reactions, read receipts, room membership, uploaded files, backups, or every Supabase authentication record.
       </div>
-      <p>Are you sure you want to delete your account?</p>
+      <p>Remove the profile data available through this control?</p>
       <div class="modal-actions">
         <button type="button" id="cancel-delete-user" class="secondary">Cancel</button>
-        <button id="confirm-delete-user" class="danger">Delete Permanently</button>
+        <button id="confirm-delete-user" class="danger">Delete Profile Data</button>
       </div>
     </div>
   </div>
@@ -1591,7 +1598,7 @@
         <div class="help-logo">💬</div>
         <div>
           <h3 class="help-title">How to Use ptr_29 Chat</h3>
-          <p class="help-sub">A complete guide to all features</p>
+          <p class="help-sub">Production guide — features, privacy, and limits</p>
         </div>
         <button id="help-close-btn" class="help-close">×</button>
       </div>
@@ -1625,12 +1632,13 @@
           </div>
           <div class="help-text">
             <h3>👋 Welcome to ptr_29 Chat</h3>
-            <p>A real-time group chat with public &amp; private rooms, reply threads, image sharing, and full room management — all in your browser.</p>
+            <p>A real-time group chat with public and access-controlled private rooms, replies, reactions, files, images, and room-scoped management.</p>
             <ul class="help-tips">
-              <li>🖊️ <strong>Set your username</strong> in the bottom-left box before joining</li>
-              <li>🏠 <strong>Click any room</strong> in the sidebar to join it instantly</li>
-              <li>✉️ <strong>Type &amp; press Enter</strong> (or Send) to post a message</li>
-              <li>❓ <strong>This guide</strong> walks you through every feature — use arrows or keyboard ← → to navigate</li>
+              <li>👤 <strong>Create your browser profile</strong> with Edit Profile and accept the Terms before choosing a username</li>
+              <li>🏠 <strong>Choose a room</strong> from the sidebar; #general is the shared starting room</li>
+              <li>✉️ <strong>Type and press Enter</strong> (or Send) to post a message</li>
+              <li>📱 <strong>On mobile</strong>, use the Rooms, Chat, and Online tabs at the bottom</li>
+              <li>❓ <strong>Navigate this guide</strong> with its buttons or the ← and → keyboard keys</li>
             </ul>
           </div>
         </div>
@@ -1649,17 +1657,17 @@
               <div class="demo-btn-row" style="justify-content:flex-end">
                 <div class="demo-btn sm-btn highlight-btn">Save Changes</div>
               </div>
-              <div class="demo-share-hint">Your ID is permanent — share it so others can add you to private rooms</div>
+              <div class="demo-share-hint">Your browser identity is used for private-room membership</div>
             </div>
           </div>
           <div class="help-text">
             <h3>👤 Your Profile</h3>
-            <p>Click <strong>Edit Profile</strong> in the sidebar to set your name and avatar. Your Client ID is unique and permanent — keep it safe.</p>
+            <p>Click <strong>Edit Profile</strong> to accept the Terms and set a username and optional avatar. Supabase assigns this browser an anonymous identity.</p>
             <ul class="help-tips">
-              <li>✏️ <strong>Username</strong> is checked live — you'll see a ✓ when it's available</li>
-              <li>🖼️ <strong>Avatar URL</strong> — paste any image link, or leave blank for an auto-generated avatar</li>
-              <li>🪪 <strong>Client ID</strong> — share this so room owners can grant you access to private rooms</li>
-              <li>🗑️ <strong>Delete Account</strong> removes your profile and all stored data from the server</li>
+              <li>✏️ <strong>Username</strong> is checked live and must currently be available</li>
+              <li>🖼️ <strong>Avatar URL</strong> can point to an image, or you can leave it blank for a DiceBear avatar</li>
+              <li>🪪 <strong>Client ID</strong> identifies this browser session for private-room membership; clearing site data may make it unrecoverable</li>
+              <li>🗑️ <strong>Delete Profile</strong> removes profile/presence data and local app keys, but does not automatically erase old messages, receipts, reactions, memberships, or uploads</li>
             </ul>
           </div>
         </div>
@@ -1689,13 +1697,14 @@
           </div>
           <div class="help-text">
             <h3>🏠 Rooms</h3>
-            <p>All available rooms are listed in the left sidebar. Public rooms are open to everyone. Private rooms require a passkey or invite.</p>
+            <p>Available rooms appear in the left sidebar. Public rooms are open to signed-in anonymous visitors. Private rooms require existing membership or a valid passkey.</p>
             <ul class="help-tips">
-              <li>📌 <strong>Click a room</strong> to switch into it — unread count shown in red badge</li>
-              <li>➕ <strong>Create Room</strong> — give it a name and optionally make it private</li>
-              <li>🔒 <strong>Private rooms</strong> — only accessible with a passkey or if the owner adds you</li>
-              <li>🔑 <strong>Join by passkey</strong> — paste the passkey code at the bottom of the sidebar and click Join</li>
-              <li>↻ <strong>Refresh</strong> — manually reload the room list</li>
+              <li>📌 <strong>Click a room</strong> to switch to it; unread messages appear as a badge</li>
+              <li>➕ <strong>Create Room</strong> with a name and optional private-room setting</li>
+              <li>🔒 <strong>Private means access-controlled</strong>, not end-to-end encrypted</li>
+              <li>🔑 <strong>Join by passkey</strong> by entering the code in the sidebar; the browser may save it for reconnecting</li>
+              <li>👥 <strong>Membership persists</strong> for the same anonymous browser identity after a successful private-room join</li>
+              <li>↻ <strong>Refresh</strong> manually reloads the room list</li>
             </ul>
           </div>
         </div>
@@ -1729,14 +1738,14 @@
           </div>
           <div class="help-text">
             <h3>💬 Sending Messages</h3>
-            <p>Type your message in the box at the bottom and press <strong>Enter</strong> or click <strong>Send</strong>. Images can be attached with 📷.</p>
+            <p>Type in the bottom box and press <strong>Enter</strong> or <strong>Send</strong>. Messages synchronize through Supabase Realtime.</p>
             <ul class="help-tips">
-              <li>↩️ <strong>Reply</strong> — hover a message and click ↩ to quote it in your reply</li>
-              <li>📋 <strong>Copy</strong> — hover a message and click 📋 to copy its text</li>
-              <li>✏️ <strong>Edit</strong> — you can edit your own messages within 5 minutes of sending</li>
-              <li>🗑️ <strong>Delete</strong> — permanently remove your own messages at any time</li>
-              <li>🖱️ <strong>Right-click</strong> (or long-press on mobile) to open the context menu</li>
-              <li>📷 <strong>Images</strong> — click the camera button to share a photo from your device</li>
+              <li>↩️ <strong>Reply</strong>, 📋 <strong>copy</strong>, 😊 <strong>react</strong>, ✏️ <strong>edit</strong>, or 🗑️ <strong>delete</strong> from the message actions</li>
+              <li>⏱️ <strong>Edit</strong> is shown for your own messages during the first 5 minutes</li>
+              <li>👆 <strong>Tap a message on mobile</strong> or right-click it on desktop to reveal actions</li>
+              <li>📎 <strong>Files</strong> can be up to 25 MB; 📷 <strong>images</strong> can be up to 10 MB</li>
+              <li>✓ <strong>Read receipts</strong> and typing status are visible to room participants</li>
+              <li>⚠️ Deleting a message removes it from chat, but an associated uploaded storage object may remain</li>
             </ul>
           </div>
         </div>
@@ -1774,14 +1783,14 @@
           </div>
           <div class="help-text">
             <h3>⚙️ Room Settings</h3>
-            <p>Click <strong>⚙️ Settings</strong> in the chat header to manage a room. Only the room owner and admins can make changes.</p>
+            <p>Click <strong>⚙️ Settings</strong> to manage the current room. Owner and admin permissions apply only to that room.</p>
             <ul class="help-tips">
-              <li>✏️ <strong>Rename</strong> — give the room a new name (not available for #general)</li>
-              <li>🔒 <strong>Privacy toggle</strong> — switch between public and private</li>
-              <li>🔑 <strong>Passkey</strong> — generate, copy, or clear the room's passkey. Share it so others can join</li>
-              <li>🛡️ <strong>Admins</strong> — add users by Client ID to help manage the room</li>
-              <li>👥 <strong>Members</strong> — grant specific users permanent access to a private room</li>
-              <li>🗑️ <strong>Delete Room</strong> — permanently removes the room and all messages (owner only)</li>
+              <li>✏️ <strong>Rename</strong> the room (not available for #general)</li>
+              <li>🔒 <strong>Privacy</strong> switches between public and access-controlled private membership</li>
+              <li>🔑 <strong>Passkey</strong> can be generated, copied, saved, or cleared; it is not an encryption key</li>
+              <li>🛡️ <strong>Admins</strong> and 👥 <strong>members</strong> are managed by Client ID for this room</li>
+              <li>🧹 <strong>Clear</strong> removes the room’s message rows; <strong>Delete Room</strong> is available to the owner or a room admin</li>
+              <li>🚫 <strong>No global moderation:</strong> room admins cannot ban a user platform-wide, terminate an identity, delete another profile, or revoke a username</li>
             </ul>
           </div>
         </div>
@@ -1823,14 +1832,51 @@
           </div>
           <div class="help-text">
             <h3>🟢 Online Users &amp; Info</h3>
-            <p>The right panel shows everyone currently online and which room they're in. The info banner at the top of the chat area shows key room details.</p>
+            <p>The right panel shows recent online presence and current rooms. On mobile, open the <strong>Online</strong> tab from the bottom navigation.</p>
             <ul class="help-tips">
-              <li>👁️ <strong>Online panel</strong> — see all connected users and their current room in real time</li>
-              <li>🔔 <strong>Room info banner</strong> — shows owner, live user count, and admin count at a glance</li>
-              <li>📬 <strong>Unread badges</strong> — red numbers on rooms you haven't read yet</li>
-              <li>💡 <strong>Click "View Info"</strong> in the banner to jump straight to the settings panel</li>
-              <li>⌨️ <strong>Typing indicator</strong> — see when someone else is typing in real time</li>
-              <li>🖼️ <strong>Click any image</strong> in chat to view it full-screen in the lightbox</li>
+              <li>👁️ <strong>Online presence</strong> updates in real time and stale presence is pruned after a short delay</li>
+              <li>🔔 <strong>Room info</strong> shows the owner, live user count, and room-admin count</li>
+              <li>📬 <strong>Unread badges</strong> mark activity in rooms you are not viewing</li>
+              <li>⌨️ <strong>Typing indicators</strong> are temporary realtime broadcasts</li>
+              <li>🖼️ <strong>Click an image</strong> to view the authorized signed media URL in the lightbox</li>
+              <li>🔔 <strong>Browser notifications are optional</strong> and may expose sender, room, and message previews on your screen</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ── Slide 7: Privacy, data, and limits ── -->
+        <div class="help-slide">
+          <div class="help-demo">
+            <div class="demo-panel">
+              <div class="demo-label">🔐 Privacy &amp; Limits</div>
+              <div class="demo-settings-row">
+                <span>Identity</span>
+                <div class="demo-chip">Browser-specific</div>
+              </div>
+              <div class="demo-settings-row">
+                <span>Private rooms</span>
+                <div class="demo-toggle on-toggle">Access controlled</div>
+              </div>
+              <div class="demo-settings-row">
+                <span>Encryption</span>
+                <div class="demo-chip">HTTPS in transit</div>
+              </div>
+              <div class="demo-settings-row">
+                <span>Global bans</span>
+                <div class="demo-chip">Not available</div>
+              </div>
+              <div class="demo-share-hint" style="margin-top:12px">Do not send passwords, financial data, IDs, medical records, or other secrets.</div>
+            </div>
+          </div>
+          <div class="help-text">
+            <h3>🔐 Privacy, Data &amp; Current Limits</h3>
+            <p>The production site uses GitHub Pages and Supabase. Understand what the current application does before sharing content.</p>
+            <ul class="help-tips">
+              <li>🆔 <strong>Your identity belongs to this browser session</strong>; clearing site data may make it unrecoverable</li>
+              <li>🔒 <strong>Private rooms are not end-to-end encrypted</strong>; authorized participants and infrastructure providers may technically access content</li>
+              <li>🗑️ <strong>Delete Profile is limited</strong>; prior messages, receipts, reactions, memberships, and uploads may remain</li>
+              <li>🛡️ <strong>Admin rights are room-scoped</strong>; there is no global ban, account termination, or username-revocation control</li>
+              <li>📄 Read the <a href="terms.html" target="_blank" rel="noopener noreferrer">Terms of Use</a> and <a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacy Policy</a> for full details</li>
             </ul>
           </div>
         </div>
@@ -1838,7 +1884,7 @@
       </div><!-- /help-slides -->
       <div class="help-nav">
         <button id="help-prev" class="help-prev">← Previous</button>
-        <span id="help-step-counter" class="help-step-counter">1 / 6</span>
+        <span id="help-step-counter" class="help-step-counter">1 / 7</span>
         <button id="help-next" class="help-next">Next →</button>
       </div>
     </div>
@@ -1893,7 +1939,7 @@
     <div class="modal">
       <h3>⚠️ Delete Room</h3>
       <div class="warning">
-        <strong>Warning:</strong> This action cannot be undone. All messages in this room will be permanently deleted.
+        <strong>Warning:</strong> This removes the room's message records and cannot be undone through the app. Uploaded storage objects or provider backups may remain.
       </div>
       <p>Delete room "<strong id="delete-room-name"></strong>"?</p>
       <div class="modal-actions">

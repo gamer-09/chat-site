@@ -288,12 +288,12 @@
         if (ok) {
           [CONSTANTS.STORAGE_KEY, CONSTANTS.CLIENT_ID_KEY, CONSTANTS.PASSKEYS_KEY, CONSTANTS.UNREAD_KEY]
             .forEach(k => localStorage.removeItem(k));
-          showToast('Account deleted successfully', 'success');
+          showToast('Profile data removed. Previous chat content may remain.', 'success');
           setTimeout(() => window.location.reload(), 1500);
         } else {
-          showToast('Failed to delete account', 'error');
+          showToast('Failed to delete profile data', 'error');
         }
-      } catch { showToast('Failed to delete account', 'error'); }
+      } catch { showToast('Failed to delete profile data', 'error'); }
     },
   };
 
@@ -1479,7 +1479,7 @@
       if (document.hasFocus()) return;
       if (Notification.permission !== 'granted') return;
       try {
-        const n = new Notification('ptr_29 Chat', { body: data.message, icon: 'favicon.ico' });
+        const n = new Notification('ptr_29 Chat', { body: data.message, icon: 'icon-192.png' });
         setTimeout(() => n.close(), 5000);
       } catch {}
     });
@@ -1760,4 +1760,10 @@
 
   init();
   initMobile();  // Run after init
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
 })();
