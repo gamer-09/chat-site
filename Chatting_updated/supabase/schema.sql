@@ -71,6 +71,10 @@ grant usage on schema public to anon, authenticated;
 grant all on all tables in schema public to anon, authenticated;
 grant all on all functions in schema public to anon, authenticated;
 
+-- Anonymous visitors (pre-sign-in) can read public rooms, but never write:
+-- all writes require a real signed-in identity (auth.uid()).
+revoke insert, update, delete on all tables in schema public from anon;
+
 alter table public.rooms     enable row level security;
 alter table public.messages  enable row level security;
 alter table public.receipts  enable row level security;
@@ -118,7 +122,8 @@ create policy messages_select on public.messages for select using (
 );
 drop policy if exists messages_insert on public.messages;
 create policy messages_insert on public.messages for insert with check (
-  public.room_accessible(room, auth.uid()::text)
+  auth.role() = 'authenticated'
+  and public.room_accessible(room, auth.uid()::text)
 );
 drop policy if exists messages_update on public.messages;
 create policy messages_update on public.messages for update using (
@@ -217,6 +222,7 @@ returns text language sql security definer set search_path = public as $$
   select name from public.rooms
   where rooms.passkey = find_room_by_passkey.passkey
     and rooms.passkey <> ''
+    and auth.uid() is not null
   limit 1;
 $$;
 
