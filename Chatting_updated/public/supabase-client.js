@@ -130,7 +130,7 @@
           .subscribe();
         api._heartbeatTimer = setInterval(function () { api.heartbeat(false); }, 15000);
         api._pruneTimer = setInterval(function () {
-          sb.rpc('prune_stale_presence', { older_than_ms: 45000 }).catch(function () {});
+          sb.rpc('prune_stale_presence', { older_than_ms: 45000 }).then(function () {}, function () {});
         }, 30000);
         api.ready = true;
         dispatch('connect');

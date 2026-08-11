@@ -162,13 +162,11 @@
       try {
         let safe = utils.escapeHtml(text);
         // Bold: **text** — replace first so double-* is consumed before italic pass
-        safe = safe.replace(/**([^*<>
-]+)**/g, '<strong>$1</strong>');
+        safe = safe.replace(/\*\*([^*<>]+)\*\*/g, '<strong>$1</strong>');
         // Italic: *text* — only remaining single * pairs after bold consumed
-        safe = safe.replace(/*([^*<>
-]+)*/g, '<em>$1</em>');
+        safe = safe.replace(/\*([^*<>]+)\*/g, '<em>$1</em>');
         // @mentions
-        safe = safe.replace(/@([w.-]+)/g, '<span class="mention">@$1</span>');
+        safe = safe.replace(/@([\w.-]+)/g, '<span class="mention">@$1</span>');
         return safe;
       } catch (e) {
         return utils.escapeHtml(text);
@@ -1590,7 +1588,14 @@
     // back button behaves exactly like the in-app ← Back button.
     const goChatView = () => {
       if (document.body.classList.contains('ptr29-view-chat')) return;
-      try { history.pushState({ view: 'chat' }, ''); } catch (e) {}
+      try {
+        // Never stack multiple chat entries: if the top entry already says
+        // chat (e.g. the boot auto-join pushed one, then the user re-entered
+        // chat), replace it instead of pushing, so a single ← Back press
+        // always returns to the room list instead of an older chat entry.
+        if (history.state && history.state.view === 'chat') history.replaceState({ view: 'chat' }, '');
+        else history.pushState({ view: 'chat' }, '');
+      } catch (e) {}
       setMobileView('chat');
     };
 
