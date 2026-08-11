@@ -126,10 +126,12 @@
     </section>
 
     <section class="section">
-      <h2>5. Rooms, passkeys, and moderation</h2>
+      <h2>5. Rooms, passkeys, and actual admin controls</h2>
       <p>Public-room content is available to authenticated visitors who can access that room. Private rooms use Supabase row-level access controls and membership lists. A private-room passkey grants membership and may be retained in the browser for later use.</p>
-      <p><strong>“Private” means access-controlled, not encrypted.</strong> Room owners, administrators, authorized members, service providers, and the operator may be technically able to access content as necessary to provide, secure, moderate, or comply with law.</p>
-      <p>Room owners and administrators may rename rooms, change privacy, manage membership, clear messages, or delete rooms. The operator may remove content, limit access, or preserve records when reasonably necessary for safety, security, legal compliance, or enforcement of these Terms.</p>
+      <p><strong>“Private” means access-controlled, not encrypted.</strong> Authorized room participants and the infrastructure providers may be technically able to access room content.</p>
+      <p>Owner and administrator roles are <strong>room-scoped only</strong>. In the current application, a room owner or room administrator can rename that room, change its privacy and passkey, add or remove that room’s admins or members, clear the room’s messages, or delete the room.</p>
+      <p>The application currently has <strong>no global creator/admin control</strong> to ban or suspend a person, terminate another user’s anonymous identity, delete another user’s profile, reserve or revoke a username, force a username change, or block that identity from the entire platform. A room member may be removed from a particular private room, but that is not an account termination or platform-wide ban.</p>
+      <p>The Supabase project owner may have infrastructure-level database access outside the application. That technical access is not a user-facing moderation system and does not create a promise that any particular account, username, message, or file can be globally terminated on request.</p>
     </section>
 
     <section class="section">
@@ -140,7 +142,7 @@
 
     <section class="section">
       <h2>7. Deletion and data persistence</h2>
-      <p>Deleting a browser profile is not the same as erasing every prior contribution. Messages, reactions, read receipts, room records, uploaded objects, backups, and provider logs may remain until separately deleted, a room is cleared, the operator removes them, or the applicable provider retention period ends.</p>
+      <p>Deleting a browser profile is not the same as erasing every prior contribution. Messages, reactions, read receipts, room records, uploaded objects, backups, and provider logs may remain until separately deleted through an available control, a room is cleared or deleted, a Supabase project administrator performs a manual data operation, or the applicable provider retention period ends.</p>
       <p>Do not rely on the Service as your only copy of important content. Data can be lost because of user action, moderation, software defects, free-tier limits, provider action, or service shutdown.</p>
     </section>
 
@@ -168,6 +170,7 @@
     <section class="section">
       <h2>12. Reports and contact</h2>
       <p>Report illegal content, abuse, security concerns, or questions using the contact information published on the <a href="https://github.com/gamer-09" target="_blank" rel="noopener noreferrer">operator’s GitHub profile</a>. Do not include passwords, room passkeys, or unnecessary sensitive information in a report.</p>
+      <p>Reports will be considered using the controls that actually exist. The current application does not provide the creator with a platform-wide ban, username revocation, or anonymous-account termination tool, so reporting does not guarantee that a global account action can be performed.</p>
     </section>
 
     <footer class="last-updated">

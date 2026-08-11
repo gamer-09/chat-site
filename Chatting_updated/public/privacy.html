@@ -125,8 +125,10 @@
       <p>Messages, usernames, avatars, reactions, receipts, and shared media in a public room are available to authenticated visitors who can access that room.</p>
       <h3>Private rooms</h3>
       <p>Private rooms use Supabase row-level security, owner/admin/member lists, and passkeys. Once a passkey admits a user, that anonymous user ID may be added as a room member. Private-room content is not end-to-end encrypted.</p>
-      <h3>Operators and providers</h3>
-      <p>The operator may access stored information through administrative tools when reasonably necessary for operation, security, moderation, support, or law. GitHub and Supabase process data as infrastructure providers; jsDelivr delivers the Supabase browser library; DiceBear receives avatar requests when a generated avatar is used.</p>
+      <h3>Room administrators, operator, and providers</h3>
+      <p>Room owner/admin powers apply only to the room they manage. They can manage that room’s settings and membership and can clear or delete the room, but the application does not let them ban a user platform-wide, terminate an anonymous identity, delete another user’s profile, revoke a username, or force a username change.</p>
+      <p>The Supabase project owner may be technically able to inspect or manually change database and storage records outside the application. This infrastructure access is separate from the room-admin interface and is not an automated global account-management or moderation feature.</p>
+      <p>GitHub and Supabase process data as infrastructure providers; jsDelivr delivers the Supabase browser library; DiceBear receives avatar requests when a generated avatar is used.</p>
     </section>
 
     <section class="section">
@@ -138,7 +140,7 @@
 
     <section class="section">
       <h2>6. Retention and deletion</h2>
-      <p>No fixed automatic retention period currently applies to messages, rooms, profiles, receipts, reactions, or uploads. They may remain until a user deletes a message, a room administrator clears or deletes a room, the operator removes the data, the Supabase project is reset, or provider retention rules require deletion.</p>
+      <p>No fixed automatic retention period currently applies to messages, rooms, profiles, receipts, reactions, or uploads. They may remain until a user deletes an eligible message, a room owner/admin clears or deletes that room, a Supabase project administrator performs a manual data operation, the project is reset, or provider retention rules require deletion.</p>
       <p>The in-app profile deletion action removes the profile and presence records where permitted and clears several application-specific browser keys. It does <strong>not</strong> automatically erase prior messages, reactions, read receipts, room membership, uploaded objects, backups, provider logs, or every authentication/session record. Delete your own messages where available and contact the operator for a broader request.</p>
       <p>Deleting a message or room record may not immediately delete an associated object from storage, cached signed URL, backup, or provider log. We do not promise instant or forensic erasure.</p>
     </section>
@@ -168,7 +170,8 @@
     <section class="section">
       <h2>11. Your choices and rights</h2>
       <p>Depending on where you live, you may have rights to access, correct, delete, restrict, or object to certain processing, or to receive a portable copy. These rights may be limited by the anonymous nature of the Service, other users’ rights, legal obligations, and the ability to verify that a browser identity or content belongs to you.</p>
-      <p>You can edit your profile, delete eligible messages, leave rooms, clear browser data, disable notifications, or use the in-app deletion control. For a broader request, contact the operator and provide the minimum information needed to identify the relevant anonymous user ID, room, or message.</p>
+      <p>You can edit your own profile, delete eligible messages, leave rooms, clear browser data, disable notifications, or use the in-app deletion control. For a broader request, contact the operator and provide the minimum information needed to identify the relevant anonymous user ID, room, or message.</p>
+      <p>The current creator/admin interface cannot terminate another anonymous identity, ban a user across the platform, revoke or reserve a username, or automatically erase every record associated with a person. A request may require a manual Supabase data operation, may be limited by the ability to verify ownership, and may not be technically possible for every provider record or copy.</p>
     </section>
 
     <section class="section">
