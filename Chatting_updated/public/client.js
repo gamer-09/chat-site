@@ -1580,12 +1580,23 @@
     if (mobileInitialized) return;
     mobileInitialized = true;
 
+    // Entering chat view pushes history state so the browser/Android
+    // back button behaves exactly like the in-app ← Back button.
+    const goChatView = () => {
+      if (document.body.classList.contains('ptr29-view-chat')) return;
+      try { history.pushState({ view: 'chat' }, ''); } catch (e) {}
+      setMobileView('chat');
+    };
+
     // Bottom nav tab clicks
     document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
-      btn.addEventListener('click', () => setMobileView(btn.dataset.view));
+      btn.addEventListener('click', () => {
+        if (btn.dataset.view === 'chat') goChatView();
+        else setMobileView(btn.dataset.view);
+      });
     });
 
-    // Back button (visible only in chat view) returns to the room list
+    // In-app back button (visible only in chat view) → room list
     const backBtn = document.getElementById('mobile-back-btn');
     if (backBtn) {
       backBtn.addEventListener('click', (e) => {
@@ -1593,6 +1604,12 @@
         setMobileView('rooms');
       });
     }
+
+    // Browser / Android hardware back → chat view returns to the room list
+    window.addEventListener('popstate', () => {
+      if (!document.body.classList.contains('ptr29-mobile')) return;
+      if (document.body.classList.contains('ptr29-view-chat')) setMobileView('rooms');
+    });
 
     // Leaving a room sends you back to the room list
     const originalLeave = socketHandlers.leave;
@@ -1656,7 +1673,7 @@
       clearMobileSearch();
       const result = _originalJoin(roomName, passkey);
       if (state.joined && document.body.classList.contains('ptr29-mobile')) {
-        setMobileView('chat');
+        goChatView();
         // ensure messages scrolled to bottom after switch
         setTimeout(() => {
           const msgs = document.getElementById('messages');
