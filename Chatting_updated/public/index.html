@@ -1027,7 +1027,10 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
+      /* Toasts are informational only — never intercept taps meant for buttons */
+      pointer-events: none;
     }
+    .toast { pointer-events: none; }
     
     .toast {
       background: var(--panel2);

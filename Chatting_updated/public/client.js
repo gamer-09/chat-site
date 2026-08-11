@@ -1236,8 +1236,10 @@
 
     // Room settings panel
     elements.roomSettingsBtn.addEventListener('click', () => {
+      // Compare against 'block' (not 'none'): the panel starts display:none via CSS,
+      // so the inline style is empty on first click and a 'none' check would no-op.
       elements.roomSettingsPanel.style.display =
-        elements.roomSettingsPanel.style.display === 'none' ? 'block' : 'none';
+        elements.roomSettingsPanel.style.display === 'block' ? 'none' : 'block';
     });
     elements.closeSettingsBtn.addEventListener('click', () =>
       elements.roomSettingsPanel.style.display = 'none');

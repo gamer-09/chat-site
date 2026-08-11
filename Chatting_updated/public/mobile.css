@@ -668,13 +668,15 @@
 .ptr29-mobile .help-next  { padding: 8px 14px; font-size: 13px; min-height: 40px; flex-shrink: 0; }
 .ptr29-mobile .help-step-counter { font-size: 12px; text-align: center; }
 
-/* ── Toast — top-center ───────────────────────────────────────────────── */
+/* ── Toast — below the header, click-transparent (never blocks buttons) ── */
 .ptr29-mobile .toast-container {
-  top: calc(10px + env(safe-area-inset-top, 0px));
+  top: calc(56px + env(safe-area-inset-top, 0px));
   left: 12px;
   right: 12px;
   align-items: stretch;
+  pointer-events: none;
 }
+.ptr29-mobile .toast { pointer-events: none; }
 .ptr29-mobile .toast {
   max-width: 100%;
   font-size: 13px;
