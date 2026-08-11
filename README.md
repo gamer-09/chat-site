@@ -1,5 +1,7 @@
 # Chat Site
 
+**[Open Chat Site →](https://gamer-09.github.io/chat-site/)**
+
 A real-time multi-room chat app built with Node.js, Express, and Socket.io. No accounts required — pick a username and start chatting instantly.
 
 ---
