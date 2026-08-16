@@ -217,6 +217,8 @@
       utils.saveToStorage(CONSTANTS.STORAGE_KEY, data);
       state.myUsername = username || '';
       profile.updateUI(username, avatar, state.myClientId);
+      // Re-seat existing bubbles: old-name messages shift left & lock
+      document.querySelectorAll('.msg').forEach(m => m.classList.toggle('me', isMineDataset(m)));
       return data;
     },
 
@@ -592,11 +594,29 @@
     },
   };
 
+  // Ownership rule: same client AND same CURRENT username.
+  // After a rename, messages sent under the old name are no longer
+  // yours — they shift to the left and lose edit/delete rights.
+  function isMineMsg(msg) {
+    if (!msg || msg.clientId !== state.myClientId) return false;
+    const u = String(msg.username || '').trim();
+    const me = String(state.myUsername || '').trim();
+    if (u && me && u !== me) return false;
+    return true;
+  }
+  function isMineDataset(el) {
+    if (!el || el.dataset.clientId !== state.myClientId) return false;
+    const u = String(el.dataset.username || '').trim();
+    const me = String(state.myUsername || '').trim();
+    if (u && me && u !== me) return false;
+    return true;
+  }
+
   // ── Messages ───────────────────────────────────────────────────────────────
   const messages = {
     render: (msg, prepend = false) => {
       if (!elements.messages) return;
-      const isMe = msg.clientId === state.myClientId;
+      const isMe = isMineMsg(msg);
       const el = document.createElement('div');
       el.className = `msg${isMe ? ' me' : ''}`;
       el.dataset.id        = msg.id;
@@ -774,13 +794,13 @@
       let div = msgEl.querySelector('.receipts');
       if (!div) { div = document.createElement('div'); div.className = 'receipts'; msgEl.appendChild(div); }
       const senderUsername = msgEl.dataset.username;
-      const isMyMsg = msgEl.dataset.clientId === state.myClientId;
+      const isMyMsg = isMineDataset(msgEl);
       const readByOthers = (readBy || []).filter(r => r.username !== senderUsername);
       div.textContent = (isMyMsg && readByOthers.length > 0) ? `✓ Read by ${readByOthers.map(r=>r.username).join(', ')}` : '';
     },
 
     showContextMenu: (e, msgEl, msg) => {
-      const isMe = msg.clientId === state.myClientId;
+      const isMe = isMineMsg(msg);
       const canEdit = isMe && (Date.now() - msg.timestamp) < CONSTANTS.EDIT_WINDOW_MS;
       elements.contextMenu.innerHTML = `
         <button data-action="reply">↩️ Reply</button>
@@ -1004,7 +1024,7 @@
       if (!msgEl) return;
       const div = msgEl.querySelector('.receipts');
       if (!div) return;
-      if (msgEl.dataset.clientId !== state.myClientId) return;
+      if (!isMineDataset(msgEl)) return;
       const current = div.textContent.replace('✓ Read by ', '');
       const names = current ? current.split(', ').filter(Boolean) : [];
       if (!names.includes(data.username)) names.push(data.username);

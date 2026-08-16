@@ -251,10 +251,24 @@ function addReceipt(room, messageId, userId, username) {
   return true;
 }
 
+function usernameFor(clientId) {
+  try {
+    const u = users && users[clientId];
+    return u && u.username ? String(u.username).trim() : null;
+  } catch { return null; }
+}
+
 function owns(msg, userId, clientId) {
   if (!msg) return false;
+  if (clientId && msg.clientId && msg.clientId === clientId) {
+    // Renamed identity: messages sent under an older username are no
+    // longer editable/deletable by this client.
+    const cur = usernameFor(clientId);
+    const msgUser = String(msg.username || '').trim();
+    if (cur && msgUser && msgUser !== cur) return false;
+    return true;
+  }
   if (userId && msg.userId && msg.userId === userId) return true;
-  if (clientId && msg.clientId && msg.clientId === clientId) return true;
   return false;
 }
 
