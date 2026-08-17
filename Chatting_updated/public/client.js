@@ -763,6 +763,18 @@
         }
       });
 
+      // Supabase backend: resolve storagePath to a signed URL so images
+      // actually render and file links actually open
+      if (msg.storagePath && !(msg.imageUrl || msg.fileUrl) && window.PtrMedia) {
+        window.PtrMedia.resolveStorageUrl(msg.storagePath, (url) => {
+          if (!url) return;
+          const img = el.querySelector('img.msg-image');
+          if (img) img.src = url;
+          const a = el.querySelector('a.file-attachment');
+          if (a) a.href = url;
+        });
+      }
+
       prepend ? elements.messages.prepend(el) : elements.messages.appendChild(el);
       elements.messages.scrollTop = elements.messages.scrollHeight;
 
