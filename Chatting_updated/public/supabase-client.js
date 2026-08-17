@@ -469,7 +469,7 @@
         id: genId(),
         room: room,
         userId: api.uid,
-        clientId: api.uid,
+        clientId: api._clientId || api.uid,
         username: api._username || 'Anonymous',
         avatar: api._avatar || defaultAvatar(api._username),
         message: text.slice(0, 2000),
@@ -625,17 +625,22 @@
 
         return sb.storage.from('chat-uploads').upload(path, blob, { contentType: mime, upsert: false })
           .then(function (up) {
-            if (up.error) return { ok: false, error: up.error.message || 'Upload failed' };
+            var storageOk = !up.error;
+            // Bucket missing/broken? Embed the (downscaled) image right in
+            // the payload so media always renders and opens.
+            var embed = (!storageOk && kind === 'image' && dataUrl.length <= 700000) ? dataUrl : '';
+            if (!storageOk && !embed) return { ok: false, error: (up.error && up.error.message) || 'Upload failed' };
             var payload = {
               id: genId(),
               room: r,
               userId: api.uid,
-              clientId: api.uid,
+              clientId: api._clientId || api.uid,
               username: api._username || 'Anonymous',
               avatar: api._avatar || defaultAvatar(api._username),
               message: kind === 'file' ? originalName : '',
               type: kind,
-              storagePath: path,
+              storagePath: storageOk ? path : null,
+              dataUrl: embed || undefined,
               fileSize: blob.size,
               mimeType: mime,
               timestamp: Date.now(),
@@ -816,6 +821,9 @@
       });
     }
   };
+
+  // Client-issued identity override (set after a rename)
+  api.setClientId = function (id) { api._clientId = id || null; };
 
   // ── Public helpers for rendering media (signed URLs) ───────────────────────
   window.PtrMedia = {

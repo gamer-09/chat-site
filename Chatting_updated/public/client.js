@@ -104,6 +104,7 @@
     EDIT_WINDOW_MS: 5 * 60 * 1000,
     STORAGE_KEY:   'ptr29_profile_v2',
     CLIENT_ID_KEY: 'ptr29_client_id_v2',
+    CLIENT_ID_ISSUED_KEY: 'ptr29_client_id_issued_v1',
     PASSKEYS_KEY:  'ptr29_room_keys_v2',
     UNREAD_KEY:    'ptr29_unread_v2',
     DEFAULT_AVATAR:'https://api.dicebear.com/7.x/thumbs/svg?seed=',
@@ -126,7 +127,25 @@
         return id;
       } catch { return utils.generateId(); }
     },
-    fileToAvatarDataUrl: (file, cb) => {
+    fileToImageDataUrl: (file, cb) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const max = 1280;
+          const scale = Math.min(1, max / Math.max(img.width, img.height));
+          const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          cb(c.toDataURL('image/jpeg', 0.82));
+        };
+        img.onerror = () => cb(reader.result);
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    },
+        fileToAvatarDataUrl: (file, cb) => {
       const reader = new FileReader();
       reader.onload = () => {
         const img = new Image();
@@ -224,6 +243,7 @@
     load: () => {
       const data = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
       state.myClientId = utils.getOrCreateClientId();
+      if (window.ChatAPI && window.ChatAPI.setClientId) window.ChatAPI.setClientId(state.myClientId);
       // Set myUsername immediately so reaction "mine" detection works
       // before the socket connect handler fires.
       state.myUsername = data.username || '';
@@ -247,7 +267,9 @@
         // everything sent under the old name is purged everywhere.
         const newId = utils.generateId();
         try { localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, newId); } catch {}
+        try { localStorage.setItem(CONSTANTS.CLIENT_ID_ISSUED_KEY, 'rename'); } catch {}
         state.myClientId = newId;
+        if (window.ChatAPI && window.ChatAPI.setClientId) window.ChatAPI.setClientId(newId);
         socket.emit('rename-identity', { oldClientId, oldUsername, newUsername: newName });
         document.querySelectorAll('.msg').forEach(m => {
           if (m.dataset.clientId === oldClientId || (oldUsername && m.dataset.username === oldUsername)) m.remove();
@@ -686,7 +708,7 @@
         /\.(png|jpe?g|gif|webp|avif|bmp)(\?|#|$)/i.test(msg.fileUrl || '') ||
         /\.(png|jpe?g|gif|webp|avif|bmp)$/i.test(msg.message || ''));
       const bodyHtml = (msg.type === 'image' || fileIsImage)
-        ? `<img class="msg-image" src="${msg.imageUrl || msg.fileUrl || ''}" alt="Shared image" loading="lazy">`
+        ? `<img class="msg-image" src="${msg.dataUrl || msg.imageUrl || msg.fileUrl || ''}" alt="Shared image" loading="lazy">`
         : msg.type === 'file'
           ? `<a class="file-attachment" href="${msg.fileUrl || '#'}" download="${utils.escapeHtml(msg.message || 'file')}" target="_blank" rel="noopener"><span>📎</span><span>${utils.escapeHtml(msg.message || 'File')}</span>${msg.fileSize ? `<span style="color:var(--text-dim);font-size:11px">${utils.formatFileSize(msg.fileSize)}</span>` : ''}</a>`
           : `<span class="msg-content">${utils.renderMarkdown(msg.message || '')}</span>`;
@@ -765,7 +787,7 @@
 
       // Supabase backend: resolve storagePath to a signed URL so images
       // actually render and file links actually open
-      if (msg.storagePath && !(msg.imageUrl || msg.fileUrl) && window.PtrMedia) {
+      if (msg.storagePath && !(msg.dataUrl || msg.imageUrl || msg.fileUrl) && window.PtrMedia) {
         window.PtrMedia.resolveStorageUrl(msg.storagePath, (url) => {
           if (!url) return;
           const img = el.querySelector('img.msg-image');
@@ -958,7 +980,16 @@
   // ── Socket event handlers ──────────────────────────────────────────────────
   const socketHandlers = {
     connect: () => {
-      state.myClientId = utils.getOrCreateClientId();
+      const idIssued = localStorage.getItem(CONSTANTS.CLIENT_ID_ISSUED_KEY);
+      if (idIssued === 'rename') {
+        state.myClientId = utils.getOrCreateClientId();
+      } else if (window.ChatAPI && window.ChatAPI.uid) {
+        state.myClientId = window.ChatAPI.uid;
+        try { localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, window.ChatAPI.uid); } catch {}
+      } else {
+        state.myClientId = utils.getOrCreateClientId();
+      }
+      if (window.ChatAPI && window.ChatAPI.setClientId) window.ChatAPI.setClientId(state.myClientId);
       try { const d = JSON.parse(localStorage.getItem(CONSTANTS.STORAGE_KEY) || '{}'); state.myUsername = d.username || ''; } catch {}
 
       // Re-enter saved passkeys so the server restores ephemeral access after reconnect
@@ -1003,6 +1034,7 @@
       if (data.room !== state.currentRoom) return;
       if (elements.messages) elements.messages.innerHTML = '';
       data.messages.forEach(msg => messages.render(msg));
+      document.querySelectorAll('.msg').forEach(m => m.classList.toggle('me', isMineDataset(m)));
     },
 
     'presence': (data) => {
@@ -1250,9 +1282,7 @@
         if (!file) return;
         if (!file.type?.startsWith('image/')) { showToast('Please select an image file', 'error'); return; }
         if (file.size > 10 * 1024 * 1024) { showToast('Image too large (max 10MB)', 'error'); return; }
-        const reader = new FileReader();
-        reader.onload = () => { messages.sendImage(reader.result, file.name); elements.imageFile.value = ''; };
-        reader.readAsDataURL(file);
+        utils.fileToImageDataUrl(file, (dataUrl) => { messages.sendImage(dataUrl, file.name); elements.imageFile.value = ''; });
       });
     }
 
@@ -1534,9 +1564,7 @@
         if (file.size > 25 * 1024 * 1024) { showToast('File too large (max 25 MB)', 'error'); generalFile.value = ''; return; }
         if (file.type && file.type.startsWith('image/')) {
           // images always render inline, never as a download chip
-          const r2 = new FileReader();
-          r2.onload = (ev2) => messages.sendImage(ev2.target.result, file.name);
-          r2.readAsDataURL(file);
+          utils.fileToImageDataUrl(file, (dataUrl) => messages.sendImage(dataUrl, file.name));
           generalFile.value = '';
           return;
         }
