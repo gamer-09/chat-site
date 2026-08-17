@@ -307,6 +307,22 @@ function deleteMessage(room, messageId, userId, clientId) {
   return { ok: true };
 }
 
+function purgeIdentity(clientId, username) {
+  const db = read();
+  let removed = 0;
+  for (const room of Object.values(db.rooms || {})) {
+    const before = (room.messages || []).length;
+    room.messages = (room.messages || []).filter(m => !(
+      (clientId && m.clientId === clientId) ||
+      (username && String(m.username || '').trim() === username)
+    ));
+    removed += before - room.messages.length;
+  }
+  if (clientId && users[clientId]) delete users[clientId];
+  write(db);
+  return removed;
+}
+
 function clearRoom(room) {
   ensureRoom(room);
   const db = read();
@@ -588,6 +604,7 @@ module.exports = {
   deleteRoom,
   editMessage,
   deleteMessage,
+  purgeIdentity,
   createRoom,
   canManageRoom,
   canAccessRoom,

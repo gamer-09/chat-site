@@ -17,6 +17,7 @@ const {
   deleteRoom,
   editMessage,
   deleteMessage,
+  purgeIdentity,
   createRoom,
   getRoomMeta,
   canManageRoom,
@@ -474,6 +475,14 @@ io.on('connection', (socket) => {
   }
 
   // join ─────────────────────────────────────────────────────────────────────
+  socket.on('rename-identity', (p) => {
+    const oc = String((p && p.oldClientId) || '').trim().slice(0, 64);
+    const ou = String((p && p.oldUsername) || '').trim().slice(0, 50);
+    if (!oc && !ou) return;
+    purgeIdentity(oc, ou);
+    io.emit('identity-purged', { clientId: oc, username: ou });
+  });
+
   socket.on('join', (payload) => {
     let p = payload;
     if (typeof p === 'string') p = { username: p, room: DEFAULT_ROOM };

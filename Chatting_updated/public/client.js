@@ -68,6 +68,8 @@
     copyClientIdBtn:  document.getElementById('copy-client-id-btn'),
     editUsername:     document.getElementById('edit-username'),
     editAvatar:       document.getElementById('edit-avatar'),
+    avatarUploadBtn:  document.getElementById('avatar-upload-btn'),
+    avatarFile:       document.getElementById('avatar-file'),
     editProfileBtn:   document.getElementById('edit-profile-btn'),
     cancelEditProfileBtn:document.getElementById('cancel-edit-profile'),
     imageBtn:         document.getElementById('image-btn'),
@@ -118,10 +120,29 @@
       try {
         let id = localStorage.getItem(CONSTANTS.CLIENT_ID_KEY);
         if (id && id.length) return id;
-        id = utils.generateId();
+        // first run: seed from the stable auth uid when available
+        id = (window.ChatAPI && window.ChatAPI.uid) || utils.generateId();
         localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, id);
         return id;
       } catch { return utils.generateId(); }
+    },
+    fileToAvatarDataUrl: (file, cb) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const size = 128;
+          const c = document.createElement('canvas');
+          c.width = size; c.height = size;
+          const scale = Math.max(size / img.width, size / img.height);
+          const w = img.width * scale, h = img.height * scale;
+          c.getContext('2d').drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+          cb(c.toDataURL('image/png'));
+        };
+        img.onerror = () => cb(reader.result);
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
     },
 
     saveToStorage: (key, data) => { try { localStorage.setItem(key, JSON.stringify(data)); } catch {} },
@@ -213,11 +234,30 @@
     },
 
     save: (username, avatar, termsAgreed = true) => {
+      const prev = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
+      const oldUsername = String(prev.username || '').trim();
+      const oldClientId = state.myClientId;
+      const newName = String(username || '').trim();
+      const renamed = !!(oldUsername && newName && oldUsername !== newName);
       const data = { username, avatar, termsAgreed };
       utils.saveToStorage(CONSTANTS.STORAGE_KEY, data);
+      if (renamed) {
+        // New identity: a brand-new client ID on EVERY rename (never the
+        // same one again, even if you switch back to an old name) and
+        // everything sent under the old name is purged everywhere.
+        const newId = utils.generateId();
+        try { localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, newId); } catch {}
+        state.myClientId = newId;
+        socket.emit('rename-identity', { oldClientId, oldUsername, newUsername: newName });
+        document.querySelectorAll('.msg').forEach(m => {
+          if (m.dataset.clientId === oldClientId || (oldUsername && m.dataset.username === oldUsername)) m.remove();
+        });
+        if (state.joined) {
+          socket.emit('join', { room: state.currentRoom, clientId: newId, username: newName, avatar: avatar || '', passkey: '' });
+        }
+      }
       state.myUsername = username || '';
       profile.updateUI(username, avatar, state.myClientId);
-      // Re-seat existing bubbles: old-name messages shift left & lock
       document.querySelectorAll('.msg').forEach(m => m.classList.toggle('me', isMineDataset(m)));
       return data;
     },
@@ -641,8 +681,12 @@
       }
 
       // Build body based on message type
-      const bodyHtml = msg.type === 'image'
-        ? `<img class="msg-image" src="${msg.imageUrl || ''}" alt="Shared image" loading="lazy">`
+      const fileIsImage = msg.type === 'file' && (
+        String(msg.mimeType || '').startsWith('image/') ||
+        /\.(png|jpe?g|gif|webp|avif|bmp)(\?|#|$)/i.test(msg.fileUrl || '') ||
+        /\.(png|jpe?g|gif|webp|avif|bmp)$/i.test(msg.message || ''));
+      const bodyHtml = (msg.type === 'image' || fileIsImage)
+        ? `<img class="msg-image" src="${msg.imageUrl || msg.fileUrl || ''}" alt="Shared image" loading="lazy">`
         : msg.type === 'file'
           ? `<a class="file-attachment" href="${msg.fileUrl || '#'}" download="${utils.escapeHtml(msg.message || 'file')}" target="_blank" rel="noopener"><span>📎</span><span>${utils.escapeHtml(msg.message || 'File')}</span>${msg.fileSize ? `<span style="color:var(--text-dim);font-size:11px">${utils.formatFileSize(msg.fileSize)}</span>` : ''}</a>`
           : `<span class="msg-content">${utils.renderMarkdown(msg.message || '')}</span>`;
@@ -902,7 +946,7 @@
   // ── Socket event handlers ──────────────────────────────────────────────────
   const socketHandlers = {
     connect: () => {
-      state.myClientId = (window.ChatAPI && window.ChatAPI.uid) || utils.getOrCreateClientId();
+      state.myClientId = utils.getOrCreateClientId();
       try { const d = JSON.parse(localStorage.getItem(CONSTANTS.STORAGE_KEY) || '{}'); state.myUsername = d.username || ''; } catch {}
 
       // Re-enter saved passkeys so the server restores ephemeral access after reconnect
@@ -1017,6 +1061,13 @@
         not_found:           'Message not found',
       };
       showToast(map[data?.error] || data?.error || 'Action failed', 'error');
+    },
+
+    'identity-purged': (data) => {
+      document.querySelectorAll('.msg').forEach(el => {
+        if ((data.clientId && el.dataset.clientId === data.clientId) ||
+            (data.username && el.dataset.username === data.username)) el.remove();
+      });
     },
 
     'read-receipt': (data) => {
@@ -1309,6 +1360,22 @@
     });
     elements.cancelEditProfileBtn.addEventListener('click', () => modals.close(elements.editProfileModal));
     
+    // Avatar upload (mobile + desktop)
+    if (elements.avatarUploadBtn && elements.avatarFile) {
+      elements.avatarUploadBtn.addEventListener('click', () => elements.avatarFile.click());
+      elements.avatarFile.addEventListener('change', () => {
+        const f = elements.avatarFile.files && elements.avatarFile.files[0];
+        if (!f) return;
+        if (!f.type || !f.type.startsWith('image/')) { showToast('Please choose an image', 'error'); return; }
+        utils.fileToAvatarDataUrl(f, (dataUrl) => {
+          if (elements.editAvatar) elements.editAvatar.value = dataUrl;
+          if (elements.userAvatarPreview) elements.userAvatarPreview.src = dataUrl;
+          showToast('Avatar ready — save your profile to apply it', 'success');
+        });
+        elements.avatarFile.value = '';
+      });
+    }
+
     // Copy Client ID button
     if (elements.copyClientIdBtn) {
       elements.copyClientIdBtn.addEventListener('click', () => {
@@ -1453,6 +1520,14 @@
         const file = generalFile.files[0];
         if (!file) return;
         if (file.size > 25 * 1024 * 1024) { showToast('File too large (max 25 MB)', 'error'); generalFile.value = ''; return; }
+        if (file.type && file.type.startsWith('image/')) {
+          // images always render inline, never as a download chip
+          const r2 = new FileReader();
+          r2.onload = (ev2) => messages.sendImage(ev2.target.result, file.name);
+          r2.readAsDataURL(file);
+          generalFile.value = '';
+          return;
+        }
         showToast('Uploading…', 'info');
         const reader = new FileReader();
         reader.onload = async (ev) => {
