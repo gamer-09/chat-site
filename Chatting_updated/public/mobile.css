@@ -783,3 +783,17 @@
   .ptr29-mobile #room-settings-panel { max-height: 35vh; max-height: 35dvh; }
   .ptr29-mobile .help-modal-inner { max-height: 96dvh; }
 }
+/* ── Guaranteed-visible typed text (mobile) ──────────────────────────── */
+.ptr29-mobile #text,
+.ptr29-mobile #chat-form input,
+.ptr29-mobile .modal input[type="text"],
+.ptr29-mobile .modal input[type="url"] {
+  color: #e2e8f0 !important;
+  -webkit-text-fill-color: #e2e8f0 !important;
+  caret-color: #7db4ff !important;
+  background-color: #0f172a !important;
+  opacity: 1 !important;
+}
+.ptr29-mobile #text {
+  line-height: 24px; /* keep glyphs vertically inside the 40px pill on iOS */
+}
