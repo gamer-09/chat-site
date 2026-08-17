@@ -789,8 +789,18 @@
       // actually render and file links actually open
       if (msg.storagePath && !(msg.dataUrl || msg.imageUrl || msg.fileUrl) && window.PtrMedia) {
         window.PtrMedia.resolveStorageUrl(msg.storagePath, (url) => {
-          if (!url) return;
           const img = el.querySelector('img.msg-image');
+          if (!url) {
+            // legacy upload whose bytes were never stored — show a clean
+            // placeholder instead of a broken image icon
+            if (img) {
+              const ph = document.createElement('div');
+              ph.textContent = '🖼️ image no longer available';
+              ph.style.cssText = 'font-size:12px;color:var(--text-dim);background:var(--panel2,#111827);border:1px dashed var(--border-light,#334155);border-radius:8px;padding:6px 10px;';
+              img.replaceWith(ph);
+            }
+            return;
+          }
           if (img) img.src = url;
           const a = el.querySelector('a.file-attachment');
           if (a) a.href = url;

@@ -628,7 +628,7 @@
             var storageOk = !up.error;
             // Bucket missing/broken? Embed the (downscaled) image right in
             // the payload so media always renders and opens.
-            var embed = (!storageOk && kind === 'image' && dataUrl.length <= 700000) ? dataUrl : '';
+            var embed = (kind === 'image' && dataUrl.length <= 700000) ? dataUrl : '';
             if (!storageOk && !embed) return { ok: false, error: (up.error && up.error.message) || 'Upload failed' };
             var payload = {
               id: genId(),
