@@ -15,7 +15,7 @@
 
   // ── Config (Supabase project) ──────────────────────────────────────────────
   var SUPABASE_URL = 'https://vjrnabnawhegjdsvbyrc.supabase.co';
-  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqcm5hYm5hd2hlZ2pkc3ZieXJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NTU1NTYsImV4cCI6MjEwMjAzMTU1Nn0.7MbTlgMz3v2GsXuhKKGxdFacKZckUbUte_TKKehCQSM';
+  var SUPABASE_ANON_KEY = 'sb_publishable_4fjpMTduDSiC5JaYJfwDGg_z_Ha2k-0';
 
   if (!window.supabase) {
     console.error('supabase-js not loaded — add the CDN script before supabase-client.js');
