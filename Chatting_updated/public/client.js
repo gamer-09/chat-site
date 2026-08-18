@@ -2110,28 +2110,20 @@
         return;
       }
       body.innerHTML = `
-        <div style="display:flex;gap:14px;align-items:center;margin:6px 0 6px">
-          <img src="${d.avatar}" alt="" style="width:72px;height:72px;border-radius:50%;border:2px solid ${d.online ? 'var(--success)' : 'var(--border-light)'}">
-          <div>
-            <div style="font-size:20px;font-weight:700;color:var(--text)">${utils.escapeHtml(d.username)}</div>
-            <div style="font-size:12.5px;color:${d.online ? 'var(--success)' : 'var(--text-dim)'}">${d.online ? '● Online now' + (d.room ? ' in #' + utils.escapeHtml(d.room) : '') : '○ Offline'}</div>
-            <div style="font-size:11.5px;color:var(--text-dim);margin-top:2px">Last seen ${fmtDate(d.lastSeen)}</div>
+        <div style="text-align:center;padding:6px 0 2px">
+          <div style="position:relative;display:inline-block">
+            <img src="${d.avatar}" alt="" style="width:96px;height:96px;border-radius:50%;border:3px solid ${d.online ? 'var(--success)' : 'var(--border-light)'}">
+            <span style="position:absolute;bottom:4px;right:4px;width:16px;height:16px;border-radius:50%;background:${d.online ? 'var(--success)' : 'var(--text-dim)'};border:3px solid var(--panel)"></span>
           </div>
+          <div style="font-size:22px;font-weight:700;color:var(--text);margin-top:10px">${utils.escapeHtml(d.username)}</div>
+          <div style="font-size:13px;color:var(--text-dim)">@${utils.escapeHtml(d.username.toLowerCase())}</div>
+          <div style="font-size:12.5px;margin-top:6px;color:${d.online ? 'var(--success)' : 'var(--text-dim)'}">${d.online ? '● Online now' + (d.room ? ' in #' + utils.escapeHtml(d.room) : '') : '○ Last seen ' + fmtDate(d.lastSeen)}</div>
+          <div style="font-size:12.5px;color:var(--text-muted);font-style:italic;margin-top:10px">“Hey there! I'm using ptr_29 Chat.”</div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0">
-          ${stat('Messages', d.messages)}${stat('Images', d.images)}${stat('Reacts', d.reactionsReceived)}${stat('Rooms', d.roomsCount)}
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0 4px">
+          ${stat('Messages', d.messages)}${stat('Images', d.images)}${stat('Reacts', d.reactionsReceived)}
         </div>
-        <div style="font-size:11.5px;color:var(--text-dim);margin-bottom:10px">📅 Here since <b style="color:var(--text)">${fmtDate(d.firstSeen)}</b>${(d.topRooms || []).length ? ' · 💬 Mostly in <b style="color:var(--text)">' + d.topRooms.map(([r, c]) => '#' + utils.escapeHtml(r)).join(', ') + '</b>' : ''}</div>
-        ${d.recent && d.recent.length ? `
-        <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-dim);margin-bottom:8px">Recent activity</div>
-          ${d.recent.map(r => `
-            <div style="display:flex;gap:8px;align-items:baseline;margin-bottom:7px;font-size:12.5px">
-              <span style="color:var(--accent);white-space:nowrap">#${utils.escapeHtml(r.room || 'general')}</span>
-              <span style="color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.type === 'image' ? '🖼 shared an image' : utils.escapeHtml(r.text || '(attachment)')}</span>
-              <span style="color:var(--text-dim);font-size:10.5px;white-space:nowrap">${fmtDate(r.ts)}</span>
-            </div>`).join('')}
-        </div>` : ''}
+        <div style="text-align:center;font-size:11.5px;color:var(--text-dim);margin-bottom:6px">Here since ${fmtDate(d.firstSeen)}</div>
         <div id="up-idreq"></div>
         <div style="color:var(--text-dim);font-size:11px;margin-top:10px">Client IDs are private — shared only by explicit approval.</div>`;
       renderIdSection(body.querySelector('#up-idreq'), d.username);
