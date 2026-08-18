@@ -624,16 +624,22 @@
       display: flex;
       flex-wrap: wrap;
       gap: 4px;
-      margin-top: 4px;
+      margin-top: 6px;
     }
-    
+    .reactions:empty { display: none; }
+
     .reaction-pill {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 2px 6px;
-      background: var(--surface);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: var(--panel2);
       border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
       border-radius: 12px;
       font-size: 11px;
       cursor: pointer;
@@ -641,14 +647,22 @@
     }
     
     .reaction-pill:hover {
-      background: var(--bg-hover);
+      background: var(--panel);
+      border-color: var(--border-light);
+      transform: scale(1.08);
     }
-    
+
     .reaction-pill.active {
-      background: var(--accent);
-      color: white;
+      background: rgba(37, 99, 235, 0.16);
       border-color: var(--accent);
+      color: var(--text);
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25) inset;
     }
+
+    #react-picker-popup { animation: popIn .16s ease; }
+    #react-picker-popup button { transition: transform .1s ease, background .1s ease; }
+    #react-picker-popup button:hover { background: var(--panel) !important; transform: scale(1.15); }
+    @keyframes popIn { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
     
     .mention {
       color: var(--accent);
