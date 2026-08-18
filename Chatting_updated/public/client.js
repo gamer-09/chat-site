@@ -961,9 +961,11 @@
         ${canEdit ? '<button data-action="edit">✏️ Edit</button>' : ''}
         ${isMe ? '<button data-action="delete" class="danger">🗑️ Delete</button>' : ''}
       `;
-      elements.contextMenu.style.left = `${Math.min(e.clientX, window.innerWidth - 160)}px`;
-      elements.contextMenu.style.top  = `${Math.min(e.clientY, window.innerHeight - 160)}px`;
       elements.contextMenu.classList.add('open');
+      const mw = elements.contextMenu.offsetWidth || 180;
+      const mh = elements.contextMenu.offsetHeight || 220;
+      elements.contextMenu.style.left = Math.max(8, Math.min(e.clientX, window.innerWidth - mw - 8)) + 'px';
+      elements.contextMenu.style.top  = Math.max(8, Math.min(e.clientY, window.innerHeight - mh - 8)) + 'px';
       // Remove old listeners by replacing innerHTML (already done above); bind fresh ones
       elements.contextMenu.querySelectorAll('button').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -2340,7 +2342,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260828').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260829').catch(() => {});
     });
   }
 })();
