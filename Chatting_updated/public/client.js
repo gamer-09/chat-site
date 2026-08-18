@@ -2513,7 +2513,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260837').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260838').catch(() => {});
     });
   }
 })();
