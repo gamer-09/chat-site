@@ -132,6 +132,7 @@
         api._heartbeatTimer = setInterval(function () { api.heartbeat(false); }, 15000);
         api._pruneTimer = setInterval(function () {
           sb.rpc('prune_stale_presence', { older_than_ms: 45000 }).then(function () {}, function () {});
+          api.heartbeat(true);
         }, 30000);
         api.ready = true;
         dispatch('connect');
@@ -334,9 +335,28 @@
       if (!api.uid) return;
       api._joined = false;
       api._currentRoom = null;
-      sb.from('presence').delete().eq('uid', api.uid).then(function () {
-        api.pushPresence();
-      });
+      // tab is still open -> stay online, just no room
+      api.heartbeat(true);
+      api.pushPresence();
+    },
+
+    goOffline: function () {
+      if (!api.uid) return;
+      sb.from('presence').delete().eq('uid', api.uid)
+        .then(function () {}).catch(function () {});
+    },
+
+    offlineUsers: function () {
+      return Promise.all([
+        sb.from('users').select('username,avatar,last_seen').limit(200),
+        sb.from('presence').select('username').limit(200)
+      ]).then(function (rs) {
+        var on = {};
+        (rs[1].data || []).forEach(function (x) { on[String(x.username || '').toLowerCase()] = true; });
+        return (rs[0].data || []).filter(function (u) {
+          return !on[String(u.username || '').toLowerCase()];
+        });
+      }).catch(function () { return []; });
     },
 
     renameRoom: function (from, to) {

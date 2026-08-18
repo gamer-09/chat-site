@@ -1062,10 +1062,38 @@
     },
   };
 
+  // ── Offline users ─────────────────────────────────────────────────────────
+  const offline = {
+    refresh: () => {
+      const box = document.getElementById('offline-list');
+      if (!box || !window.ChatAPI.offlineUsers) return;
+      window.ChatAPI.offlineUsers().then(list => {
+        box.innerHTML = '';
+        const arr = (list || []).filter(u => (u.username || '') !== 'Anonymous');
+        if (!arr.length) {
+          box.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:4px 8px">everyone is online ✨</div>';
+          return;
+        }
+        arr.slice(0, 40).forEach(u => {
+          const d = document.createElement('div');
+          d.className = 'online-item';
+          const av = u.avatar || ('https://api.dicebear.com/7.x/thumbs/svg?seed=' + encodeURIComponent(u.username));
+          d.innerHTML = `<img src="${av}" alt="" style="opacity:.5;filter:grayscale(1)">
+            <div class="info">
+              <div class="name" style="opacity:.75">${utils.escapeHtml(u.username)}</div>
+              <div class="status">${u.last_seen ? 'seen ' + timeAgo(new Date(Number(u.last_seen)).toISOString()) : 'offline'}</div>
+            </div>`;
+          box.appendChild(d);
+        });
+      }).catch(() => {});
+    },
+  };
+
   // ── Online users ───────────────────────────────────────────────────────────
   const online = {
     update: (users) => {
       if (!elements.onlineList) return;
+      setTimeout(() => offline.refresh(), 250);
       elements.onlineList.innerHTML = '';
       const listAll = (users || []).concat(state.tourMode ? (state.tourFakes || []) : []);
       listAll.forEach(user => {
@@ -1103,6 +1131,10 @@
       try { const d = JSON.parse(localStorage.getItem(CONSTANTS.STORAGE_KEY) || '{}'); state.myUsername = d.username || ''; } catch {}
       // keep the server-side profile row (name + avatar) in sync
       if (state.myUsername) socket.emit('update-profile', { room: state.currentRoom, username: state.myUsername, avatar: (utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {}) || {}).avatar || '' });
+      // tab closed -> offline; tab open -> online even without a room
+      window.addEventListener('pagehide', () => { if (window.ChatAPI.goOffline) window.ChatAPI.goOffline(); });
+      window.addEventListener('beforeunload', () => { if (window.ChatAPI.goOffline) window.ChatAPI.goOffline(); });
+      setInterval(() => offline.refresh(), 60000);
       // silently remove leftover tour rooms from crashed tours
       if (window.ChatAPI.tourRooms) window.ChatAPI.tourRooms().then(l => (l || []).forEach(n => window.ChatAPI.deleteRoom(n).catch(() => {}))).catch(() => {});
 
@@ -2481,7 +2513,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260836').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260837').catch(() => {});
     });
   }
 })();
