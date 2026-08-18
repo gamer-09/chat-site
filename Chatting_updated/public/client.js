@@ -2024,6 +2024,10 @@
     helpInner.appendChild(tb);
   }
 
+  // Dedicated header button — second way into the live tour
+  const tourBtn = document.getElementById('tour-btn');
+  if (tourBtn) tourBtn.addEventListener('click', () => tour.start());
+
   // Auto-start for first-time visitors
   let tourDone = false;
   try { tourDone = !!localStorage.getItem('ptr29_tour_done_v1'); } catch {}
