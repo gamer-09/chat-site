@@ -1018,7 +1018,7 @@
             <div class="name">${utils.escapeHtml(user.username || 'Anonymous')}</div>
             <div class="status">${user.room ? `in #${user.room}` : 'online'}</div>
           </div>
-          <button type="button" class="online-menu-btn" data-menu-user="${utils.escapeHtml(user.username || 'Anonymous')}" title="Options">▾</button>
+          <button type="button" class="online-menu-btn" data-menu-user="${utils.escapeHtml(user.username || 'Anonymous')}" title="Options">⋮</button>
           <div class="online-indicator"></div>
         `;
         elements.onlineList.appendChild(el);

@@ -1374,8 +1374,8 @@
     * { -webkit-tap-highlight-color: transparent; }
     main, #messages, #room-list, #online-list { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 
-    .online-menu-btn{margin-left:auto;flex-shrink:0;background:var(--panel2);border:1px solid var(--border);color:var(--text-muted);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px}
-    .online-menu-btn:hover{color:var(--text);border-color:var(--border-light)}
+    .online-menu-btn{margin-left:auto;flex-shrink:0;background:transparent;border:none;color:var(--text-dim);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1;opacity:.5;transition:opacity .15s,background .15s,color .15s}
+    .online-menu-btn:hover{opacity:1;background:var(--panel2);color:var(--text)}
     .online-menu{position:fixed;z-index:99995;background:var(--panel);border:1px solid var(--border-light);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.45);padding:6px;min-width:190px}
     .online-menu button{display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:9px 10px;border-radius:6px;font-size:13px;cursor:pointer}
     .online-menu button:hover{background:var(--panel2)}
