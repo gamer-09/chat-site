@@ -337,7 +337,9 @@
         return resolve(false);
       }
       socket.emit('check-username', { username: val }, (resp) => {
-        if (!resp || !resp.available) {
+        const saved = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
+        const isOwnSaved = String(saved.username || '').trim().toLowerCase() === val.toLowerCase();
+        if (!resp || (!resp.available && !isOwnSaved)) {
           showToast('Username already taken — please choose another', 'error');
           return resolve(false);
         }
@@ -660,18 +662,26 @@
   // After a rename, messages sent under the old name are no longer
   // yours — they shift to the left and lose edit/delete rights.
   function isMineMsg(msg) {
-    if (!msg || msg.clientId !== state.myClientId) return false;
+    if (!msg) return false;
     const u = String(msg.username || '').trim();
     const me = String(state.myUsername || '').trim();
-    if (u && me && u !== me) return false;
-    return true;
+    if (msg.clientId === state.myClientId) {
+      // renamed away from these? then they're not yours anymore
+      if (u && me && u !== me) return false;
+      return true;
+    }
+    // identity rotation (new auth uid): same username still means you
+    return !!(me && u && u === me);
   }
   function isMineDataset(el) {
-    if (!el || el.dataset.clientId !== state.myClientId) return false;
+    if (!el) return false;
     const u = String(el.dataset.username || '').trim();
     const me = String(state.myUsername || '').trim();
-    if (u && me && u !== me) return false;
-    return true;
+    if (el.dataset.clientId === state.myClientId) {
+      if (u && me && u !== me) return false;
+      return true;
+    }
+    return !!(me && u && u === me);
   }
 
   // ── Messages ───────────────────────────────────────────────────────────────

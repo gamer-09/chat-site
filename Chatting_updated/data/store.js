@@ -260,14 +260,16 @@ function usernameFor(clientId) {
 
 function owns(msg, userId, clientId) {
   if (!msg) return false;
+  const cur = usernameFor(clientId);
+  const msgUser = String(msg.username || '').trim();
   if (clientId && msg.clientId && msg.clientId === clientId) {
     // Renamed identity: messages sent under an older username are no
     // longer editable/deletable by this client.
-    const cur = usernameFor(clientId);
-    const msgUser = String(msg.username || '').trim();
     if (cur && msgUser && msgUser !== cur) return false;
     return true;
   }
+  // Identity rotation rescue: same current username = same person
+  if (cur && msgUser && msgUser === cur) return true;
   if (userId && msg.userId && msg.userId === userId) return true;
   return false;
 }

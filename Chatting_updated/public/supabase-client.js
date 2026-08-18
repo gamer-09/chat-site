@@ -151,7 +151,7 @@
       return sb.from('users').select('client_id').ilike('username', lc).limit(1)
         .then(function (res) {
           if (res.error) return { available: false, error: 'db_error' };
-          var taken = !!(res.data && res.data.length && res.data[0].client_id !== api.uid);
+          var taken = !!(res.data && res.data.length && res.data[0].client_id !== (api._clientId || api.uid));
           return { available: !taken, username: raw };
         });
     },
@@ -163,13 +163,8 @@
       api._username = un;
       api._avatar = av;
       return sb.from('users').upsert({
-        client_id: api.uid, username: un, avatar: av, last_seen: Date.now()
-      }, { onConflict: 'client_id' }).then(function (res) {
-        if (res.error) {
-          // Likely a duplicate username — surface it but don't break the join.
-          dispatch('system', { type: 'error', message: 'Username "' + un + '" is already taken.' });
-        }
-      });
+        client_id: (api._clientId || api.uid), username: un, avatar: av, last_seen: Date.now()
+      }, { onConflict: 'client_id' }).then(function () {});
     },
 
     updateProfile: function (room, username, avatar) {
@@ -183,6 +178,7 @@
     deleteUser: function () {
       if (!api.uid) return Promise.resolve(false);
       var jobs = [
+        sb.from('users').delete().eq('client_id', (api._clientId || api.uid)),
         sb.from('users').delete().eq('client_id', api.uid),
         sb.from('presence').delete().eq('uid', api.uid)
       ];
