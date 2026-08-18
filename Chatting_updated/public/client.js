@@ -422,7 +422,7 @@
         el.className = `room${roomData.name === state.currentRoom ? ' active' : ''}${roomData.isPrivate ? ' room-private' : ''}`;
         const unread = state.unreadCounts[roomData.name] || 0;
         el.innerHTML = `
-          <span class="room-icon">${roomData.isPrivate ? '🔒' : '#'}</span>
+          <span class="room-icon">#</span>
           <span class="room-name">${utils.escapeHtml(roomData.name)}</span>
           ${unread > 0 ? `<span class="room-badge">${unread}</span>` : ''}
         `;
@@ -1189,6 +1189,7 @@
     },
 
     'room-renamed': (data) => {
+      window.dispatchEvent(new CustomEvent('ptr29-room-renamed', { detail: { from: data.from, to: data.to } }));
       // Update current room if we were in the renamed one
       if (state.currentRoom === data.from) {
         state.currentRoom = data.to;
@@ -2480,7 +2481,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260835').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260836').catch(() => {});
     });
   }
 })();
