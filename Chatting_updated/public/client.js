@@ -639,6 +639,7 @@
     rename: (newName) => {
       socket.emit('rename-room', { room: state.currentRoom, newName }, (resp) => {
         if (resp && resp.ok) {
+          window.dispatchEvent(new CustomEvent('ptr29-room-renamed', { detail: { from: resp.from || state.currentRoom, to: resp.to } }));
           showToast(`Room renamed to #${resp.to}`, 'success');
         } else {
           showToast(resp?.error || 'Failed to rename room', 'error');
@@ -2237,6 +2238,23 @@
     let overlay, spot, card, titleEl, bodyEl, countEl, backBtn, nextBtn, skipBtn;
     let idx = 0, active = false, steps = [];
     let pubRoom = '', privRoom = '';
+    let unwatch = null;
+
+    function setWatch(st) {
+      if (unwatch) { unwatch(); unwatch = null; }
+      if (!st || !st.watch) return;
+      const handler = (e) => {
+        if (!(e.target && e.target.closest && e.target.closest(st.watch))) return;
+        setTimeout(() => { if (active) (idx >= steps.length - 1 ? end(true) : show(idx + 1)); }, 800);
+      };
+      document.addEventListener('click', handler, true);
+      unwatch = () => document.removeEventListener('click', handler, true);
+    }
+    window.addEventListener('ptr29-room-renamed', (e) => {
+      const d = e.detail || {};
+      if (pubRoom === d.from) pubRoom = d.to;
+      if (privRoom === d.from) privRoom = d.to;
+    });
 
     function openSettings() { if (elements.roomSettingsPanel) elements.roomSettingsPanel.style.display = 'block'; }
     function closeSettings() { if (elements.roomSettingsPanel) elements.roomSettingsPanel.style.display = 'none'; }
@@ -2248,19 +2266,21 @@
 
     function buildSteps() {
       return [
-        { title: 'Welcome 🎓', html: 'This live tour creates two <b>temporary rooms</b> and walks you through the whole site — including how to manage rooms you own. The demo rooms are <b>deleted automatically</b> when the tour ends.' },
-        { sel: ['#user-section'], mobile: 'rooms', title: '1 · Browsing as a guest', html: 'You can look around everywhere right now. Chatting unlocks once you register a username and accept the Terms — and the name “Anonymous” is reserved, so pick something unique.' },
-        { sel: ['#room-list'], mobile: 'rooms', title: '2 · Your demo rooms', html: `The tour just created <b>#${pubRoom}</b> (public) and <b>🔒 #${privRoom}</b> (private). You own both for the duration of this tour — see them in the sidebar.` },
-        { sel: ['#messages'], mobile: 'chat', enter: async () => { closeSettings(); await joinRoom(pubRoom); }, title: '3 · Look around', html: 'You are inside the public demo room. Reading is open to you as a guest — presence, messages, everything.' },
-        { sel: ['#text'], mobile: 'chat', title: '4 · Sending is locked', html: 'Try typing and hitting Send: the app explains that chatting unlocks after registration + Terms. Until then you are view-only in demo rooms.' },
-        { sel: ['#room-settings-panel'], enter: async () => { openSettings(); }, title: '5 · Room management', html: 'The control panel for a room you <b>own</b>: rename, privacy, passkey, admins, users, clear, delete. This is exactly what you get with your own rooms.' },
-        { sel: ['#rename-input'], enter: async () => { openSettings(); }, title: '6 · Rename', html: 'Owners can rename their rooms here (never #general).' },
-        { sel: ['#save-privacy-btn'], enter: async () => { openSettings(); }, title: '7 · Privacy & passkey', html: 'Flip public ↔ private, generate a passkey, copy it, share it with people you trust.' },
-        { sel: ['#add-admin-row'], enter: async () => { openSettings(); }, title: '8 · Admins & users', html: '<b>Add Admin</b> grants management powers; <b>Add User</b> grants private-room access. Names are shown, not raw IDs.' },
-        { sel: ['#room-settings-panel'], mobile: 'rooms', enter: async () => { await joinRoom(privRoom); openSettings(); }, title: '9 · Private room', html: `Now inside <b>🔒 #${privRoom}</b>. Everyone except owner/admins/members needs the passkey just to get in.` },
-        { sel: ['#leave-btn'], enter: async () => { openSettings(); }, title: '10 · Cleanup', html: 'Leave, Clear, or Delete rooms you own. When this tour finishes (or is skipped), both demo rooms are removed automatically.' },
-        { sel: ['#online-panel'], mobile: 'online', enter: async () => { closeSettings(); }, title: '11 · People', html: 'The Online list shows live presence; the <b>⋮</b> menu opens profiles and Client-ID requests.' },
-        { sel: ['#inbox-btn'], title: '12 · You\'re ready 🎉', html: '📥 Inbox tracks ID requests, ❓ reopens the full guide, 🎓 replays this tour. Finishing now deletes the demo rooms.' },
+        { title: 'Welcome 🎓', html: 'This tour is <b>hands-on</b>: I point, <b>you click</b>. Two demo rooms were created and you own them. Every step after this is a real action — the tour advances when you do it (or press Done).' },
+        { sel: ['#user-section'], mobile: 'rooms', title: '1 · Guest mode', html: 'You are browsing as a guest: look everywhere, chat after you register + accept Terms. “Anonymous” is reserved as a name.' },
+        { sel: ['#room-list'], mobile: 'rooms', title: '2 · Your rooms', html: `Sidebar now holds <b>#${pubRoom}</b> and 🔒 <b>#${privRoom}</b> — yours for this tour. Click one any time to enter.` },
+        { sel: ['#messages'], mobile: 'chat', enter: async () => { closeSettings(); await joinRoom(pubRoom); }, title: '3 · Inside your room', html: 'You are in the public demo room. Sending is locked for guests — but <b>management is fully open</b>. Next: use every control for real.' },
+        { sel: ['#room-settings-panel'], enter: async () => { openSettings(); }, title: '4 · Control panel', html: '⚙️ Settings opens this panel. The next steps make you click each control yourself.' },
+        { sel: ['#rename-input'], enter: async () => { openSettings(); }, watch: '#rename-btn', title: '5 · YOUR TURN: rename', html: 'Type a new name (e.g. <b>my-room</b>) and press <b>Rename</b>. The sidebar updates instantly. Any room you own — never #general.' },
+        { sel: ['#generate-passkey-btn'], enter: async () => { openSettings(); }, watch: '#generate-passkey-btn', title: '6 · YOUR TURN: passkey', html: 'Press <b>Generate</b> to mint a passkey, then <b>Copy</b> it. Anyone holding it can join once the room is private.' },
+        { sel: ['#save-privacy-btn'], enter: async () => { openSettings(); }, watch: '#save-privacy-btn', title: '7 · YOUR TURN: go private', html: 'Tick <b>Private</b>, press <b>Save</b>. The room locks to owner/admins/members/passkey. Flip it back any time — try both.' },
+        { sel: ['#add-member-input'], enter: async () => { openSettings(); }, watch: '#add-member-btn', title: '8 · YOUR TURN: add a person', html: 'Open <b>Edit Profile</b> → <b>Copy</b> your Client ID → paste into <b>Add User</b> → press <b>+ Add User</b>. You just granted private-room access.' },
+        { sel: ['#room-members-list'], enter: async () => { openSettings(); }, watch: '.chip-remove', title: '9 · YOUR TURN: remove them', html: 'Your chip now sits in the users list. Click its <b>✕</b> to revoke access. Add + remove people = the whole power.' },
+        { sel: ['#add-admin-btn'], enter: async () => { openSettings(); }, title: '10 · Admins', html: '<b>+ Add Admin</b> is the same flow with a Client ID — admins can rename, clear and manage. Only for trusted people. Press Done when ready.' },
+        { sel: ['#clear-room-btn'], mobile: 'chat', enter: async () => { closeSettings(); }, watch: '#clear-room-btn', title: '11 · YOUR TURN: clear', html: 'Toolbar <b>Clear</b> wipes the room\'s messages (owner/admins only). Safe to try — it\'s your demo room.' },
+        { sel: ['#room-settings-panel'], mobile: 'rooms', enter: async () => { await joinRoom(privRoom); openSettings(); }, title: '12 · Private room', html: `Now inside 🔒 <b>#${privRoom}</b> — same controls, already private. Rename it or mint its own passkey if you like.` },
+        { sel: ['#online-panel'], mobile: 'online', enter: async () => { closeSettings(); }, title: '13 · People', html: 'Online list = live presence. The <b>⋮</b> menu opens profiles & Client-ID requests.' },
+        { sel: ['#inbox-btn'], title: '14 · Done 🎉', html: '📥 Inbox = ID requests · ❓ guide · 🎓 replay. Finishing now deletes both demo rooms (even renamed).' },
       ];
     }
 
@@ -2345,6 +2365,7 @@
     async function show(i) {
       idx = i; active = true; overlay.classList.add('open');
       const st = steps[idx];
+      setWatch(st);
       if (st && st.enter) { try { await st.enter(); } catch {} await new Promise(r => setTimeout(r, 150)); }
       place();
     }
@@ -2377,6 +2398,8 @@
           if (elements.roomName) elements.roomName.textContent = '#general';
         }
       }
+      if (a) socket.emit('leave', { room: a });
+      if (b) socket.emit('leave', { room: b });
       if (a) window.ChatAPI.deleteRoom(a).catch(() => {});
       if (b) window.ChatAPI.deleteRoom(b).catch(() => {});
       setTimeout(() => rooms.fetch(), 400);
@@ -2384,6 +2407,7 @@
 
     function end(done) {
       active = false;
+      setWatch(null);
       overlay.classList.remove('open');
       spot.style.display = 'none';
       card.style.display = 'none';
@@ -2429,7 +2453,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260833').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260834').catch(() => {});
     });
   }
 })();

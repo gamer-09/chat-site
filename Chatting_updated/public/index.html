@@ -15,7 +15,7 @@
   <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
   <link rel="manifest" href="site.webmanifest">
-  <link id="ptr29-mobile-styles" rel="stylesheet" href="mobile.css?v=260833" media="(max-width: 768px)">
+  <link id="ptr29-mobile-styles" rel="stylesheet" href="mobile.css?v=260834" media="(max-width: 768px)">
   <style>
     :root {
       color-scheme: dark;
@@ -1389,6 +1389,8 @@
     * { -webkit-tap-highlight-color: transparent; }
     main, #messages, #room-list, #online-list { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 
+    #tour-overlay{pointer-events:none}
+    #tour-card{pointer-events:auto}
     .online-menu-btn{margin-left:auto;flex-shrink:0;background:transparent;border:none;color:var(--text-dim);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1;opacity:.5;transition:opacity .15s,background .15s,color .15s}
     .online-menu-btn:hover{opacity:1;background:var(--panel2);color:var(--text)}
     .online-menu{position:fixed;z-index:99995;background:var(--panel);border:1px solid var(--border-light);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.45);padding:6px;min-width:190px}
@@ -2055,7 +2057,7 @@
     </div>
   </div>
   <script src="vendor/supabase.min.js"></script>
-  <script src="supabase-client.js?v=260833"></script>
-  <script src="client.js?v=260833"></script>
+  <script src="supabase-client.js?v=260834"></script>
+  <script src="client.js?v=260834"></script>
 </body>
 </html>
