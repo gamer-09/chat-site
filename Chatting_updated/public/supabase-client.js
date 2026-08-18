@@ -555,7 +555,8 @@
       var uid = api.uid;
       var username = api._username || 'Anonymous';
       sb.from('reactions').delete()
-        .eq('message_id', messageId).eq('emoji', emoji).eq('uid', uid)
+        .eq('message_id', messageId).eq('emoji', emoji)
+        .or('uid.eq.' + uid + ',username.eq.' + encodeURIComponent(username))
         .select()
         .then(function (res) {
           var removed = !res.error && res.data && res.data.length > 0;
