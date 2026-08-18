@@ -774,8 +774,11 @@
       const reactionEntries = msg.reactions ? Object.entries(msg.reactions).filter(([,u]) => u.length > 0) : [];
       const reactionsHtml = reactionEntries.length > 0
         ? `<div class="reactions">${reactionEntries.map(([emoji, users]) => {
-            const mine = users.some(u => u.userId === state.myClientId || u.username === state.myUsername);
-            return `<button class="reaction-pill${mine ? ' active' : ''}" data-emoji="${emoji}" data-msg-id="${msg.id}" title="${users.map(u=>u.username).join(', ')}">${emoji} ${users.length}</button>`;
+            const myUid = window.ChatAPI && window.ChatAPI.uid;
+            const isMeU = (u) => u.userId === state.myClientId || u.userId === myUid || u.username === state.myUsername;
+            const mine = users.some(isMeU);
+            const names = users.map(u => isMeU(u) ? 'you' : u.username).join(', ');
+            return `<button class="reaction-pill${mine ? ' active' : ''}" data-emoji="${emoji}" data-msg-id="${msg.id}" data-names="${utils.escapeHtml(names)}">${emoji} ${users.length}</button>`;
           }).join('')}</div>`
         : '<div class="reactions"></div>';
 
@@ -924,8 +927,11 @@
       const entries = reactions ? Object.entries(reactions).filter(([,u]) => u.length > 0) : [];
       if (entries.length === 0) { div.innerHTML = ''; return; }
       div.innerHTML = entries.map(([emoji, users]) => {
-        const mine = users.some(u => u.userId === state.myClientId || u.username === state.myUsername);
-        return `<button class="reaction-pill${mine ? ' active' : ''}" data-emoji="${emoji}" title="${users.map(u=>u.username).join(', ')}">${emoji} ${users.length}</button>`;
+        const myUid = window.ChatAPI && window.ChatAPI.uid;
+        const isMeU = (u) => u.userId === state.myClientId || u.userId === myUid || u.username === state.myUsername;
+        const mine = users.some(isMeU);
+        const names = users.map(u => isMeU(u) ? 'you' : u.username).join(', ');
+        return `<button class="reaction-pill${mine ? ' active' : ''}" data-emoji="${emoji}" data-names="${utils.escapeHtml(names)}">${emoji} ${users.length}</button>`;
       }).join('');
       const msgId = msgEl.dataset.id;
       div.querySelectorAll('.reaction-pill').forEach(pill => {
@@ -2334,7 +2340,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260827').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260828').catch(() => {});
     });
   }
 })();
