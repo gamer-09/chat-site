@@ -152,8 +152,19 @@
       return sb.from('users').select('client_id').ilike('username', lc).limit(1)
         .then(function (res) {
           if (res.error) return { available: false, error: 'db_error' };
-          var taken = !!(res.data && res.data.length && res.data[0].client_id !== (api._clientId || api.uid) && res.data[0].client_id !== api.uid);
-          return { available: !taken, username: raw };
+          var row = res.data && res.data[0];
+          var mine = row && (row.client_id === (api._clientId || api.uid) || row.client_id === api.uid);
+          if (!row || mine) return { available: true, username: raw };
+          // name held by an orphan row? try to reclaim it, then re-check
+          return sb.rpc('reclaim_username', { un: raw }).then(function () {
+            return sb.from('users').select('client_id').ilike('username', lc).limit(1);
+          }).then(function (r2) {
+            var row2 = r2.data && r2.data[0];
+            var mine2 = row2 && (row2.client_id === (api._clientId || api.uid) || row2.client_id === api.uid);
+            return { available: !row2 || mine2, username: raw };
+          }).catch(function () {
+            return { available: false, username: raw };
+          });
         });
     },
 
