@@ -705,6 +705,14 @@
         .then(function (res) { return res.error ? { ok: false, error: res.error.message } : { ok: true }; });
     },
 
+    resolveName: function (cid) {
+      if (!cid) return Promise.resolve(null);
+      return sb.from('messages').select('payload->>username,payload->>clientId')
+        .eq('payload->>clientId', cid).limit(1)
+        .then(function (r) { return (r.data && r.data[0] && r.data[0].username) || null; })
+        .catch(function () { return null; });
+    },
+
     // Public profile data for any username — NEVER includes client IDs
     publicProfile: function (username) {
       var un = String(username || '').trim();

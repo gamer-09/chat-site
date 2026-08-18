@@ -486,19 +486,38 @@
       elements.roomOwner.textContent = meta.ownerInfo
         ? meta.ownerInfo.username
         : (meta.ownerId ? meta.ownerId.slice(0, 16) + '…' : '-');
+      if (!meta.ownerInfo && meta.ownerId && window.ChatAPI.resolveName) {
+        window.ChatAPI.resolveName(meta.ownerId).then(n => { if (n) elements.roomOwner.textContent = n; });
+      }
 
-      // Admins chips
+      // Admins chips (resolve usernames from message history when needed)
+      const renderAdminChips = (list) => {
+        elements.roomAdminsList.innerHTML = list.length === 0
+          ? '<span style="color:var(--text-dim)">None</span>'
+          : list.map(u => {
+              const isOwnerChip = meta.ownerId === u.clientId;
+              const canRemove = state.canManageCurrentRoom && !isOwnerChip && state.currentRoom !== 'general';
+              return `<span class="chip member-chip" title="${utils.escapeHtml(u.username)}">
+                ${utils.escapeHtml(u.username)}${isOwnerChip ? ' 👑' : ''}
+                ${canRemove ? `<button class="chip-remove" data-action="remove-admin" data-id="${u.clientId}" title="Remove admin">×</button>` : ''}
+              </span>`;
+            }).join('');
+        elements.roomAdminsList.querySelectorAll('.chip-remove[data-action="remove-admin"]').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm('Remove admin access from this user?'))
+              socket.emit('remove-room-admin', { room: state.currentRoom, adminId: btn.dataset.id });
+          });
+        });
+      };
       const adminsInfo = meta.adminsInfo || [];
-      elements.roomAdminsList.innerHTML = adminsInfo.length === 0
-        ? '<span style="color:var(--text-dim)">None</span>'
-        : adminsInfo.map(u => {
-            const isOwnerChip = meta.ownerId === u.clientId;
-            const canRemove = state.canManageCurrentRoom && !isOwnerChip && state.currentRoom !== 'general';
-            return `<span class="chip member-chip" title="${utils.escapeHtml(u.username)}">
-              ${utils.escapeHtml(u.username)}${isOwnerChip ? ' 👑' : ''}
-              ${canRemove ? `<button class="chip-remove" data-action="remove-admin" data-id="${u.clientId}" title="Remove admin">×</button>` : ''}
-            </span>`;
-          }).join('');
+      if (adminsInfo.length) {
+        renderAdminChips(adminsInfo);
+      } else if ((meta.admins || []).length && window.ChatAPI.resolveName) {
+        Promise.all(meta.admins.map(id => window.ChatAPI.resolveName(id).then(n => ({ clientId: id, username: n || (id.slice(0, 8) + '…') })))).then(renderAdminChips);
+      } else {
+        renderAdminChips([]);
+      }
 
       // Members chips (stored access-control list for private rooms)
       const membersInfo = meta.membersInfo || [];
@@ -512,14 +531,7 @@
             </span>`;
           }).join('');
 
-      // Bind remove buttons
-      elements.roomAdminsList.querySelectorAll('.chip-remove[data-action="remove-admin"]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (confirm('Remove admin access from this user?'))
-            socket.emit('remove-room-admin', { room: state.currentRoom, adminId: btn.dataset.id });
-        });
-      });
+      // Bind remove buttons (members only — admin chips bind in renderAdminChips)
       elements.roomMembersList.querySelectorAll('.chip-remove[data-action="remove-member"]').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
