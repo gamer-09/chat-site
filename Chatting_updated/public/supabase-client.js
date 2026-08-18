@@ -709,7 +709,7 @@
         if (String(all[i].username || '').toLowerCase() === lc) { pres = all[i]; break; }
       }
       return sb.from('messages')
-        .select('payload->>username, payload->>room, payload->>timestamp, payload->>type, payload->>avatar, payload->>reactions')
+        .select('payload->>username,payload->>room,payload->>timestamp,payload->>type,payload->>avatar,payload->>reactions')
         .eq('payload->>username', un)
         .limit(1000)
         .then(function (res) {
