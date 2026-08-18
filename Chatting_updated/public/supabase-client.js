@@ -728,11 +728,16 @@
         rows.forEach(function (r) {
           rooms[r.room] = (rooms[r.room] || 0) + 1;
           if (r.type === 'image') images++;
-          if (r.reactions) Object.keys(r.reactions).forEach(function (k) {
-            (r.reactions[k] || []).forEach(function (u2) {
-              if (String(u2.username || '').toLowerCase() === lc) react++;
+          if (r.reactions) {
+            var rx = r.reactions;
+            if (typeof rx === 'string') { try { rx = JSON.parse(rx); } catch (e2) { rx = null; } }
+            if (rx && typeof rx === 'object') Object.keys(rx).forEach(function (k) {
+              var arr = rx[k];
+              if (arr && arr.forEach) arr.forEach(function (u2) {
+                if (String(u2.username || '').toLowerCase() === lc) react++;
+              });
             });
-          });
+          }
           var t = Number(r.timestamp) || 0;
           if (t && (!first || t < first)) first = t;
           if (t && (!last || t > last)) last = t;
