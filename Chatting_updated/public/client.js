@@ -571,7 +571,7 @@
         banner.id = 'room-info-banner';
         elements.messages.parentNode.insertBefore(banner, elements.messages);
       }
-      const ownerName = meta.ownerInfo
+      let ownerName = meta.ownerInfo
         ? meta.ownerInfo.username
         : (meta.ownerId ? meta.ownerId.slice(0, 16) + '…' : 'None');
 
@@ -580,13 +580,21 @@
       const adminCount = (meta.adminsInfo || []).length;
 
       banner.innerHTML = `
-        <span class="banner-item">👑 <strong>Owner:</strong> ${utils.escapeHtml(ownerName)}</span>
+        <span class="banner-item" id="banner-owner">👑 <strong>Owner:</strong> ${utils.escapeHtml(ownerName)}</span>
         <span class="banner-sep">·</span>
         <span class="banner-item">👥 <strong>Users:</strong> ${usersInRoom}</span>
         <span class="banner-sep">·</span>
         <span class="banner-item">🛡 <strong>Admins:</strong> ${adminCount}</span>
         <button class="banner-view-btn" id="banner-view-btn">View Info</button>
       `;
+      if (!meta.ownerInfo && meta.ownerId && window.ChatAPI.resolveName) {
+        window.ChatAPI.resolveName(meta.ownerId).then(n => {
+          if (!n) return;
+          const el2 = banner.querySelector('#banner-owner');
+          if (el2) el2.innerHTML = '👑 <strong>Owner:</strong> ' + utils.escapeHtml(n);
+          if (elements.roomOwner) elements.roomOwner.textContent = n;
+        });
+      }
       banner.querySelector('#banner-view-btn').onclick = () => {
         elements.roomSettingsPanel.style.display = 'block';
         document.getElementById('room-info-section')?.scrollIntoView({ behavior: 'smooth' });
@@ -2326,7 +2334,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260822').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260823').catch(() => {});
     });
   }
 })();
