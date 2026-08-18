@@ -151,7 +151,7 @@
       return sb.from('users').select('client_id').ilike('username', lc).limit(1)
         .then(function (res) {
           if (res.error) return { available: false, error: 'db_error' };
-          var taken = !!(res.data && res.data.length && res.data[0].client_id !== (api._clientId || api.uid));
+          var taken = !!(res.data && res.data.length && res.data[0].client_id !== (api._clientId || api.uid) && res.data[0].client_id !== api.uid);
           return { available: !taken, username: raw };
         });
     },
@@ -162,9 +162,16 @@
       var av = String(avatar || '').trim() || defaultAvatar(un);
       api._username = un;
       api._avatar = av;
-      return sb.from('users').upsert({
-        client_id: (api._clientId || api.uid), username: un, avatar: av, last_seen: Date.now()
-      }, { onConflict: 'client_id' }).then(function () {});
+      var row = function (cid) {
+        return sb.from('users').upsert({
+          client_id: cid, username: un, avatar: av, last_seen: Date.now()
+        }, { onConflict: 'client_id' });
+      };
+      // RLS only permits rows keyed by the auth uid — fall back to it
+      return row(api._clientId || api.uid).then(function (res) {
+        if (res && res.error && api._clientId && api._clientId !== api.uid) return row(api.uid);
+        return res;
+      }).then(function () {});
     },
 
     updateProfile: function (room, username, avatar) {

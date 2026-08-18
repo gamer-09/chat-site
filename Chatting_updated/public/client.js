@@ -1040,6 +1040,8 @@
       }
       if (window.ChatAPI && window.ChatAPI.setClientId) window.ChatAPI.setClientId(state.myClientId);
       try { const d = JSON.parse(localStorage.getItem(CONSTANTS.STORAGE_KEY) || '{}'); state.myUsername = d.username || ''; } catch {}
+      // keep the server-side profile row (name + avatar) in sync
+      if (state.myUsername) socket.emit('update-profile', { room: state.currentRoom, username: state.myUsername, avatar: (utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {}) || {}).avatar || '' });
 
       // Re-enter saved passkeys so the server restores ephemeral access after reconnect
       const savedPasskeys = utils.loadFromStorage(CONSTANTS.PASSKEYS_KEY, {});
