@@ -509,6 +509,13 @@
         window.ChatAPI.resolveName(meta.ownerId).then(n => { if (n) elements.roomOwner.textContent = n; });
       }
 
+      // during the tour, fake volunteer IDs get display names
+      const augment = (ids, infos) => {
+        const have = new Set((infos || []).map(x => x.clientId));
+        const extra = (ids || []).filter(id => state.tourMode && !have.has(id) && String(id).startsWith('tour-fake-'))
+          .map(id => ({ clientId: id, username: id.indexOf('nova') !== -1 ? 'Nova' : 'Rex' }));
+        return (infos || []).concat(extra);
+      };
       // Admins chips (resolve usernames from message history when needed)
       const renderAdminChips = (list) => {
         elements.roomAdminsList.innerHTML = list.length === 0
@@ -529,7 +536,7 @@
           });
         });
       };
-      const adminsInfo = meta.adminsInfo || [];
+      const adminsInfo = augment(meta.admins, meta.adminsInfo);
       if (adminsInfo.length) {
         renderAdminChips(adminsInfo);
       } else if ((meta.admins || []).length && window.ChatAPI.resolveName) {
@@ -539,7 +546,7 @@
       }
 
       // Members chips (stored access-control list for private rooms)
-      const membersInfo = meta.membersInfo || [];
+      const membersInfo = augment(meta.members, meta.membersInfo);
       elements.roomMembersList.innerHTML = membersInfo.length === 0
         ? '<span style="color:var(--text-dim)">None</span>'
         : membersInfo.map(u => {
@@ -1060,7 +1067,8 @@
     update: (users) => {
       if (!elements.onlineList) return;
       elements.onlineList.innerHTML = '';
-      (users || []).forEach(user => {
+      const listAll = (users || []).concat(state.tourMode ? (state.tourFakes || []) : []);
+      listAll.forEach(user => {
         const seed = encodeURIComponent(user.username || 'Anonymous');
         const av = user.avatar || `${CONSTANTS.DEFAULT_AVATAR}${seed}`;
         const el = document.createElement('div');
@@ -2264,23 +2272,40 @@
       await new Promise(r => setTimeout(r, 400));
     }
 
+    const emitP = (ev, p) => new Promise(res => socket.emit(ev, p, res));
+    const fakeAvatar = (n) => 'https://api.dicebear.com/7.x/thumbs/svg?seed=' + encodeURIComponent(n);
+    const fakePeople = () => [
+      { username: 'Nova', avatar: fakeAvatar('Nova'), room: state.currentRoom },
+      { username: 'Rex', avatar: fakeAvatar('Rex'), room: state.currentRoom },
+    ];
+    const fakeIds = ['tour-fake-nova-01', 'tour-fake-rex-01'];
+    function refreshOnline() {
+      online.update((state.currentRoomPresence || []).concat(state.tourFakes || []));
+    }
+    function fakeMessage(who, text) {
+      messages.render({ id: 'tour-fake-' + Math.random().toString(36).slice(2), username: who, avatar: fakeAvatar(who), message: text, timestamp: Date.now(), type: 'text', reactions: {} });
+      const sc = elements.messages; if (sc) sc.scrollTop = sc.scrollHeight;
+    }
+
     function buildSteps() {
       return [
-        { title: 'Welcome 🎓', html: 'This tour is <b>hands-on</b>: I point, <b>you click</b>. Two demo rooms were created and you own them. Every step after this is a real action — the tour advances when you do it (or press Done).' },
-        { sel: ['#user-section'], mobile: 'rooms', title: '1 · Guest mode', html: 'You are browsing as a guest: look everywhere, chat after you register + accept Terms. “Anonymous” is reserved as a name.' },
-        { sel: ['#room-list'], mobile: 'rooms', title: '2 · Your rooms', html: `Sidebar now holds <b>#${pubRoom}</b> and 🔒 <b>#${privRoom}</b> — yours for this tour. Click one any time to enter.` },
-        { sel: ['#messages'], mobile: 'chat', enter: async () => { closeSettings(); await joinRoom(pubRoom); }, title: '3 · Inside your room', html: 'You are in the public demo room. Sending is locked for guests — but <b>management is fully open</b>. Next: use every control for real.' },
-        { sel: ['#room-settings-panel'], enter: async () => { openSettings(); }, title: '4 · Control panel', html: '⚙️ Settings opens this panel. The next steps make you click each control yourself.' },
-        { sel: ['#rename-input'], enter: async () => { openSettings(); }, watch: '#rename-btn', title: '5 · YOUR TURN: rename', html: 'Type a new name (e.g. <b>my-room</b>) and press <b>Rename</b>. The sidebar updates instantly. Any room you own — never #general.' },
-        { sel: ['#generate-passkey-btn'], enter: async () => { openSettings(); }, watch: '#generate-passkey-btn', title: '6 · YOUR TURN: passkey', html: 'Press <b>Generate</b> to mint a passkey, then <b>Copy</b> it. Anyone holding it can join once the room is private.' },
-        { sel: ['#save-privacy-btn'], enter: async () => { openSettings(); }, watch: '#save-privacy-btn', title: '7 · YOUR TURN: go private', html: 'Tick <b>Private</b>, press <b>Save</b>. The room locks to owner/admins/members/passkey. Flip it back any time — try both.' },
-        { sel: ['#add-member-input'], enter: async () => { openSettings(); }, watch: '#add-member-btn', title: '8 · YOUR TURN: add a person', html: 'Open <b>Edit Profile</b> → <b>Copy</b> your Client ID → paste into <b>Add User</b> → press <b>+ Add User</b>. You just granted private-room access.' },
-        { sel: ['#room-members-list'], enter: async () => { openSettings(); }, watch: '.chip-remove', title: '9 · YOUR TURN: remove them', html: 'Your chip now sits in the users list. Click its <b>✕</b> to revoke access. Add + remove people = the whole power.' },
-        { sel: ['#add-admin-btn'], enter: async () => { openSettings(); }, title: '10 · Admins', html: '<b>+ Add Admin</b> is the same flow with a Client ID — admins can rename, clear and manage. Only for trusted people. Press Done when ready.' },
-        { sel: ['#clear-room-btn'], mobile: 'chat', enter: async () => { closeSettings(); }, watch: '#clear-room-btn', title: '11 · YOUR TURN: clear', html: 'Toolbar <b>Clear</b> wipes the room\'s messages (owner/admins only). Safe to try — it\'s your demo room.' },
-        { sel: ['#room-settings-panel'], mobile: 'rooms', enter: async () => { await joinRoom(privRoom); openSettings(); }, title: '12 · Private room', html: `Now inside 🔒 <b>#${privRoom}</b> — same controls, already private. Rename it or mint its own passkey if you like.` },
-        { sel: ['#online-panel'], mobile: 'online', enter: async () => { closeSettings(); }, title: '13 · People', html: 'Online list = live presence. The <b>⋮</b> menu opens profiles & Client-ID requests.' },
-        { sel: ['#inbox-btn'], title: '14 · Done 🎉', html: '📥 Inbox = ID requests · ❓ guide · 🎓 replay. Finishing now deletes both demo rooms (even renamed).' },
+        { title: 'Welcome 🎓', html: 'Sit back — the guide does everything while you watch. Two demo rooms were created; fake volunteers <b>Nova</b> and <b>Rex</b> will help demonstrate. Press <b>Next</b> to continue.' },
+        { sel: ['#user-section'], mobile: 'rooms', title: '1 · Guest mode', html: 'You are browsing as a guest: everything is viewable; chatting unlocks after registration + Terms. (“Anonymous” is reserved as a name.)' },
+        { sel: ['#room-list'], mobile: 'rooms', title: '2 · Demo rooms', html: `The guide created <b>#${pubRoom}</b> (public) and 🔒 <b>#${privRoom}</b> (private). You own them for this tour; they vanish at the end.` },
+        { sel: ['#messages'], mobile: 'chat', run: async () => { closeSettings(); await joinRoom(pubRoom); }, title: '3 · Entering the room', html: 'The guide just walked into the public demo room. Watch the chat panel light up.' },
+        { sel: ['#online-panel'], mobile: 'online', run: async () => { state.tourFakes = fakePeople(); refreshOnline(); }, title: '4 · Volunteers join', html: '<b>Nova</b> and <b>Rex</b> just appeared in the Online list — the fake people who help demonstrate management.' },
+        { sel: ['#messages'], mobile: 'chat', run: async () => { fakeMessage('Nova', 'Hey! Ready to help with the demo 👋'); }, title: '5 · A message arrives', html: 'That is what incoming messages look like — avatar, name, time, bubbles on the left; yours would sit on the right.' },
+        { sel: ['#room-settings-panel'], run: async () => { openSettings(); }, title: '6 · Control panel', html: '⚙️ Settings opened. Every management feature lives here — watch the guide use each one on this room.' },
+        { sel: ['#rename-input'], run: async () => { await emitP('rename-room', { room: state.currentRoom, newName: 'guided-demo' }); rooms.fetch(); }, title: '7 · Rename (done for you)', html: 'The guide just renamed the room to <b>#guided-demo</b> — see the sidebar update. Owners can rename any room except #general.' },
+        { sel: ['#passkey-input'], run: async () => { await emitP('set-room-passkey', { room: state.currentRoom, passkey: 'DEMO-1234' }); if (elements.passkeyInput) elements.passkeyInput.value = 'DEMO-1234'; }, title: '8 · Passkey (done for you)', html: 'A passkey <b>DEMO-1234</b> was generated and saved. Anyone with it can enter once the room is private.' },
+        { sel: ['#save-privacy-btn'], run: async () => { await emitP('set-room-privacy', { room: state.currentRoom, isPrivate: true }); rooms.fetch(); }, title: '9 · Going private (done)', html: 'The room is now 🔒 private: only owner / admins / members / passkey-holders get in. Flipping back is the same button.' },
+        { sel: ['#room-members-list'], run: async () => { socket.emit('add-room-members', { room: state.currentRoom, members: fakeIds }); await new Promise(r => setTimeout(r, 500)); socket.emit('get-room-meta', { room: state.currentRoom }, () => {}); }, title: '10 · Adding people (done)', html: 'Nova and Rex were just granted private-room access via <b>+ Add User</b> — their chips appear in the users list.' },
+        { sel: ['#room-admins-list'], run: async () => { socket.emit('add-room-admins', { room: state.currentRoom, admins: [fakeIds[1]] }); await new Promise(r => setTimeout(r, 500)); socket.emit('get-room-meta', { room: state.currentRoom }, () => {}); }, title: '11 · Promoting an admin', html: 'Rex just became an <b>admin 👑</b> — admins can rename, clear, and manage access. Trust only the right people.' },
+        { sel: ['#room-members-list'], run: async () => { socket.emit('remove-room-admin', { room: state.currentRoom, adminId: fakeIds[1] }); await new Promise(r => setTimeout(r, 400)); socket.emit('remove-room-member', { room: state.currentRoom, memberId: fakeIds[1] }); await new Promise(r => setTimeout(r, 400)); socket.emit('get-room-meta', { room: state.currentRoom }, () => {}); }, title: '12 · Removing people', html: 'The guide demoted and removed <b>Rex</b> with the ✕ buttons — access revoked instantly. Add, promote, remove: the full cycle.' },
+        { sel: ['#clear-room-btn'], mobile: 'chat', run: async () => { closeSettings(); await window.ChatAPI.clearRoom(state.currentRoom); }, title: '13 · Clearing a room', html: 'The room’s messages were just wiped with <b>Clear</b> (owner/admins only). Messages gone, room intact.' },
+        { sel: ['#room-settings-panel'], mobile: 'rooms', run: async () => { await joinRoom(privRoom); openSettings(); }, title: '14 · The private room', html: `Now inside 🔒 <b>#${privRoom}</b> — same controls, already private. Everything you just watched works here too.` },
+        { sel: ['#online-panel'], mobile: 'online', run: async () => { closeSettings(); state.tourFakes = []; refreshOnline(); }, title: '15 · Volunteers leave', html: 'Nova and Rex left the demo. The Online list always reflects live presence.' },
+        { sel: ['#inbox-btn'], title: '16 · Done 🎉', html: '📥 Inbox = Client-ID requests · ❓ full guide · 🎓 replay. Finishing now deletes both demo rooms.' },
       ];
     }
 
@@ -2367,6 +2392,7 @@
       const st = steps[idx];
       setWatch(st);
       if (st && st.enter) { try { await st.enter(); } catch {} await new Promise(r => setTimeout(r, 150)); }
+      if (st && st.run) { try { await st.run(); } catch {} await new Promise(r => setTimeout(r, 300)); }
       place();
     }
 
@@ -2386,6 +2412,7 @@
 
     function cleanup() {
       state.tourMode = false;
+      state.tourFakes = [];
       closeSettings();
       const a = pubRoom, b = privRoom;
       pubRoom = privRoom = '';
@@ -2453,7 +2480,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260834').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260835').catch(() => {});
     });
   }
 })();
