@@ -148,24 +148,20 @@
       if (!raw) return Promise.resolve({ available: false, error: 'empty' });
       if (raw.length < 2) return Promise.resolve({ available: false, error: 'too_short' });
       if (raw.length > 50) return Promise.resolve({ available: false, error: 'too_long' });
-      var lc = raw.toLowerCase();
-      return sb.from('users').select('client_id').ilike('username', lc).limit(1)
-        .then(function (res) {
-          if (res.error) return { available: false, error: 'db_error' };
-          var row = res.data && res.data[0];
-          var mine = row && (row.client_id === (api._clientId || api.uid) || row.client_id === api.uid);
-          if (!row || mine) return { available: true, username: raw };
-          // name held by an orphan row? try to reclaim it, then re-check
-          return sb.rpc('reclaim_username', { un: raw }).then(function () {
-            return sb.from('users').select('client_id').ilike('username', lc).limit(1);
-          }).then(function (r2) {
-            var row2 = r2.data && r2.data[0];
-            var mine2 = row2 && (row2.client_id === (api._clientId || api.uid) || row2.client_id === api.uid);
-            return { available: !row2 || mine2, username: raw };
-          }).catch(function () {
-            return { available: false, username: raw };
-          });
-        });
+      var cid = api._clientId || api.uid || '';
+      return sb.rpc('username_available', { un: raw, cid: cid }).then(function (res) {
+        if (res.error) {
+          return sb.from('users').select('client_id').ilike('username', raw.toLowerCase()).limit(1)
+            .then(function (r2) {
+              if (r2.error) return { available: false, error: 'db_error' };
+              var row = r2.data && r2.data[0];
+              var mine = row && (row.client_id === cid || row.client_id === api.uid);
+              return { available: !row || mine, username: raw };
+            });
+        }
+        var v = res.data;
+        return { available: v === 'available' || v === 'mine', username: raw };
+      });
     },
 
     upsertProfile: function (username, avatar) {
