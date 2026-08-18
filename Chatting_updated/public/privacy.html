@@ -134,6 +134,7 @@
 
     <section class="section">
       <h2>5. Storage, passkeys, and uploads</h2>
+      <p>If you upload a profile picture, it is stored as part of your profile (avatar) and shown wherever your profile or presence appears. Room access lists store participant identifiers only; room settings display owner and admin usernames, not raw identifiers, where resolvable.</p>
       <p>Database records are stored in Supabase. Uploaded files are stored in a non-public Supabase Storage bucket. The application requests time-limited signed URLs—currently up to seven days—to display authorized media.</p>
       <p>Room passkeys are access-control values, not encryption keys. They may be stored in the Supabase room record and in your browser’s local storage. Anyone who obtains a valid passkey may be able to join the associated room.</p>
       <p>Browser local storage is used instead of advertising cookies for application state. Clearing site data can remove your local profile, saved passkeys, preferences, and access to the same anonymous session.</p>
@@ -177,7 +178,7 @@
 
     <section class="section">
       <h2>12. Client-ID requests (consent-based disclosure)</h2>
-      <p>The Service treats your Client ID as private by default: it is never displayed on profiles, member lists, or public pages. A user may request another user's Client ID by submitting a written reason. The recipient sees the requester's username and the full reason in their Inbox and may <strong>approve</strong> or <strong>deny</strong> the request. Approval discloses a snapshot of the approver's Client ID at that moment to the requester only; subsequent identity changes are not disclosed and require a new request. Request records (requester, target, reason, status, timestamp, and any disclosed snapshot) are readable only by the two participants and are retained to preserve a transparent history of disclosures. Do not include passwords, passkeys, or other sensitive information in request reasons. Abuse of the request feature (harassment, pressure, or misuse of disclosed IDs) may be reported via the contact below.</p>
+      <p>The Service treats your Client ID as private by default: it is never displayed on profiles, member lists, or public pages. A user may request another user's Client ID from the Online Users list (⋮ menu → Request Client ID) by submitting a written reason. The recipient sees the requester's username and the full reason in their Inbox and may <strong>approve</strong> or <strong>deny</strong> the request. Approval discloses a snapshot of the approver's Client ID at that moment to the requester only; subsequent identity changes are not disclosed and require a new request. Request records (requester, target, reason, status, timestamp, and any disclosed snapshot) are readable only by the two participants and are retained to preserve a transparent history of disclosures. Do not include passwords, passkeys, or other sensitive information in request reasons. Abuse of the request feature (harassment, pressure, or misuse of disclosed IDs) may be reported via the contact below.</p>
 
       <h2>13. Changes to this Policy</h2>
       <p>We may update this Policy when the Service, providers, or legal requirements change. The revised page will show a new effective date. Material changes apply prospectively.</p>

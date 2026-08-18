@@ -5,7 +5,7 @@
 # Chat Site
 
 
-A real-time multi-room chat app built with Node.js, Express, and Socket.io. No accounts required — pick a username and start chatting instantly.
+A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supabase (anonymous auth); the repo also includes the original Node.js/Express/Socket.io server for self-hosting. No accounts required — pick a username and start chatting instantly.
 
 ---
 
@@ -23,7 +23,13 @@ A real-time multi-room chat app built with Node.js, Express, and Socket.io. No a
 | User presence | Sidebar shows who is currently online per room |
 | Unique usernames | Server enforces no two users share the same name |
 | Auto avatars | DiceBear avatars generated from your username, or supply your own URL |
-| Admin tools | Rename, clear, delete, transfer ownership, manage admins and members |
+| Admin tools | Rename, clear, delete, transfer ownership, manage admins and users |
+| Member profiles | Online-list ⋮ menu → personal profile card (avatar, status, public activity) |
+| Client-ID requests | Consent-based: reasoned request → recipient approves/denies in the 📥 Inbox |
+| Inbox | Received + sent ID requests, approvals share a one-time ID snapshot |
+| Guided tour | 🎓 12-step live walkthrough; auto-runs for first-time visitors |
+| Themes | 🌙/☀️ dark-light toggle, remembered per browser |
+| Resilience | Self-hosted Supabase lib, versioned assets, network-first service worker |
 | Built-in help | Slide-by-slide help guide accessible from the toolbar |
 | Mobile layout | Responsive design with a dedicated mobile sidebar |
 | PWA | Service worker included for offline caching |
