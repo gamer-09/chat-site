@@ -653,6 +653,97 @@
       }).catch(function () { return { ok: false, error: 'Upload failed' }; });
     },
 
+    // ── Client-ID requests (consent-based disclosure) ────────────────────────
+    sendIdRequest: function (targetUsername, reason) {
+      var me = String(api._username || '');
+      var tgt = String(targetUsername || '').trim();
+      var why = String(reason || '').trim().slice(0, 500);
+      if (!me || !tgt || !why) return Promise.resolve({ ok: false, error: 'missing' });
+      if (me.toLowerCase() === tgt.toLowerCase()) return Promise.resolve({ ok: false, error: 'self' });
+      return sb.from('id_requests').select('id').eq('target_username', tgt).eq('requester_username', me).eq('status', 'pending').limit(1)
+        .then(function (res) {
+          if (res.data && res.data.length) return { ok: false, error: 'already_pending' };
+          return sb.from('id_requests').insert({
+            requester_username: me,
+            requester_client_id: api._clientId || api.uid,
+            requester_uid: api.uid,
+            target_username: tgt,
+            reason: why,
+            status: 'pending'
+          }).then(function (r2) {
+            return r2.error ? { ok: false, error: r2.error.message } : { ok: true };
+          });
+        });
+    },
+
+    inbox: function () {
+      var me = String(api._username || '');
+      if (!me) return Promise.resolve([]);
+      return Promise.all([
+        sb.from('id_requests').select('*').eq('requester_username', me).limit(200),
+        sb.from('id_requests').select('*').eq('target_username', me).limit(200)
+      ]).then(function (rs) {
+        var map = {};
+        (rs[0].data || []).concat(rs[1].data || []).forEach(function (r) { map[r.id] = r; });
+        return Object.values(map).sort(function (x, y) { return String(y.created_at).localeCompare(String(x.created_at)); });
+      });
+    },
+
+    resolveRequest: function (id, approve) {
+      return sb.from('id_requests').update({
+        status: approve ? 'approved' : 'denied',
+        resolved_at: new Date().toISOString(),
+        disclosed_client_id: approve ? (api._clientId || api.uid) : null
+      }).eq('id', id).eq('target_username', String(api._username || ''))
+        .then(function (res) { return res.error ? { ok: false, error: res.error.message } : { ok: true }; });
+    },
+
+    // Public profile data for any username — NEVER includes client IDs
+    publicProfile: function (username) {
+      var un = String(username || '').trim();
+      if (!un) return Promise.resolve(null);
+      var lc = un.toLowerCase();
+      var pres = null;
+      var all = api.presenceAll ? api.presenceAll() : [];
+      for (var i = 0; i < all.length; i++) {
+        if (String(all[i].username || '').toLowerCase() === lc) { pres = all[i]; break; }
+      }
+      return sb.from('messages')
+        .select('payload->>username, payload->>room, payload->>timestamp, payload->>type, payload->>avatar, payload->>reactions')
+        .eq('payload->>username', un)
+        .limit(1000)
+        .then(function (res) {
+          var rows = res.data || [];
+          var rooms = {}, images = 0, react = 0, first = null, last = null, avatar = '';
+          rows.forEach(function (r) {
+            rooms[r.room] = (rooms[r.room] || 0) + 1;
+            if (r.type === 'image') images++;
+            if (r.reactions) Object.keys(r.reactions).forEach(function (k) {
+              (r.reactions[k] || []).forEach(function (u) {
+                if (String(u.username || '').toLowerCase() === lc) react++;
+              });
+            });
+            var t = Number(r.timestamp) || 0;
+            if (t && (!first || t < first)) first = t;
+            if (t && (!last || t > last)) last = t;
+            if (!avatar && r.avatar) avatar = r.avatar;
+          });
+          return {
+            username: un,
+            avatar: (pres && pres.avatar) || avatar || defaultAvatar(un),
+            online: !!pres,
+            room: pres ? pres.room : null,
+            messages: rows.length,
+            roomsCount: Object.keys(rooms).length,
+            roomBreakdown: rooms,
+            images: images,
+            reactionsReceived: react,
+            firstSeen: first,
+            lastActive: last || (pres ? pres.updated_at : null)
+          };
+        });
+    },
+
     storageUrl: function (path) {
       if (!path) return Promise.resolve('');
       if (api._urlCache[path]) return Promise.resolve(api._urlCache[path]);

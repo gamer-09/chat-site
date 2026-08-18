@@ -1374,6 +1374,16 @@
     * { -webkit-tap-highlight-color: transparent; }
     main, #messages, #room-list, #online-list { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 
+    .profile-open{cursor:pointer}
+    .profile-open:hover{opacity:.85;text-decoration:underline}
+    .online-item{cursor:pointer}
+    .member-chip{cursor:pointer}
+    #inbox-btn{position:relative}
+    #inbox-badge{position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;border-radius:9px;background:var(--danger);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+    #user-profile-modal .up-stat{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
+    #user-profile-modal .up-stat b{display:block;font-size:18px;color:var(--text)}
+    #user-profile-modal .up-stat span{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.6px}
+
     /* ── Guided onboarding tour ─────────────────────────────────────────── */
     #tour-overlay{position:fixed;inset:0;z-index:99989;display:none}
     #tour-overlay.open{display:block}
@@ -1397,6 +1407,7 @@
       <a href="privacy.html" class="secondary" style="text-decoration: none; padding: 10px 18px; font-size: 14px; font-weight: 500; border-radius: 8px; border: 1px solid var(--border); background: var(--border); color: var(--text); transition: all 0.15s ease; white-space: nowrap; display: inline-block;">Privacy</a>
       <button id="help-btn" class="secondary" title="How to use">❓</button>
       <button id="tour-btn" class="secondary" title="Live guided tour">🎓</button>
+      <button id="inbox-btn" class="secondary" title="Inbox — Client ID requests">📥<span id="inbox-badge" hidden></span></button>
       <button id="theme-toggle" class="secondary" title="Toggle theme">🌙</button>
     </div>
   </header>

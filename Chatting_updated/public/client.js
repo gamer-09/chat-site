@@ -466,7 +466,7 @@
         : adminsInfo.map(u => {
             const isOwnerChip = meta.ownerId === u.clientId;
             const canRemove = state.canManageCurrentRoom && !isOwnerChip && state.currentRoom !== 'general';
-            return `<span class="chip member-chip" title="${u.clientId}">
+            return `<span class="chip member-chip" data-profile-user="${utils.escapeHtml(u.username)}" title="View profile">
               ${utils.escapeHtml(u.username)}${isOwnerChip ? ' 👑' : ''}
               ${canRemove ? `<button class="chip-remove" data-action="remove-admin" data-id="${u.clientId}" title="Remove admin">×</button>` : ''}
             </span>`;
@@ -478,7 +478,7 @@
         ? '<span style="color:var(--text-dim)">None</span>'
         : membersInfo.map(u => {
             const canRemove = state.canManageCurrentRoom && state.currentRoom !== 'general';
-            return `<span class="chip member-chip" title="${u.clientId}">
+            return `<span class="chip member-chip" data-profile-user="${utils.escapeHtml(u.username)}" title="View profile">
               ${utils.escapeHtml(u.username)}
               ${canRemove ? `<button class="chip-remove" data-action="remove-member" data-id="${u.clientId}" title="Remove member">×</button>` : ''}
             </span>`;
@@ -745,8 +745,8 @@
           ${isMe     ? `<button class="msg-action-btn danger" data-action="delete" title="Delete">🗑</button>` : ''}
         </div>
         <div class="meta">
-          <img class="avatar" src="${avatarUrl}" alt="">
-          <span class="name">${utils.escapeHtml(msg.username || 'Anonymous')}</span>
+          <img class="avatar profile-open" data-profile-user="${utils.escapeHtml(msg.username || 'Anonymous')}" src="${avatarUrl}" alt="">
+          <span class="name profile-open" data-profile-user="${utils.escapeHtml(msg.username || 'Anonymous')}">${utils.escapeHtml(msg.username || 'Anonymous')}</span>
           <span class="time">${utils.formatTime(msg.timestamp)}</span>
           ${msg.edited ? '<span class="edited">(edited)</span>' : ''}
         </div>
@@ -984,6 +984,7 @@
         const av = user.avatar || `${CONSTANTS.DEFAULT_AVATAR}${seed}`;
         const el = document.createElement('div');
         el.className = 'online-item';
+        el.dataset.profileUser = user.username || 'Anonymous';
         el.innerHTML = `
           <img src="${av}" alt="">
           <div class="info">
@@ -1912,6 +1913,202 @@
     if (mq.addEventListener) mq.addEventListener('change', sync);
     else if (mq.addListener) mq.addListener(sync);
   };
+
+  // ── Public user profiles + consent-based client-ID requests ────────────────
+  const copyText = (t) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(() => showToast('Copied!', 'success')).catch(() => prompt('Copy:', t));
+    } else prompt('Copy:', t);
+  };
+
+  const userProfile = (() => {
+    let ov = null;
+    const stat = (label, v) => `<div class="up-stat"><b>${v}</b><span>${label}</span></div>`;
+    const fmtDate = (t) => t ? new Date(t).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    function ensure() {
+      if (ov) return ov;
+      ov = document.createElement('div');
+      ov.className = 'modal-overlay';
+      ov.id = 'user-profile-modal';
+      ov.innerHTML = '<div class="modal" style="max-width:440px">' +
+        '<h3>Member profile</h3><div id="up-body"></div>' +
+        '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="secondary" id="up-close" type="button">Close</button></div></div>';
+      document.body.appendChild(ov);
+      ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.remove('open'); });
+      ov.querySelector('#up-close').addEventListener('click', () => ov.classList.remove('open'));
+      return ov;
+    }
+
+    function renderIdSection(box, username) {
+      const me = state.myUsername || '';
+      if (!me || username.toLowerCase() === me.toLowerCase()) {
+        box.innerHTML = '<div style="font-size:11px;color:var(--text-dim);margin-top:10px">This is you — your Client ID lives in Edit Profile.</div>';
+        return;
+      }
+      box.innerHTML = '<p style="color:var(--text-dim);font-size:12px;margin-top:10px">Loading…</p>';
+      window.ChatAPI.inbox().then(rows => {
+        const rel = rows.find(r => r.requester_username === me && r.target_username === username);
+        if (rel && rel.status === 'pending') {
+          box.innerHTML = `<div style="margin-top:10px;font-size:12.5px;color:var(--warning)">⏳ Request pending — sent ${fmtDate(rel.created_at)}</div>`;
+        } else if (rel && rel.status === 'approved' && rel.disclosed_client_id) {
+          box.innerHTML = `<div style="margin-top:10px;font-size:12.5px;color:var(--success)">✅ ${utils.escapeHtml(username)} approved your request:</div>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+              <code style="flex:1;font-size:11px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${utils.escapeHtml(rel.disclosed_client_id)}</code>
+              <button class="secondary" type="button" id="up-copy">Copy</button>
+            </div>`;
+          box.querySelector('#up-copy').addEventListener('click', () => copyText(rel.disclosed_client_id));
+        } else {
+          const deniedNote = rel && rel.status === 'denied' ? '<div style="font-size:11.5px;color:var(--danger);margin-top:8px">❌ Your previous request was denied — you may ask again.</div>' : '';
+          box.innerHTML = deniedNote + `<button class="secondary" type="button" id="up-req" style="margin-top:10px">🔑 Request Client ID</button><div id="up-req-form"></div>`;
+          box.querySelector('#up-req').addEventListener('click', () => {
+            const form = box.querySelector('#up-req-form');
+            form.innerHTML = `
+              <textarea id="up-reason" rows="3" placeholder="State your reason (required)…" style="width:100%;margin-top:8px"></textarea>
+              <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+                <button class="secondary" type="button" id="up-cancel">Cancel</button>
+                <button type="button" id="up-send">Send request</button>
+              </div>`;
+            form.querySelector('#up-cancel').addEventListener('click', () => { form.innerHTML = ''; });
+            form.querySelector('#up-send').addEventListener('click', () => {
+              const why = form.querySelector('#up-reason').value.trim();
+              if (!why) { showToast('Please state a reason', 'error'); return; }
+              window.ChatAPI.sendIdRequest(username, why).then(r => {
+                if (r.ok) { showToast('Request sent to ' + username, 'success'); renderIdSection(box, username); }
+                else if (r.error === 'already_pending') showToast('A request is already pending', 'error');
+                else showToast(r.error || 'Failed to send', 'error');
+              });
+            });
+          });
+        }
+      }).catch(() => { box.innerHTML = ''; });
+    }
+
+    async function open(username) {
+      const m = ensure();
+      m.classList.add('open');
+      const body = m.querySelector('#up-body');
+      body.innerHTML = '<p style="color:var(--text-dim);padding:12px 0">Loading profile…</p>';
+      let d = null;
+      try { d = await window.ChatAPI.publicProfile(username); } catch (e) { console.error(e); }
+      if (!d) { body.innerHTML = '<p style="color:var(--text-dim)">No public data for this user.</p>'; return; }
+      const topRooms = Object.entries(d.roomBreakdown || {}).sort((x, y) => y[1] - x[1]).slice(0, 3);
+      body.innerHTML = `
+        <div style="display:flex;gap:14px;align-items:center;margin:6px 0 14px">
+          <img src="${d.avatar}" alt="" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--border-light)">
+          <div>
+            <div style="font-size:18px;font-weight:600;color:var(--text)">${utils.escapeHtml(d.username)}</div>
+            <div style="font-size:12px;color:${d.online ? 'var(--success)' : 'var(--text-dim)'}">${d.online ? '● online now' + (d.room ? ' in #' + utils.escapeHtml(d.room) : '') : '○ offline'}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          ${stat('Messages', d.messages)}${stat('Rooms', d.roomsCount)}${stat('Images', d.images)}${stat('Reactions', d.reactionsReceived)}
+        </div>
+        <div style="font-size:12.5px;color:var(--text-muted);line-height:1.9">
+          <div>📅 First active: <b style="color:var(--text)">${fmtDate(d.firstSeen)}</b></div>
+          <div>🕒 Last active: <b style="color:var(--text)">${fmtDate(d.lastActive)}</b></div>
+          ${topRooms.length ? '<div>💬 Most in: <b style="color:var(--text)">' + topRooms.map(([r, c]) => '#' + utils.escapeHtml(r) + ' (' + c + ')').join(', ') + '</b></div>' : ''}
+        </div>
+        <div id="up-idreq"></div>
+        <div style="color:var(--text-dim);font-size:11px;margin-top:10px">Client IDs are private — shared only by explicit approval.</div>`;
+      renderIdSection(body.querySelector('#up-idreq'), d.username);
+    }
+    return { open };
+  })();
+
+  const inboxUI = (() => {
+    let ov = null;
+    const fmtDate = (t) => t ? new Date(t).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    function ensure() {
+      if (ov) return ov;
+      ov = document.createElement('div');
+      ov.className = 'modal-overlay';
+      ov.id = 'inbox-modal';
+      ov.innerHTML = '<div class="modal" style="max-width:520px">' +
+        '<h3>📥 Inbox</h3>' +
+        '<div style="display:flex;gap:8px;margin:8px 0 12px">' +
+        '<button class="secondary" id="ib-tab-rec" type="button">Requests for you</button>' +
+        '<button class="secondary" id="ib-tab-sent" type="button">Your requests</button></div>' +
+        '<div id="ib-body" style="max-height:55vh;overflow-y:auto"></div>' +
+        '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="secondary" id="ib-close" type="button">Close</button></div></div>';
+      document.body.appendChild(ov);
+      ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.remove('open'); });
+      ov.querySelector('#ib-close').addEventListener('click', () => ov.classList.remove('open'));
+      ov.querySelector('#ib-tab-rec').addEventListener('click', () => render('rec'));
+      ov.querySelector('#ib-tab-sent').addEventListener('click', () => render('sent'));
+      return ov;
+    }
+    function row(html) { const d = document.createElement('div'); d.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--panel2)'; d.innerHTML = html; return d; }
+    function render(tab) {
+      const body = ov.querySelector('#ib-body');
+      body.innerHTML = '<p style="color:var(--text-dim)">Loading…</p>';
+      window.ChatAPI.inbox().then(rows => {
+        const me = state.myUsername || '';
+        const list = rows.filter(r => tab === 'rec' ? r.target_username === me : r.requester_username === me);
+        body.innerHTML = '';
+        if (!list.length) { body.innerHTML = '<p style="color:var(--text-dim);padding:8px 0">' + (tab === 'rec' ? 'No requests received.' : 'You haven\'t requested any Client IDs.') + '</p>'; return; }
+        list.forEach(r => {
+          if (tab === 'rec') {
+            const elr = row(`
+              <div style="font-size:13.5px;color:var(--text)"><b>${utils.escapeHtml(r.requester_username)}</b> <span style="color:var(--text-dim)">asks for your Client ID</span></div>
+              <div style="font-size:12.5px;color:var(--text-muted);margin:6px 0">“${utils.escapeHtml(r.reason)}”</div>
+              <div style="font-size:11px;color:var(--text-dim)">${fmtDate(r.created_at)}</div>
+              <div class="ib-actions" style="display:flex;gap:8px;margin-top:8px"></div>`);
+            const acts = elr.querySelector('.ib-actions');
+            if (r.status === 'pending') {
+              const ap = document.createElement('button'); ap.textContent = '✅ Approve'; ap.type = 'button';
+              const dn = document.createElement('button'); dn.textContent = '❌ Deny'; dn.className = 'secondary'; dn.type = 'button';
+              ap.addEventListener('click', () => window.ChatAPI.resolveRequest(r.id, true).then(res => { if (res.ok) { showToast('Approved — your ID was shared with ' + r.requester_username, 'success'); render('rec'); refreshInboxBadge(); } else showToast(res.error || 'Failed', 'error'); }));
+              dn.addEventListener('click', () => window.ChatAPI.resolveRequest(r.id, false).then(res => { if (res.ok) { showToast('Denied', 'info'); render('rec'); } else showToast(res.error || 'Failed', 'error'); }));
+              acts.append(ap, dn);
+            } else {
+              acts.innerHTML = `<span style="font-size:12px;color:${r.status === 'approved' ? 'var(--success)' : 'var(--danger)'}">${r.status === 'approved' ? '✅ Approved — ID shared' : '❌ Denied'} · ${fmtDate(r.resolved_at)}</span>`;
+            }
+            body.appendChild(elr);
+          } else {
+            const elr = row(`
+              <div style="font-size:13.5px;color:var(--text)">You asked <b>${utils.escapeHtml(r.target_username)}</b></div>
+              <div style="font-size:12.5px;color:var(--text-muted);margin:6px 0">“${utils.escapeHtml(r.reason)}”</div>
+              <div style="font-size:11px;color:var(--text-dim)">${fmtDate(r.created_at)}</div>
+              <div class="ib-status" style="margin-top:8px"></div>`);
+            const st = elr.querySelector('.ib-status');
+            if (r.status === 'approved' && r.disclosed_client_id) {
+              st.innerHTML = `<span style="font-size:12px;color:var(--success)">✅ Approved — their ID:</span>
+                <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+                  <code style="flex:1;font-size:11px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${utils.escapeHtml(r.disclosed_client_id)}</code>
+                  <button class="secondary ib-copy" type="button">Copy</button>
+                </div>`;
+              st.querySelector('.ib-copy').addEventListener('click', () => copyText(r.disclosed_client_id));
+            } else {
+              st.innerHTML = `<span style="font-size:12px;color:${r.status === 'denied' ? 'var(--danger)' : 'var(--warning)'}">${r.status === 'denied' ? '❌ Denied' : '⏳ Pending'}</span>`;
+            }
+            body.appendChild(elr);
+          }
+        });
+      }).catch(e => { body.innerHTML = '<p style="color:var(--danger)">Could not load inbox — is the id_requests table created? (' + utils.escapeHtml(e.message || e) + ')</p>'; });
+    }
+    function open() { ensure(); ov.classList.add('open'); render('rec'); }
+    return { open, render };
+  })();
+
+  function refreshInboxBadge() {
+    const badge = document.getElementById('inbox-badge');
+    if (!badge || !state.myUsername) return;
+    window.ChatAPI.inbox().then(rows => {
+      const n = rows.filter(r => r.target_username === state.myUsername && r.status === 'pending').length;
+      badge.hidden = !n;
+      badge.textContent = n > 9 ? '9+' : String(n);
+    }).catch(() => {});
+  }
+  setInterval(refreshInboxBadge, 30000);
+  const inboxBtnEl = document.getElementById('inbox-btn');
+  if (inboxBtnEl) inboxBtnEl.addEventListener('click', () => { inboxUI.open(); });
+
+  // One delegated listener opens profiles from anywhere
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.chip-remove')) return;
+    const t = e.target.closest('[data-profile-user]');
+    if (t) userProfile.open(t.getAttribute('data-profile-user'));
+  });
 
   // ── Guided onboarding tour ──────────────────────────────────────────────────
   const tour = (() => {
