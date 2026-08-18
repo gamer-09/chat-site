@@ -22,6 +22,7 @@
       deleteRoom: function () { return Promise.resolve({ ok: false, error: 'offline' }); },
       clearRoom: function () { return Promise.resolve({ ok: false, error: 'offline' }); },
       deleteUser: function () { return Promise.resolve(false); },
+      purgeMessagesFor: function () { return Promise.resolve({ ok: false }); },
       updateProfile: function () { return Promise.resolve(); },
       setClientId: function () {},
     };
@@ -371,18 +372,30 @@
           showToast('Username already taken — please choose another', 'error');
           return resolve(false);
         }
-        profile.save(val, avatar, termsAgreed);
-        resolve(true);
+        const oldU = String(saved.username || '').trim();
+        const willRename = !!(oldU && oldU.toLowerCase() !== val.toLowerCase());
+        const done = () => { profile.save(val, avatar, termsAgreed); resolve(true); };
+        if (willRename && window.ChatAPI.purgeMessagesFor) {
+          // full wipe of the old name happens while it is still "you" (RLS)
+          window.ChatAPI.purgeMessagesFor(oldU).then(
+            () => { showToast('Old identity wiped — every message under "' + oldU + '" removed', 'info'); done(); },
+            () => done()
+          );
+        } else done();
       });
     }),
 
     delete: async () => {
       try {
+        const un = state.myUsername || String((utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {}) || {}).username || '').trim();
+        if (un && window.ChatAPI.purgeMessagesFor) {
+          try { await window.ChatAPI.purgeMessagesFor(un); } catch (e) {}
+        }
         const ok = await window.ChatAPI.deleteUser();
         if (ok) {
           [CONSTANTS.STORAGE_KEY, CONSTANTS.CLIENT_ID_KEY, CONSTANTS.PASSKEYS_KEY, CONSTANTS.UNREAD_KEY]
             .forEach(k => localStorage.removeItem(k));
-          showToast('Profile data removed. Previous chat content may remain.', 'success');
+          showToast('Profile and all messages under "' + (un || 'your name') + '" removed.', 'success');
           setTimeout(() => window.location.reload(), 1500);
         } else {
           showToast('Failed to delete profile data', 'error');
@@ -2342,7 +2355,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260829').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260830').catch(() => {});
     });
   }
 })();

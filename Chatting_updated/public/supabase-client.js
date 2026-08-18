@@ -98,6 +98,7 @@
         case 'mark-read':            api.markRead(p.room || api._currentRoom, p.messageId); break;
         case 'update-profile':       api.updateProfile(p.room, p.username, p.avatar); break;
         case 'delete-user':          api.deleteUser().then(respond); break;
+        case 'rename-identity':      if (typeof cb === 'function') cb({ ok: true }); break;
         default: console.warn('ChatAPI: unhandled emit', ev);
       }
       return api;
@@ -704,6 +705,15 @@
         disclosed_client_id: approve ? (api._clientId || api.uid) : null
       }).eq('id', id).eq('target_username', String(api._username || ''))
         .then(function (res) { return res.error ? { ok: false, error: res.error.message } : { ok: true }; });
+    },
+
+    purgeMessagesFor: function (username) {
+      var un = String(username || '').trim();
+      if (!un || !api.uid) return Promise.resolve({ ok: false });
+      return sb.from('messages').delete().eq('payload->>username', un)
+        .then(function (res) {
+          return res.error ? { ok: false, error: res.error.message } : { ok: true };
+        });
     },
 
     resolveName: function (cid) {
