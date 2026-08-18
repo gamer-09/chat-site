@@ -107,6 +107,9 @@
     console.error('Critical DOM elements missing. Chat functionality may not work.');
   }
 
+  // Build tag from this script's own ?v= query — shows which bundle you're on
+  window.__BUILD = ((document.currentScript && document.currentScript.src || '').match(/[?&]v=([^&]+)/) || [])[1] || 'cached-shell';
+
   // ── State ──────────────────────────────────────────────────────────────────
   const state = {
     currentRoom: 'general',
@@ -1182,6 +1185,8 @@
   const bindEvents = () => {
     // ── Help modal ────────────────────────────────────────────────────
     const helpModal   = document.getElementById('help-modal');
+    const helpSub = document.querySelector('.help-sub');
+    if (helpSub && window.__BUILD) helpSub.textContent += ' · build ' + window.__BUILD;
     const helpSlides  = Array.from(document.querySelectorAll('.help-slide'));
     const helpDots    = document.getElementById('help-dots');
     const helpCounter = document.getElementById('help-step-counter');
