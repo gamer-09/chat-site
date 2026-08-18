@@ -2334,7 +2334,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260823').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260824').catch(() => {});
     });
   }
 })();

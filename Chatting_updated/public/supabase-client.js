@@ -232,7 +232,7 @@
                 var u = users.filter(function (x) { return x.client_id === id; })[0];
                 return u
                   ? { clientId: id, username: u.username, avatar: u.avatar || '' }
-                  : { clientId: id, username: String(id).slice(0, 12) + '…', avatar: '' };
+                  : null;
               };
               return {
                 name: d.name,
