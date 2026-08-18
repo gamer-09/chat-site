@@ -870,9 +870,11 @@
       });
 
       ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reactions' }, function (p) {
+        if (p.new.uid === api.uid) return; // already applied locally — no flicker
         api._applyReaction(p.new.room, p.new.message_id, p.new.emoji, p.new.uid, p.new.username, true);
       });
       ch.on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'reactions' }, function (p) {
+        if (p.old.uid === api.uid) return;
         api._applyReaction(p.old.room, p.old.message_id, p.old.emoji, p.old.uid, p.old.username, false);
       });
 
