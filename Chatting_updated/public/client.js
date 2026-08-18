@@ -2108,12 +2108,9 @@
       m.classList.add('open');
       const body = m.querySelector('#up-body');
       body.innerHTML = '<p style="color:var(--text-dim);padding:12px 0">Loading profile…</p>';
-      let d = null;
-      try { d = await window.ChatAPI.publicProfile(username); } catch (e) { console.error(e); }
-      if (!d) {
-        body.innerHTML = `<p style="color:var(--text-dim)">No public activity yet for <b>${utils.escapeHtml(username)}</b>.</p>`;
-        return;
-      }
+      let d = null, err = '';
+      try { d = await window.ChatAPI.publicProfile(username); } catch (e) { console.error(e); err = String(e && e.message || e); }
+      if (!d) d = { username, avatar: 'https://api.dicebear.com/7.x/thumbs/svg?seed=' + encodeURIComponent(username), online: false, room: null, lastSeen: null, messages: 0, roomsCount: 0, images: 0, reactionsReceived: 0, firstSeen: null };
       body.innerHTML = `
         <div style="text-align:center;padding:6px 0 2px">
           <div style="position:relative;display:inline-block">
@@ -2130,7 +2127,8 @@
         </div>
         <div style="text-align:center;font-size:11.5px;color:var(--text-dim);margin-bottom:6px">Here since ${fmtDate(d.firstSeen)}</div>
         <div id="up-idreq"></div>
-        <div style="color:var(--text-dim);font-size:11px;margin-top:10px">Client IDs are private — shared only by explicit approval.</div>`;
+        ${err ? `<div style="color:var(--danger);font-size:11px;margin-top:8px">profile data error: ${utils.escapeHtml(err)}</div>` : ''}
+        <div style="color:var(--text-dim);font-size:11px;margin-top:10px">Client IDs are private — shared only by explicit approval · build ${utils.escapeHtml(window.__BUILD || '?')}</div>`;
       renderIdSection(body.querySelector('#up-idreq'), d.username);
     }
     return { open };
