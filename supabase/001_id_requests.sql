@@ -1,6 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════
 -- REPLICA chat · Client-ID request inbox
 -- Run this ONCE in: Supabase Dashboard → SQL Editor → paste → Run
+-- (idempotent — safe to re-run)
 -- ═══════════════════════════════════════════════════════════════════
 
 create table if not exists public.id_requests (
@@ -20,11 +21,16 @@ create table if not exists public.id_requests (
 alter table public.id_requests enable row level security;
 
 -- helper: the caller's current username(s), via their live presence row
+-- NOTE: presence.uid is TEXT while auth.uid() is UUID → explicit cast
 create or replace function public.my_usernames()
 returns setof text
 language sql stable security definer as $$
-  select username from public.presence where uid = auth.uid();
+  select username from public.presence where uid = auth.uid()::text;
 $$;
+
+drop policy if exists "idreq_insert" on public.id_requests;
+drop policy if exists "idreq_select" on public.id_requests;
+drop policy if exists "idreq_update" on public.id_requests;
 
 -- anyone signed in can SEND a request (as their own current username)
 create policy "idreq_insert" on public.id_requests
@@ -48,5 +54,4 @@ create policy "idreq_update" on public.id_requests
   using ( target_username in (select public.my_usernames()) )
   with check ( target_username in (select public.my_usernames()) );
 
--- nobody deletes request history (keeps an audit trail)
--- (if you ever need cleanup, do it with the service key)
+-- nobody deletes request history (audit trail of disclosures)
