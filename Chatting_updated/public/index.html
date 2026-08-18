@@ -15,7 +15,7 @@
   <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
   <link rel="manifest" href="site.webmanifest">
-  <link id="ptr29-mobile-styles" rel="stylesheet" href="mobile.css?v=260825" media="(max-width: 768px)">
+  <link id="ptr29-mobile-styles" rel="stylesheet" href="mobile.css?v=260826" media="(max-width: 768px)">
   <style>
     :root {
       color-scheme: dark;
@@ -1685,7 +1685,7 @@
               <div style="font-family:monospace;font-size:10px;color:var(--accent);margin-bottom:12px;background:var(--bg);padding:5px 8px;border-radius:6px;border:1px solid var(--border)">a1b2c3d4-e5f6-…</div>
               <div style="margin-bottom:6px;font-size:11px;color:var(--text-dim)">Username</div>
               <div class="demo-input flex1" style="margin-bottom:12px;display:block;color:var(--text)">CoolUser99</div>
-              <div style="margin-bottom:6px;font-size:11px;color:var(--text-dim)">Avatar URL <span style="color:var(--text-dim)">(optional)</span></div>
+              <div style="margin-bottom:6px;font-size:11px;color:var(--text-dim)">Avatar <span style="color:var(--text-dim)">(URL or 📷 upload, optional)</span></div>
               <div class="demo-input flex1" style="margin-bottom:14px;display:block;font-size:9px;color:var(--text-dim)">https://…</div>
               <div class="demo-btn-row" style="justify-content:flex-end">
                 <div class="demo-btn sm-btn highlight-btn">Save Changes</div>
@@ -1698,8 +1698,8 @@
             <p>Click <strong>Edit Profile</strong> to accept the Terms and set a username and optional avatar. Supabase assigns this browser an anonymous identity.</p>
             <ul class="help-tips">
               <li>✏️ <strong>Username</strong> is checked live and must currently be available</li>
-              <li>🖼️ <strong>Avatar URL</strong> can point to an image, or you can leave it blank for a DiceBear avatar</li>
-              <li>🪪 <strong>Client ID</strong> identifies this browser session for private-room membership; clearing site data may make it unrecoverable</li>
+              <li>🖼️ <strong>Avatar</strong> — paste an image URL or tap <strong>📷 Upload picture</strong> (works on phones); leave blank for a DiceBear avatar</li>
+              <li>🪪 <strong>Client ID</strong> identifies this browser; it stays private unless you explicitly approve sharing it; clearing site data may change it</li>
               <li>🗑️ <strong>Delete Profile</strong> removes profile/presence data and local app keys, but does not automatically erase old messages, receipts, reactions, memberships, or uploads</li>
             </ul>
           </div>
@@ -1821,7 +1821,7 @@
               <li>✏️ <strong>Rename</strong> the room (not available for #general)</li>
               <li>🔒 <strong>Privacy</strong> switches between public and access-controlled private membership</li>
               <li>🔑 <strong>Passkey</strong> can be generated, copied, saved, or cleared; it is not an encryption key</li>
-              <li>🛡️ <strong>Admins</strong> and 👥 <strong>members</strong> are managed by Client ID for this room</li>
+              <li>🛡️ <strong>Add Admin / Add User</strong> manage room powers and private-room access; settings show owner &amp; admin usernames (not raw IDs)</li>
               <li>🧹 <strong>Clear</strong> removes the room’s message rows; <strong>Delete Room</strong> is available to the owner or a room admin</li>
               <li>🚫 <strong>No global moderation:</strong> room admins cannot ban a user platform-wide, terminate an identity, delete another profile, or revoke a username</li>
             </ul>
@@ -1869,6 +1869,7 @@
             <ul class="help-tips">
               <li>👁️ <strong>Online presence</strong> updates in real time and stale presence is pruned after a short delay</li>
               <li>🔔 <strong>Room info</strong> shows the owner, live user count, and room-admin count</li>
+              <li>⋮ <strong>Per-person menu</strong> — View profile or Request Client ID (the only place profiles open)</li>
               <li>📬 <strong>Unread badges</strong> mark activity in rooms you are not viewing</li>
               <li>⌨️ <strong>Typing indicators</strong> are temporary realtime broadcasts</li>
               <li>🖼️ <strong>Click an image</strong> to view the authorized signed media URL in the lightbox</li>
@@ -2039,7 +2040,7 @@
     </div>
   </div>
   <script src="vendor/supabase.min.js"></script>
-  <script src="supabase-client.js?v=260825"></script>
-  <script src="client.js?v=260825"></script>
+  <script src="supabase-client.js?v=260826"></script>
+  <script src="client.js?v=260826"></script>
 </body>
 </html>
