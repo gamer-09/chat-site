@@ -708,13 +708,15 @@
       for (var i = 0; i < all.length; i++) {
         if (String(all[i].username || '').toLowerCase() === lc) { pres = all[i]; break; }
       }
+      // LIGHT query: small fields only, capped — never fetch avatars/bodies
       return sb.from('messages')
-        .select('payload->>username,payload->>room,payload->>timestamp,payload->>type,payload->>avatar,payload->>reactions')
+        .select('payload->>room,payload->>timestamp,payload->>type,payload->>reactions')
         .eq('payload->>username', un)
-        .limit(1000)
+        .limit(300)
         .then(function (res) {
+          if (res.error) return null;
           var rows = res.data || [];
-          var rooms = {}, images = 0, react = 0, first = null, last = null, avatar = '';
+          var rooms = {}, images = 0, react = 0, first = null, last = null;
           rows.forEach(function (r) {
             rooms[r.room] = (rooms[r.room] || 0) + 1;
             if (r.type === 'image') images++;
@@ -726,11 +728,10 @@
             var t = Number(r.timestamp) || 0;
             if (t && (!first || t < first)) first = t;
             if (t && (!last || t > last)) last = t;
-            if (!avatar && r.avatar) avatar = r.avatar;
           });
           return {
             username: un,
-            avatar: (pres && pres.avatar) || avatar || defaultAvatar(un),
+            avatar: (pres && pres.avatar) || ('https://api.dicebear.com/7.x/thumbs/svg?seed=' + encodeURIComponent(un)),
             online: !!pres,
             room: pres ? pres.room : null,
             messages: rows.length,

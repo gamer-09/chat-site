@@ -1947,100 +1947,6 @@
     } else prompt('Copy:', t);
   };
 
-  const userProfile = (() => {
-    let ov = null;
-    const stat = (label, v) => `<div class="up-stat"><b>${v}</b><span>${label}</span></div>`;
-    const fmtDate = (t) => t ? new Date(t).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-    function ensure() {
-      if (ov) return ov;
-      ov = document.createElement('div');
-      ov.className = 'modal-overlay';
-      ov.id = 'user-profile-modal';
-      ov.innerHTML = '<div class="modal" style="max-width:440px">' +
-        '<h3>Member profile</h3><div id="up-body"></div>' +
-        '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="secondary" id="up-close" type="button">Close</button></div></div>';
-      document.body.appendChild(ov);
-      ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.remove('open'); });
-      ov.querySelector('#up-close').addEventListener('click', () => ov.classList.remove('open'));
-      return ov;
-    }
-
-    function renderIdSection(box, username) {
-      const me = state.myUsername || '';
-      if (!me || username.toLowerCase() === me.toLowerCase()) {
-        box.innerHTML = '<div style="font-size:11px;color:var(--text-dim);margin-top:10px">This is you — your Client ID lives in Edit Profile.</div>';
-        return;
-      }
-      box.innerHTML = '<p style="color:var(--text-dim);font-size:12px;margin-top:10px">Loading…</p>';
-      window.ChatAPI.inbox().then(rows => {
-        const rel = rows.find(r => r.requester_username === me && r.target_username === username);
-        if (rel && rel.status === 'pending') {
-          box.innerHTML = `<div style="margin-top:10px;font-size:12.5px;color:var(--warning)">⏳ Request pending — sent ${fmtDate(rel.created_at)}</div>`;
-        } else if (rel && rel.status === 'approved' && rel.disclosed_client_id) {
-          box.innerHTML = `<div style="margin-top:10px;font-size:12.5px;color:var(--success)">✅ ${utils.escapeHtml(username)} approved your request:</div>
-            <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
-              <code style="flex:1;font-size:11px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${utils.escapeHtml(rel.disclosed_client_id)}</code>
-              <button class="secondary" type="button" id="up-copy">Copy</button>
-            </div>`;
-          box.querySelector('#up-copy').addEventListener('click', () => copyText(rel.disclosed_client_id));
-        } else {
-          const deniedNote = rel && rel.status === 'denied' ? '<div style="font-size:11.5px;color:var(--danger);margin-top:8px">❌ Your previous request was denied — you may ask again.</div>' : '';
-          box.innerHTML = deniedNote + `<button class="secondary" type="button" id="up-req" style="margin-top:10px">🔑 Request Client ID</button><div id="up-req-form"></div>`;
-          box.querySelector('#up-req').addEventListener('click', () => {
-            const form = box.querySelector('#up-req-form');
-            form.innerHTML = `
-              <textarea id="up-reason" rows="3" placeholder="State your reason (required)…" style="width:100%;margin-top:8px"></textarea>
-              <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-                <button class="secondary" type="button" id="up-cancel">Cancel</button>
-                <button type="button" id="up-send">Send request</button>
-              </div>`;
-            form.querySelector('#up-cancel').addEventListener('click', () => { form.innerHTML = ''; });
-            form.querySelector('#up-send').addEventListener('click', () => {
-              const why = form.querySelector('#up-reason').value.trim();
-              if (!why) { showToast('Please state a reason', 'error'); return; }
-              window.ChatAPI.sendIdRequest(username, why).then(r => {
-                if (r.ok) { showToast('Request sent to ' + username, 'success'); renderIdSection(box, username); }
-                else if (r.error === 'already_pending') showToast('A request is already pending', 'error');
-                else showToast(r.error || 'Failed to send', 'error');
-              });
-            });
-          });
-        }
-      }).catch(() => { box.innerHTML = ''; });
-    }
-
-    async function open(username) {
-      const m = ensure();
-      m.classList.add('open');
-      const body = m.querySelector('#up-body');
-      body.innerHTML = '<p style="color:var(--text-dim);padding:12px 0">Loading profile…</p>';
-      let d = null;
-      try { d = await window.ChatAPI.publicProfile(username); } catch (e) { console.error(e); }
-      if (!d) { body.innerHTML = '<p style="color:var(--text-dim)">No public data for this user.</p>'; return; }
-      const topRooms = Object.entries(d.roomBreakdown || {}).sort((x, y) => y[1] - x[1]).slice(0, 3);
-      body.innerHTML = `
-        <div style="display:flex;gap:14px;align-items:center;margin:6px 0 14px">
-          <img src="${d.avatar}" alt="" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--border-light)">
-          <div>
-            <div style="font-size:18px;font-weight:600;color:var(--text)">${utils.escapeHtml(d.username)}</div>
-            <div style="font-size:12px;color:${d.online ? 'var(--success)' : 'var(--text-dim)'}">${d.online ? '● online now' + (d.room ? ' in #' + utils.escapeHtml(d.room) : '') : '○ offline'}</div>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-          ${stat('Messages', d.messages)}${stat('Rooms', d.roomsCount)}${stat('Images', d.images)}${stat('Reactions', d.reactionsReceived)}
-        </div>
-        <div style="font-size:12.5px;color:var(--text-muted);line-height:1.9">
-          <div>📅 First active: <b style="color:var(--text)">${fmtDate(d.firstSeen)}</b></div>
-          <div>🕒 Last active: <b style="color:var(--text)">${fmtDate(d.lastActive)}</b></div>
-          ${topRooms.length ? '<div>💬 Most in: <b style="color:var(--text)">' + topRooms.map(([r, c]) => '#' + utils.escapeHtml(r) + ' (' + c + ')').join(', ') + '</b></div>' : ''}
-        </div>
-        <div id="up-idreq"></div>
-        <div style="color:var(--text-dim);font-size:11px;margin-top:10px">Client IDs are private — shared only by explicit approval.</div>`;
-      renderIdSection(body.querySelector('#up-idreq'), d.username);
-    }
-    return { open };
-  })();
-
   const inboxUI = (() => {
     let ov = null;
     const fmtDate = (t) => t ? new Date(t).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
@@ -2128,6 +2034,104 @@
   setInterval(refreshInboxBadge, 30000);
   const inboxBtnEl = document.getElementById('inbox-btn');
   if (inboxBtnEl) inboxBtnEl.addEventListener('click', () => { inboxUI.open(); });
+
+  // ── Member profiles (rebuilt: light data, no heavy fields) ─────────────────
+  const userProfile = (() => {
+    let ov = null;
+    const stat = (label, v) => `<div class="up-stat"><b>${v}</b><span>${label}</span></div>`;
+    const fmtDate = (t) => t ? new Date(t).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    function ensure() {
+      if (ov) return ov;
+      ov = document.createElement('div');
+      ov.className = 'modal-overlay';
+      ov.id = 'user-profile-modal';
+      ov.innerHTML = '<div class="modal" style="max-width:440px">' +
+        '<h3>Member profile</h3><div id="up-body"></div>' +
+        '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="secondary" id="up-close" type="button">Close</button></div></div>';
+      document.body.appendChild(ov);
+      ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.remove('open'); });
+      ov.querySelector('#up-close').addEventListener('click', () => ov.classList.remove('open'));
+      return ov;
+    }
+
+    function renderIdSection(box, username) {
+      const me = state.myUsername || '';
+      if (!me || username.toLowerCase() === me.toLowerCase()) {
+        box.innerHTML = '<div style="font-size:11px;color:var(--text-dim);margin-top:10px">This is you — your Client ID lives in Edit Profile.</div>';
+        return;
+      }
+      box.innerHTML = '<p style="color:var(--text-dim);font-size:12px;margin-top:10px">Loading…</p>';
+      window.ChatAPI.inbox().then(rows => {
+        const rel = rows.find(r => r.requester_username === me && r.target_username === username);
+        if (rel && rel.status === 'pending') {
+          box.innerHTML = `<div style="margin-top:10px;font-size:12.5px;color:var(--warning)">⏳ Request pending — sent ${fmtDate(rel.created_at)}</div>`;
+        } else if (rel && rel.status === 'approved' && rel.disclosed_client_id) {
+          box.innerHTML = `<div style="margin-top:10px;font-size:12.5px;color:var(--success)">✅ ${utils.escapeHtml(username)} approved your request:</div>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+              <code style="flex:1;font-size:11px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${utils.escapeHtml(rel.disclosed_client_id)}</code>
+              <button class="secondary" type="button" id="up-copy">Copy</button>
+            </div>`;
+          box.querySelector('#up-copy').addEventListener('click', () => copyText(rel.disclosed_client_id));
+        } else {
+          const deniedNote = rel && rel.status === 'denied' ? '<div style="font-size:11.5px;color:var(--danger);margin-top:8px">❌ Your previous request was denied — you may ask again.</div>' : '';
+          box.innerHTML = deniedNote + `<button class="secondary" type="button" id="up-req" style="margin-top:10px">🔑 Request Client ID</button><div id="up-req-form"></div>`;
+          box.querySelector('#up-req').addEventListener('click', () => {
+            const form = box.querySelector('#up-req-form');
+            form.innerHTML = `
+              <textarea id="up-reason" rows="3" placeholder="State your reason (required)…" style="width:100%;margin-top:8px"></textarea>
+              <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+                <button class="secondary" type="button" id="up-cancel">Cancel</button>
+                <button type="button" id="up-send">Send request</button>
+              </div>`;
+            form.querySelector('#up-cancel').addEventListener('click', () => { form.innerHTML = ''; });
+            form.querySelector('#up-send').addEventListener('click', () => {
+              const why = form.querySelector('#up-reason').value.trim();
+              if (!why) { showToast('Please state a reason', 'error'); return; }
+              window.ChatAPI.sendIdRequest(username, why).then(r => {
+                if (r.ok) { showToast('Request sent to ' + username, 'success'); renderIdSection(box, username); }
+                else if (r.error === 'already_pending') showToast('A request is already pending', 'error');
+                else showToast(r.error || 'Failed to send', 'error');
+              });
+            });
+          });
+        }
+      }).catch(() => { box.innerHTML = ''; });
+    }
+
+    async function open(username) {
+      const m = ensure();
+      m.classList.add('open');
+      const body = m.querySelector('#up-body');
+      body.innerHTML = '<p style="color:var(--text-dim);padding:12px 0">Loading profile…</p>';
+      let d = null;
+      try { d = await window.ChatAPI.publicProfile(username); } catch (e) { console.error(e); }
+      if (!d) {
+        body.innerHTML = `<p style="color:var(--text-dim)">No public activity yet for <b>${utils.escapeHtml(username)}</b>.</p>`;
+        return;
+      }
+      const topRooms = Object.entries(d.roomBreakdown || {}).sort((x, y) => y[1] - x[1]).slice(0, 3);
+      body.innerHTML = `
+        <div style="display:flex;gap:14px;align-items:center;margin:6px 0 14px">
+          <img src="${d.avatar}" alt="" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--border-light)">
+          <div>
+            <div style="font-size:18px;font-weight:600;color:var(--text)">${utils.escapeHtml(d.username)}</div>
+            <div style="font-size:12px;color:${d.online ? 'var(--success)' : 'var(--text-dim)'}">${d.online ? '● online now' + (d.room ? ' in #' + utils.escapeHtml(d.room) : '') : '○ offline'}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          ${stat('Messages', d.messages)}${stat('Rooms', d.roomsCount)}${stat('Images', d.images)}${stat('Reactions', d.reactionsReceived)}
+        </div>
+        <div style="font-size:12.5px;color:var(--text-muted);line-height:1.9">
+          <div>📅 First active: <b style="color:var(--text)">${fmtDate(d.firstSeen)}</b></div>
+          <div>🕒 Last active: <b style="color:var(--text)">${fmtDate(d.lastActive)}</b></div>
+          ${topRooms.length ? '<div>💬 Most in: <b style="color:var(--text)">' + topRooms.map(([r, c]) => '#' + utils.escapeHtml(r) + ' (' + c + ')').join(', ') + '</b></div>' : ''}
+        </div>
+        <div id="up-idreq"></div>
+        <div style="color:var(--text-dim);font-size:11px;margin-top:10px">Client IDs are private — shared only by explicit approval.</div>`;
+      renderIdSection(body.querySelector('#up-idreq'), d.username);
+    }
+    return { open };
+  })();
 
   // One delegated listener opens profiles from anywhere
   document.addEventListener('click', (e) => {
