@@ -2123,7 +2123,9 @@
       { sel: ['#mobile-search-bar', '#search-messages-input'], mobile: 'chat', title: '6 · Search', html: 'Lost something? Search everything said in the current room.' },
       { sel: ['#online-panel'], mobile: 'online', title: '7 · Who\'s here', html: 'Live presence — see who is online right now and which room they\'re in.' },
       { sel: ['#room-settings-btn'], mobile: 'rooms', title: '8 · Room controls', html: 'Rename the room, set a passkey, manage admins & members, or leave a room.' },
-      { sel: ['#help-btn'], title: '9 · Never lost again', html: 'The ❓ button reopens the full written guide — and lets you replay this tour any time. That\'s it… you\'re ready! 🎉' },
+      { sel: null, title: '10 · Member profiles', html: 'Click any <b>name or avatar</b> — in chat, the online list, or member chips — to open a public profile: presence, stats and activity. Client IDs stay hidden.' },
+      { sel: ['#inbox-btn'], title: '11 · Inbox & ID requests', html: 'From a profile, <b>🔑 Request Client ID</b> sends a reasoned request. The person decides in their <b>📥 Inbox</b> — approve shares their ID once, deny shares nothing.' },
+      { sel: ['#help-btn'], title: '12 · Never lost again', html: 'The ❓ button reopens the full written guide — and lets you replay this tour any time. That\'s it… you\'re ready! 🎉' },
     ];
     let overlay, spot, card, titleEl, bodyEl, countEl, backBtn, nextBtn, skipBtn;
     let idx = 0, active = false;
