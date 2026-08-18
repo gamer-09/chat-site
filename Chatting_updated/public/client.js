@@ -1903,6 +1903,132 @@
     else if (mq.addListener) mq.addListener(sync);
   };
 
+  // ── Guided onboarding tour ──────────────────────────────────────────────────
+  const tour = (() => {
+    const KEY = 'ptr29_tour_done_v1';
+    const steps = [
+      { sel: null, title: 'Welcome 👋', html: 'Quick live tour — about 60 seconds. I\'ll point at each part of the site and show you what it does. Use <b>Next</b> to continue, <b>Skip</b> to jump straight in.' },
+      { sel: ['#user-section'], mobile: 'rooms', title: '1 · Your identity', html: 'This is you. Pick a username to join rooms. <b>Edit Profile</b> lets you upload a profile picture (📷 works on phones) and shows your Client ID.' },
+      { sel: ['#room-list'], mobile: 'rooms', title: '2 · Rooms', html: 'Tap any room to jump into it. <b>+ New Room</b> creates your own — in ⚙️ Settings you can make it private and lock it with a passkey.' },
+      { sel: ['#text'], mobile: 'chat', title: '3 · Say something', html: 'Type here and hit <b>Send ➤</b>. Your messages appear on the <b>right</b>; everyone else\'s appear on the left.' },
+      { sel: ['#emoji-btn'], mobile: 'chat', title: '4 · Emoji & media', html: '😀 inserts emoji. 📷 sends photos — they show as real images. 📎 sends files. Messages support **markdown** too.' },
+      { sel: ['#messages'], mobile: 'chat', title: '5 · Message powers', html: 'Right-click (or tap) any message to <b>Reply</b> or <b>React</b>. On <i>your own</i> messages you also get <b>Edit</b> and <b>Delete</b>.' },
+      { sel: ['#mobile-search-bar', '#search-messages-input'], mobile: 'chat', title: '6 · Search', html: 'Lost something? Search everything said in the current room.' },
+      { sel: ['#online-panel'], mobile: 'online', title: '7 · Who\'s here', html: 'Live presence — see who is online right now and which room they\'re in.' },
+      { sel: ['#room-settings-btn'], mobile: 'rooms', title: '8 · Room controls', html: 'Rename the room, set a passkey, manage admins & members, or leave a room.' },
+      { sel: ['#help-btn'], title: '9 · Never lost again', html: 'The ❓ button reopens the full written guide — and lets you replay this tour any time. That\'s it… you\'re ready! 🎉' },
+    ];
+    let overlay, spot, card, titleEl, bodyEl, countEl, backBtn, nextBtn, skipBtn;
+    let idx = 0, active = false;
+
+    function build() {
+      overlay = document.createElement('div'); overlay.id = 'tour-overlay';
+      spot = document.createElement('div'); spot.id = 'tour-spot';
+      card = document.createElement('div'); card.id = 'tour-card';
+      card.innerHTML = '<h4 id="tour-title"></h4><p id="tour-body"></p>' +
+        '<div class="tour-nav"><span class="tour-step-count" id="tour-count"></span>' +
+        '<button class="secondary" id="tour-skip" type="button">Skip</button>' +
+        '<button class="secondary" id="tour-back" type="button">Back</button>' +
+        '<button id="tour-next" type="button">Next ➤</button></div>';
+      document.body.append(overlay, spot, card);
+      titleEl = card.querySelector('#tour-title');
+      bodyEl  = card.querySelector('#tour-body');
+      countEl = card.querySelector('#tour-count');
+      backBtn = card.querySelector('#tour-back');
+      nextBtn = card.querySelector('#tour-next');
+      skipBtn = card.querySelector('#tour-skip');
+      nextBtn.addEventListener('click', () => { idx >= steps.length - 1 ? end(true) : show(idx + 1); });
+      backBtn.addEventListener('click', () => show(Math.max(0, idx - 1)));
+      skipBtn.addEventListener('click', () => end(true));
+      window.addEventListener('resize', () => { if (active) place(); });
+    }
+
+    function targetFor(st) {
+      for (const ssel of (st.sel || [])) {
+        const t = document.querySelector(ssel);
+        if (t && t.getClientRects().length) return t;
+      }
+      return null;
+    }
+
+    function place() {
+      const st = steps[idx];
+      const isMobile = document.body.classList.contains('ptr29-mobile');
+      if (st.mobile && isMobile) setMobileView(st.mobile);
+      const target = targetFor(st);
+      if (target) {
+        try { target.scrollIntoView({ block: 'center' }); } catch {}
+        const r = target.getBoundingClientRect();
+        const pad = 6;
+        spot.style.display = 'block';
+        spot.style.left   = (r.left - pad) + 'px';
+        spot.style.top    = (r.top - pad) + 'px';
+        spot.style.width  = (r.width + pad * 2) + 'px';
+        spot.style.height = (r.height + pad * 2) + 'px';
+      } else {
+        spot.style.display = 'none';
+      }
+      titleEl.textContent = st.title;
+      bodyEl.innerHTML = st.html;
+      countEl.textContent = (idx + 1) + ' / ' + steps.length;
+      backBtn.style.display = idx === 0 ? 'none' : '';
+      nextBtn.textContent = idx === steps.length - 1 ? 'Finish 🎉' : 'Next ➤';
+      requestAnimationFrame(() => {
+        const cw = card.offsetWidth, ch = card.offsetHeight;
+        card.style.display = 'block';
+        if (isMobile) {
+          card.style.left = '12px'; card.style.right = '12px';
+          card.style.width = 'auto'; card.style.top = 'auto';
+          card.style.bottom = 'calc(var(--mobile-nav-h, 56px) + 12px)';
+          return;
+        }
+        card.style.right = 'auto'; card.style.width = 'min(360px, 92vw)';
+        let top, left;
+        if (target) {
+          const r = target.getBoundingClientRect();
+          top = r.bottom + 14;
+          if (top + ch > innerHeight - 12) top = Math.max(12, r.top - ch - 14);
+          left = Math.min(Math.max(12, r.left), Math.max(12, innerWidth - cw - 12));
+        } else {
+          top = Math.max(12, (innerHeight - ch) / 2);
+          left = Math.max(12, (innerWidth - cw) / 2);
+        }
+        card.style.top = top + 'px'; card.style.left = left + 'px';
+        card.style.bottom = 'auto';
+      });
+    }
+
+    function show(i) { idx = i; active = true; overlay.classList.add('open'); place(); }
+    function end(done) {
+      active = false;
+      overlay.classList.remove('open');
+      spot.style.display = 'none';
+      card.style.display = 'none';
+      if (done) { try { localStorage.setItem(KEY, '1'); } catch {} }
+    }
+    function start() { if (!overlay) build(); idx = 0; show(0); }
+    return { start, end };
+  })();
+
+  // Replay entry inside the help modal
+  const helpInner = document.querySelector('.help-modal-inner');
+  if (helpInner && !document.getElementById('tour-replay-btn')) {
+    const tb = document.createElement('button');
+    tb.id = 'tour-replay-btn'; tb.type = 'button'; tb.className = 'secondary';
+    tb.textContent = '▶ Replay guided tour';
+    tb.style.margin = '10px 0 0';
+    tb.addEventListener('click', () => {
+      document.getElementById('help-modal').classList.remove('open');
+      setTimeout(() => tour.start(), 250);
+    });
+    helpInner.appendChild(tb);
+  }
+
+  // Auto-start for first-time visitors
+  let tourDone = false;
+  try { tourDone = !!localStorage.getItem('ptr29_tour_done_v1'); } catch {}
+  if (!tourDone) setTimeout(() => tour.start(), 900);
+
   init();
   initMobile();  // Run after init
 

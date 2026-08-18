@@ -1373,6 +1373,20 @@
     /* iOS tap highlight off, better scroll */
     * { -webkit-tap-highlight-color: transparent; }
     main, #messages, #room-list, #online-list { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+
+    /* ── Guided onboarding tour ─────────────────────────────────────────── */
+    #tour-overlay{position:fixed;inset:0;z-index:99989;display:none}
+    #tour-overlay.open{display:block}
+    #tour-spot{position:fixed;z-index:99990;display:none;border-radius:12px;pointer-events:none;
+      box-shadow:0 0 0 9999px rgba(4,8,16,.78),0 0 0 2px var(--accent),0 0 22px var(--accent);
+      transition:left .3s ease,top .3s ease,width .3s ease,height .3s ease}
+    #tour-card{position:fixed;z-index:99991;display:none;max-width:min(360px,92vw);
+      background:var(--panel);border:1px solid var(--border-light);border-radius:14px;
+      padding:16px 16px 12px;box-shadow:0 18px 50px rgba(0,0,0,.55)}
+    #tour-card h4{margin:0 0 6px;color:var(--text);font-size:15px}
+    #tour-card p{margin:0 0 12px;color:var(--text-muted);font-size:13px;line-height:1.55}
+    #tour-card .tour-nav{display:flex;gap:8px;align-items:center}
+    #tour-card .tour-step-count{margin-right:auto;color:var(--text-dim);font-size:11px}
   </style>
 </head>
 <body>
