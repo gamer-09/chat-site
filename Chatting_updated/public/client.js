@@ -365,6 +365,10 @@
         showToast('Username must be at least 2 characters', 'error');
         return resolve(false);
       }
+      if (val.toLowerCase() === 'anonymous') {
+        showToast('"Anonymous" is reserved — please choose another name', 'error');
+        return resolve(false);
+      }
       socket.emit('check-username', { username: val }, (resp) => {
         const saved = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
         const isOwnSaved = String(saved.username || '').trim().toLowerCase() === val.toLowerCase();
@@ -413,6 +417,7 @@
       if (!elements.roomList) return;
       elements.roomList.innerHTML = '';
       state.rooms.forEach(roomData => {
+        if (String(roomData.name).startsWith('tour-') && !state.tourMode) return;
         const el = document.createElement('div');
         el.className = `room${roomData.name === state.currentRoom ? ' active' : ''}${roomData.isPrivate ? ' room-private' : ''}`;
         const unread = state.unreadCounts[roomData.name] || 0;
@@ -433,7 +438,8 @@
       // On mobile, username is hidden in the chat form — fall back to stored profile
       const storedProfile = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
       const currentUsername = elements.username.value.trim() || storedProfile.username || '';
-      if (!currentUsername) {
+      const isTourRoom = String(roomName).startsWith('tour-');
+      if (!currentUsername && !isTourRoom) {
         showToast('Please enter a username first', 'error');
         // On mobile: stay on rooms view so they can set username; on desktop focus the field
         if (elements.username.offsetParent !== null) elements.username.focus();
@@ -462,7 +468,7 @@
       socket.emit('join', {
         room: roomName,
         clientId: state.myClientId,
-        username: currentUsername,
+        username: currentUsername || '🎓 guest',
         avatar: elements.avatar.value || storedProfile.avatar || '',
         passkey: passkey || '',
       });
@@ -892,6 +898,11 @@
 
     send: (text) => {
       if (!text.trim() || !state.joined) return;
+      const reg = (utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {}) || {}).username || (elements.username && elements.username.value.trim());
+      if (String(state.currentRoom).startsWith('tour-') && !reg) {
+        showToast('👀 View-only during the tour — register & accept the Terms to chat', 'error');
+        return;
+      }
       socket.emit('chat-message', { text, replyTo: state.replyTarget?.id || '' });
       messages.clearReply();
     },
@@ -1083,6 +1094,8 @@
       try { const d = JSON.parse(localStorage.getItem(CONSTANTS.STORAGE_KEY) || '{}'); state.myUsername = d.username || ''; } catch {}
       // keep the server-side profile row (name + avatar) in sync
       if (state.myUsername) socket.emit('update-profile', { room: state.currentRoom, username: state.myUsername, avatar: (utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {}) || {}).avatar || '' });
+      // silently remove leftover tour rooms from crashed tours
+      if (window.ChatAPI.tourRooms) window.ChatAPI.tourRooms().then(l => (l || []).forEach(n => window.ChatAPI.deleteRoom(n).catch(() => {}))).catch(() => {});
 
       // Re-enter saved passkeys so the server restores ephemeral access after reconnect
       const savedPasskeys = utils.loadFromStorage(CONSTANTS.PASSKEYS_KEY, {});
@@ -2218,25 +2231,38 @@
     if (openMenu && !e.target.closest('.online-menu')) closeMenu();
   });
 
-  // ── Guided onboarding tour ──────────────────────────────────────────────────
+  // ── Guided onboarding tour (live demo rooms) ───────────────────────────────
   const tour = (() => {
     const KEY = 'ptr29_tour_done_v1';
-    const steps = [
-      { sel: null, title: 'Welcome 👋', html: 'Quick live tour — about 60 seconds. I\'ll point at each part of the site and show you what it does. Use <b>Next</b> to continue, <b>Skip</b> to jump straight in.' },
-      { sel: ['#user-section'], mobile: 'rooms', title: '1 · Your identity', html: 'This is you. Pick a username to join rooms. <b>Edit Profile</b> lets you upload a profile picture (📷 works on phones) and shows your Client ID.' },
-      { sel: ['#room-list'], mobile: 'rooms', title: '2 · Rooms', html: 'Tap any room to jump into it. <b>+ New Room</b> creates your own — in ⚙️ Settings you can make it private and lock it with a passkey.' },
-      { sel: ['#text'], mobile: 'chat', title: '3 · Say something', html: 'Type here and hit <b>Send ➤</b>. Your messages appear on the <b>right</b>; everyone else\'s appear on the left.' },
-      { sel: ['#emoji-btn'], mobile: 'chat', title: '4 · Emoji & media', html: '😀 inserts emoji. 📷 sends photos — they show as real images. 📎 sends files. Messages support **markdown** too.' },
-      { sel: ['#messages'], mobile: 'chat', title: '5 · Message powers', html: 'Right-click (or tap) any message to <b>Reply</b> or <b>React</b>. On <i>your own</i> messages you also get <b>Edit</b> and <b>Delete</b>.' },
-      { sel: ['#mobile-search-bar', '#search-messages-input'], mobile: 'chat', title: '6 · Search', html: 'Lost something? Search everything said in the current room.' },
-      { sel: ['#online-panel'], mobile: 'online', title: '7 · Who\'s here', html: 'Live presence — see who is online right now and which room they\'re in.' },
-      { sel: ['#room-settings-btn'], mobile: 'rooms', title: '8 · Room controls', html: 'Rename the room, set a passkey, manage admins & members, or leave a room.' },
-      { sel: null, title: '10 · Member profiles', html: 'In <b>Online Users</b>, tap the <b>⋮</b> next to a person → <b>View profile</b> (avatar, status, public activity) or <b>🔑 Request Client ID</b>. Client IDs stay hidden unless the person approves.' },
-      { sel: ['#inbox-btn'], title: '11 · Inbox & ID requests', html: 'Requests arrive in the <b>📥 Inbox</b> with the requester\'s reason. <b>Approve</b> shares your ID once; <b>Deny</b> shares nothing. Your own sent requests are tracked there too.' },
-      { sel: ['#help-btn'], title: '12 · Never lost again', html: 'The ❓ button reopens the full written guide — and lets you replay this tour any time. That\'s it… you\'re ready! 🎉' },
-    ];
     let overlay, spot, card, titleEl, bodyEl, countEl, backBtn, nextBtn, skipBtn;
-    let idx = 0, active = false;
+    let idx = 0, active = false, steps = [];
+    let pubRoom = '', privRoom = '';
+
+    function openSettings() { if (elements.roomSettingsPanel) elements.roomSettingsPanel.style.display = 'block'; }
+    function closeSettings() { if (elements.roomSettingsPanel) elements.roomSettingsPanel.style.display = 'none'; }
+    async function joinRoom(name) {
+      if (!name || state.currentRoom === name) return;
+      rooms.join(name);
+      await new Promise(r => setTimeout(r, 400));
+    }
+
+    function buildSteps() {
+      return [
+        { title: 'Welcome 🎓', html: 'This live tour creates two <b>temporary rooms</b> and walks you through the whole site — including how to manage rooms you own. The demo rooms are <b>deleted automatically</b> when the tour ends.' },
+        { sel: ['#user-section'], mobile: 'rooms', title: '1 · Browsing as a guest', html: 'You can look around everywhere right now. Chatting unlocks once you register a username and accept the Terms — and the name “Anonymous” is reserved, so pick something unique.' },
+        { sel: ['#room-list'], mobile: 'rooms', title: '2 · Your demo rooms', html: `The tour just created <b>#${pubRoom}</b> (public) and <b>🔒 #${privRoom}</b> (private). You own both for the duration of this tour — see them in the sidebar.` },
+        { sel: ['#messages'], mobile: 'chat', enter: async () => { closeSettings(); await joinRoom(pubRoom); }, title: '3 · Look around', html: 'You are inside the public demo room. Reading is open to you as a guest — presence, messages, everything.' },
+        { sel: ['#text'], mobile: 'chat', title: '4 · Sending is locked', html: 'Try typing and hitting Send: the app explains that chatting unlocks after registration + Terms. Until then you are view-only in demo rooms.' },
+        { sel: ['#room-settings-panel'], enter: async () => { openSettings(); }, title: '5 · Room management', html: 'The control panel for a room you <b>own</b>: rename, privacy, passkey, admins, users, clear, delete. This is exactly what you get with your own rooms.' },
+        { sel: ['#rename-input'], enter: async () => { openSettings(); }, title: '6 · Rename', html: 'Owners can rename their rooms here (never #general).' },
+        { sel: ['#save-privacy-btn'], enter: async () => { openSettings(); }, title: '7 · Privacy & passkey', html: 'Flip public ↔ private, generate a passkey, copy it, share it with people you trust.' },
+        { sel: ['#add-admin-row'], enter: async () => { openSettings(); }, title: '8 · Admins & users', html: '<b>Add Admin</b> grants management powers; <b>Add User</b> grants private-room access. Names are shown, not raw IDs.' },
+        { sel: ['#room-settings-panel'], mobile: 'rooms', enter: async () => { await joinRoom(privRoom); openSettings(); }, title: '9 · Private room', html: `Now inside <b>🔒 #${privRoom}</b>. Everyone except owner/admins/members needs the passkey just to get in.` },
+        { sel: ['#leave-btn'], enter: async () => { openSettings(); }, title: '10 · Cleanup', html: 'Leave, Clear, or Delete rooms you own. When this tour finishes (or is skipped), both demo rooms are removed automatically.' },
+        { sel: ['#online-panel'], mobile: 'online', enter: async () => { closeSettings(); }, title: '11 · People', html: 'The Online list shows live presence; the <b>⋮</b> menu opens profiles and Client-ID requests.' },
+        { sel: ['#inbox-btn'], title: '12 · You\'re ready 🎉', html: '📥 Inbox tracks ID requests, ❓ reopens the full guide, 🎓 replays this tour. Finishing now deletes the demo rooms.' },
+      ];
+    }
 
     function build() {
       overlay = document.createElement('div'); overlay.id = 'tour-overlay';
@@ -2254,8 +2280,8 @@
       backBtn = card.querySelector('#tour-back');
       nextBtn = card.querySelector('#tour-next');
       skipBtn = card.querySelector('#tour-skip');
-      nextBtn.addEventListener('click', () => { idx >= steps.length - 1 ? end(true) : show(idx + 1); });
-      backBtn.addEventListener('click', () => show(Math.max(0, idx - 1)));
+      nextBtn.addEventListener('click', async () => { idx >= steps.length - 1 ? end(true) : await show(idx + 1); });
+      backBtn.addEventListener('click', async () => { await show(Math.max(0, idx - 1)); });
       skipBtn.addEventListener('click', () => end(true));
       window.addEventListener('resize', () => { if (active) place(); });
     }
@@ -2270,6 +2296,7 @@
 
     function place() {
       const st = steps[idx];
+      if (!st) return;
       const isMobile = document.body.classList.contains('ptr29-mobile');
       if (st.mobile && isMobile) setMobileView(st.mobile);
       const target = targetFor(st);
@@ -2315,15 +2342,62 @@
       });
     }
 
-    function show(i) { idx = i; active = true; overlay.classList.add('open'); place(); }
+    async function show(i) {
+      idx = i; active = true; overlay.classList.add('open');
+      const st = steps[idx];
+      if (st && st.enter) { try { await st.enter(); } catch {} await new Promise(r => setTimeout(r, 150)); }
+      place();
+    }
+
+    async function setup() {
+      state.tourMode = true;
+      try {
+        const left = await window.ChatAPI.tourRooms();
+        for (const n of left || []) { try { await window.ChatAPI.deleteRoom(n); } catch {} }
+      } catch {}
+      const suf = Math.random().toString(36).slice(2, 7);
+      pubRoom = 'tour-public-' + suf;
+      privRoom = 'tour-private-' + suf;
+      try { await window.ChatAPI.createRoom(pubRoom, false); } catch {}
+      try { await window.ChatAPI.createRoom(privRoom, true); } catch {}
+      rooms.fetch();
+    }
+
+    function cleanup() {
+      state.tourMode = false;
+      closeSettings();
+      const a = pubRoom, b = privRoom;
+      pubRoom = privRoom = '';
+      if (state.currentRoom === a || state.currentRoom === b) {
+        const stored = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
+        if (stored.username) { rooms.join('general'); }
+        else {
+          state.currentRoom = 'general'; state.joined = false;
+          if (elements.messages) elements.messages.innerHTML = '';
+          if (elements.roomName) elements.roomName.textContent = '#general';
+        }
+      }
+      if (a) window.ChatAPI.deleteRoom(a).catch(() => {});
+      if (b) window.ChatAPI.deleteRoom(b).catch(() => {});
+      setTimeout(() => rooms.fetch(), 400);
+    }
+
     function end(done) {
       active = false;
       overlay.classList.remove('open');
       spot.style.display = 'none';
       card.style.display = 'none';
       if (done) { try { localStorage.setItem(KEY, '1'); } catch {} }
+      cleanup();
     }
-    function start() { if (!overlay) build(); idx = 0; show(0); }
+
+    async function start() {
+      if (!overlay) build();
+      await setup();
+      steps = buildSteps();
+      idx = 0;
+      await show(0);
+    }
     return { start, end };
   })();
 
@@ -2355,7 +2429,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260832').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260833').catch(() => {});
     });
   }
 })();

@@ -148,6 +148,7 @@
       if (!raw) return Promise.resolve({ available: false, error: 'empty' });
       if (raw.length < 2) return Promise.resolve({ available: false, error: 'too_short' });
       if (raw.length > 50) return Promise.resolve({ available: false, error: 'too_long' });
+      if (raw.toLowerCase() === 'anonymous') return Promise.resolve({ available: false, error: 'reserved' });
       var cid = api._clientId || api.uid || '';
       return sb.rpc('username_available', { un: raw, cid: cid }).then(function (res) {
         if (res.error) {
@@ -712,6 +713,15 @@
         disclosed_client_id: approve ? (api._clientId || api.uid) : null
       }).eq('id', id).eq('target_username', String(api._username || ''))
         .then(function (res) { return res.error ? { ok: false, error: res.error.message } : { ok: true }; });
+    },
+
+    tourRooms: function () {
+      var cid = api._clientId || api.uid;
+      return sb.from('rooms').select('name,owner_id').like('name', 'tour-%')
+        .then(function (r) {
+          return (r.data || []).filter(function (x) { return x.owner_id === cid; })
+            .map(function (x) { return x.name; });
+        }).catch(function () { return []; });
     },
 
     purgeMessagesFor: function (username) {
