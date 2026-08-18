@@ -1,6 +1,31 @@
 (() => {
   // Socket.IO is replaced by the Supabase adapter (window.ChatAPI) for the
   // GitHub Pages edition — same event/emit interface, backend lives in the cloud.
+  // Crash-proof fallback: if supabase-js or the facade failed to load
+  // (blocked CDN, dead network), boot anyway in offline mode instead of
+  // white-screening.
+  if (!window.ChatAPI) {
+    window.ChatAPI = {
+      uid: null, _joined: false, _offline: true,
+      on: function () { return this; },
+      emit: function (ev, p, cb) { if (typeof cb === 'function') cb({ error: 'offline' }); return this; },
+      presenceAll: function () { return []; },
+      heartbeat: function () { return Promise.resolve(); },
+      inbox: function () { return Promise.resolve([]); },
+      publicProfile: function () { return Promise.resolve(null); },
+      sendIdRequest: function () { return Promise.resolve({ ok: false, error: 'offline' }); },
+      resolveRequest: function () { return Promise.resolve({ ok: false, error: 'offline' }); },
+      upload: function () { return Promise.resolve({ ok: false, error: 'offline' }); },
+      checkUsername: function () { return Promise.resolve({ available: false, error: 'offline' }); },
+      searchMessages: function () { return Promise.resolve({ results: [] }); },
+      createRoom: function () { return Promise.resolve({ ok: false, error: 'offline' }); },
+      deleteRoom: function () { return Promise.resolve({ ok: false, error: 'offline' }); },
+      clearRoom: function () { return Promise.resolve({ ok: false, error: 'offline' }); },
+      deleteUser: function () { return Promise.resolve(false); },
+      updateProfile: function () { return Promise.resolve(); },
+      setClientId: function () {},
+    };
+  }
   const socket = window.ChatAPI;
 
   // ── DOM Elements ───────────────────────────────────────────────────────────
@@ -1643,6 +1668,7 @@
 
   // ── Init ───────────────────────────────────────────────────────────────────
   const init = () => {
+    if (window.ChatAPI._offline) setTimeout(() => showToast('Backend unreachable — offline mode. Check your connection and reload.', 'error'), 600);
     profile.load();
     state.unreadCounts = utils.loadFromStorage(CONSTANTS.UNREAD_KEY, {});
     Object.entries(socketHandlers).forEach(([event, handler]) => socket.on(event, handler));
