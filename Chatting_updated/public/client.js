@@ -1699,19 +1699,25 @@
 
   function applyLightTheme() {
     const r = document.documentElement;
+    r.style.setProperty('color-scheme',   'light');
     r.style.setProperty('--bg',           '#f8fafc');
-    r.style.setProperty('--panel',        '#f1f5f9');
+    r.style.setProperty('--panel',        '#eef2f7');
     r.style.setProperty('--panel2',       '#ffffff');
-    r.style.setProperty('--border',       '#e2e8f0');
-    r.style.setProperty('--border-light', '#cbd5e1');
-    r.style.setProperty('--text',         '#0f172a');
-    r.style.setProperty('--text-muted',   '#475569');
-    r.style.setProperty('--text-dim',     '#94a3b8');
+    r.style.setProperty('--border',       '#dbe3ec');
+    r.style.setProperty('--border-light', '#b6c2d2');
+    r.style.setProperty('--text',         '#0b1526');
+    r.style.setProperty('--text-muted',   '#3f4c60');
+    r.style.setProperty('--text-dim',     '#5b6b81');
+    r.style.setProperty('--success',      '#15803d');
+    r.style.setProperty('--danger',       '#b91c1c');
+    r.style.setProperty('--warning',      '#b45309');
     document.getElementById('theme-toggle').textContent = '☀️';
   }
 
   function applyDarkTheme() {
     const r = document.documentElement;
+    r.style.removeProperty('color-scheme');
+    ['--success','--danger','--warning'].forEach((k) => r.style.removeProperty(k));
     r.style.removeProperty('--bg');
     r.style.removeProperty('--panel');
     r.style.removeProperty('--panel2');
