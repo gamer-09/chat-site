@@ -708,41 +708,51 @@
       for (var i = 0; i < all.length; i++) {
         if (String(all[i].username || '').toLowerCase() === lc) { pres = all[i]; break; }
       }
-      // LIGHT query: small fields only, capped — never fetch avatars/bodies
-      return sb.from('messages')
+      // identity row (never select client_id)
+      var userQ = sb.from('users').select('username,avatar,last_seen').ilike('username', un).limit(1);
+      // light stats
+      var statsQ = sb.from('messages')
         .select('payload->>room,payload->>timestamp,payload->>type,payload->>reactions')
+        .eq('payload->>username', un).limit(300);
+      // recent messages (small cap)
+      var recentQ = sb.from('messages')
+        .select('payload->>room,payload->>timestamp,payload->>message,payload->>type')
         .eq('payload->>username', un)
-        .limit(300)
-        .then(function (res) {
-          if (res.error) return null;
-          var rows = res.data || [];
-          var rooms = {}, images = 0, react = 0, first = null, last = null;
-          rows.forEach(function (r) {
-            rooms[r.room] = (rooms[r.room] || 0) + 1;
-            if (r.type === 'image') images++;
-            if (r.reactions) Object.keys(r.reactions).forEach(function (k) {
-              (r.reactions[k] || []).forEach(function (u) {
-                if (String(u.username || '').toLowerCase() === lc) react++;
-              });
+        .order('payload->>timestamp', { ascending: false }).limit(6);
+      return Promise.all([userQ, statsQ, recentQ]).then(function (rs) {
+        var urow = (rs[0].data && rs[0].data[0]) || null;
+        var rows = rs[1].data || [];
+        var recent = rs[2].data || [];
+        var rooms = {}, images = 0, react = 0, first = null, last = null;
+        rows.forEach(function (r) {
+          rooms[r.room] = (rooms[r.room] || 0) + 1;
+          if (r.type === 'image') images++;
+          if (r.reactions) Object.keys(r.reactions).forEach(function (k) {
+            (r.reactions[k] || []).forEach(function (u2) {
+              if (String(u2.username || '').toLowerCase() === lc) react++;
             });
-            var t = Number(r.timestamp) || 0;
-            if (t && (!first || t < first)) first = t;
-            if (t && (!last || t > last)) last = t;
           });
-          return {
-            username: un,
-            avatar: (pres && pres.avatar) || ('https://api.dicebear.com/7.x/thumbs/svg?seed=' + encodeURIComponent(un)),
-            online: !!pres,
-            room: pres ? pres.room : null,
-            messages: rows.length,
-            roomsCount: Object.keys(rooms).length,
-            roomBreakdown: rooms,
-            images: images,
-            reactionsReceived: react,
-            firstSeen: first,
-            lastActive: last || (pres ? pres.updated_at : null)
-          };
+          var t = Number(r.timestamp) || 0;
+          if (t && (!first || t < first)) first = t;
+          if (t && (!last || t > last)) last = t;
         });
+        return {
+          username: un,
+          avatar: (pres && pres.avatar) || (urow && urow.avatar) || ('https://api.dicebear.com/7.x/thumbs/svg?seed=' + encodeURIComponent(un)),
+          online: !!pres,
+          room: pres ? pres.room : null,
+          lastSeen: (pres && pres.updated_at) || (urow && urow.last_seen) || last,
+          messages: rows.length,
+          roomsCount: Object.keys(rooms).length,
+          topRooms: Object.entries(rooms).sort(function (x, y) { return y[1] - x[1]; }).slice(0, 3),
+          images: images,
+          reactionsReceived: react,
+          firstSeen: first,
+          recent: recent.map(function (r) {
+            return { room: r.room, ts: Number(r.timestamp) || 0, type: r.type, text: String(r.message || '').slice(0, 140) };
+          })
+        };
+      });
     },
 
     storageUrl: function (path) {

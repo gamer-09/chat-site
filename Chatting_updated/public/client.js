@@ -2109,23 +2109,29 @@
         body.innerHTML = `<p style="color:var(--text-dim)">No public activity yet for <b>${utils.escapeHtml(username)}</b>.</p>`;
         return;
       }
-      const topRooms = Object.entries(d.roomBreakdown || {}).sort((x, y) => y[1] - x[1]).slice(0, 3);
       body.innerHTML = `
-        <div style="display:flex;gap:14px;align-items:center;margin:6px 0 14px">
-          <img src="${d.avatar}" alt="" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--border-light)">
+        <div style="display:flex;gap:14px;align-items:center;margin:6px 0 6px">
+          <img src="${d.avatar}" alt="" style="width:72px;height:72px;border-radius:50%;border:2px solid ${d.online ? 'var(--success)' : 'var(--border-light)'}">
           <div>
-            <div style="font-size:18px;font-weight:600;color:var(--text)">${utils.escapeHtml(d.username)}</div>
-            <div style="font-size:12px;color:${d.online ? 'var(--success)' : 'var(--text-dim)'}">${d.online ? '● online now' + (d.room ? ' in #' + utils.escapeHtml(d.room) : '') : '○ offline'}</div>
+            <div style="font-size:20px;font-weight:700;color:var(--text)">${utils.escapeHtml(d.username)}</div>
+            <div style="font-size:12.5px;color:${d.online ? 'var(--success)' : 'var(--text-dim)'}">${d.online ? '● Online now' + (d.room ? ' in #' + utils.escapeHtml(d.room) : '') : '○ Offline'}</div>
+            <div style="font-size:11.5px;color:var(--text-dim);margin-top:2px">Last seen ${fmtDate(d.lastSeen)}</div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-          ${stat('Messages', d.messages)}${stat('Rooms', d.roomsCount)}${stat('Images', d.images)}${stat('Reactions', d.reactionsReceived)}
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0">
+          ${stat('Messages', d.messages)}${stat('Images', d.images)}${stat('Reacts', d.reactionsReceived)}${stat('Rooms', d.roomsCount)}
         </div>
-        <div style="font-size:12.5px;color:var(--text-muted);line-height:1.9">
-          <div>📅 First active: <b style="color:var(--text)">${fmtDate(d.firstSeen)}</b></div>
-          <div>🕒 Last active: <b style="color:var(--text)">${fmtDate(d.lastActive)}</b></div>
-          ${topRooms.length ? '<div>💬 Most in: <b style="color:var(--text)">' + topRooms.map(([r, c]) => '#' + utils.escapeHtml(r) + ' (' + c + ')').join(', ') + '</b></div>' : ''}
-        </div>
+        <div style="font-size:11.5px;color:var(--text-dim);margin-bottom:10px">📅 Here since <b style="color:var(--text)">${fmtDate(d.firstSeen)}</b>${(d.topRooms || []).length ? ' · 💬 Mostly in <b style="color:var(--text)">' + d.topRooms.map(([r, c]) => '#' + utils.escapeHtml(r)).join(', ') + '</b>' : ''}</div>
+        ${d.recent && d.recent.length ? `
+        <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-dim);margin-bottom:8px">Recent activity</div>
+          ${d.recent.map(r => `
+            <div style="display:flex;gap:8px;align-items:baseline;margin-bottom:7px;font-size:12.5px">
+              <span style="color:var(--accent);white-space:nowrap">#${utils.escapeHtml(r.room || 'general')}</span>
+              <span style="color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.type === 'image' ? '🖼 shared an image' : utils.escapeHtml(r.text || '(attachment)')}</span>
+              <span style="color:var(--text-dim);font-size:10.5px;white-space:nowrap">${fmtDate(r.ts)}</span>
+            </div>`).join('')}
+        </div>` : ''}
         <div id="up-idreq"></div>
         <div style="color:var(--text-dim);font-size:11px;margin-top:10px">Client IDs are private — shared only by explicit approval.</div>`;
       renderIdSection(body.querySelector('#up-idreq'), d.username);
