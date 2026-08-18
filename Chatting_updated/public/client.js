@@ -494,7 +494,7 @@
         : adminsInfo.map(u => {
             const isOwnerChip = meta.ownerId === u.clientId;
             const canRemove = state.canManageCurrentRoom && !isOwnerChip && state.currentRoom !== 'general';
-            return `<span class="chip member-chip" data-profile-user="${utils.escapeHtml(u.username)}" title="View profile">
+            return `<span class="chip member-chip" title="${utils.escapeHtml(u.username)}">
               ${utils.escapeHtml(u.username)}${isOwnerChip ? ' 👑' : ''}
               ${canRemove ? `<button class="chip-remove" data-action="remove-admin" data-id="${u.clientId}" title="Remove admin">×</button>` : ''}
             </span>`;
@@ -506,7 +506,7 @@
         ? '<span style="color:var(--text-dim)">None</span>'
         : membersInfo.map(u => {
             const canRemove = state.canManageCurrentRoom && state.currentRoom !== 'general';
-            return `<span class="chip member-chip" data-profile-user="${utils.escapeHtml(u.username)}" title="View profile">
+            return `<span class="chip member-chip" title="${utils.escapeHtml(u.username)}">
               ${utils.escapeHtml(u.username)}
               ${canRemove ? `<button class="chip-remove" data-action="remove-member" data-id="${u.clientId}" title="Remove member">×</button>` : ''}
             </span>`;
@@ -773,8 +773,8 @@
           ${isMe     ? `<button class="msg-action-btn danger" data-action="delete" title="Delete">🗑</button>` : ''}
         </div>
         <div class="meta">
-          <img class="avatar profile-open" data-profile-user="${utils.escapeHtml(msg.username || 'Anonymous')}" src="${avatarUrl}" alt="">
-          <span class="name profile-open" data-profile-user="${utils.escapeHtml(msg.username || 'Anonymous')}">${utils.escapeHtml(msg.username || 'Anonymous')}</span>
+          <img class="avatar" src="${avatarUrl}" alt="">
+          <span class="name">${utils.escapeHtml(msg.username || 'Anonymous')}</span>
           <span class="time">${utils.formatTime(msg.timestamp)}</span>
           ${msg.edited ? '<span class="edited">(edited)</span>' : ''}
         </div>
@@ -1012,13 +1012,13 @@
         const av = user.avatar || `${CONSTANTS.DEFAULT_AVATAR}${seed}`;
         const el = document.createElement('div');
         el.className = 'online-item';
-        el.dataset.profileUser = user.username || 'Anonymous';
         el.innerHTML = `
           <img src="${av}" alt="">
           <div class="info">
             <div class="name">${utils.escapeHtml(user.username || 'Anonymous')}</div>
             <div class="status">${user.room ? `in #${user.room}` : 'online'}</div>
           </div>
+          <button type="button" class="online-menu-btn" data-menu-user="${utils.escapeHtml(user.username || 'Anonymous')}" title="Options">▾</button>
           <div class="online-indicator"></div>
         `;
         elements.onlineList.appendChild(el);
@@ -2103,7 +2103,7 @@
       }).catch(() => { box.innerHTML = ''; });
     }
 
-    async function open(username) {
+    async function open(username, opts) {
       const m = ensure();
       m.classList.add('open');
       const body = m.querySelector('#up-body');
@@ -2130,15 +2130,43 @@
         ${err ? `<div style="color:var(--danger);font-size:11px;margin-top:8px">profile data error: ${utils.escapeHtml(err)}</div>` : ''}
         <div style="color:var(--text-dim);font-size:11px;margin-top:10px">Client IDs are private — shared only by explicit approval · build ${utils.escapeHtml(window.__BUILD || '?')}</div>`;
       renderIdSection(body.querySelector('#up-idreq'), d.username);
+      if (opts && opts.focusRequest) setTimeout(() => { const r = body.querySelector('#up-req'); if (r) r.click(); }, 150);
     }
     return { open };
   })();
 
-  // One delegated listener opens profiles from anywhere
+
+  // ── Online-list dropdown (the ONLY entry point to profiles) ────────────────
+  let openMenu = null;
+  const closeMenu = () => { if (openMenu) { openMenu.remove(); openMenu = null; } };
   document.addEventListener('click', (e) => {
-    if (e.target.closest('.chip-remove')) return;
-    const t = e.target.closest('[data-profile-user]');
-    if (t) userProfile.open(t.getAttribute('data-profile-user'));
+    const btn = e.target.closest('[data-menu-user]');
+    if (btn) {
+      e.stopPropagation();
+      const name = btn.getAttribute('data-menu-user');
+      const wasOpen = openMenu && openMenu._for === name;
+      closeMenu();
+      if (!wasOpen) {
+        const menu = document.createElement('div');
+        menu.className = 'online-menu';
+        menu._for = name;
+        menu.innerHTML = '<button type="button" data-act="profile">👤 View profile</button>' +
+                         '<button type="button" data-act="req">🔑 Request Client ID</button>';
+        const r = btn.getBoundingClientRect();
+        menu.style.top = Math.min(r.bottom + 6, innerHeight - 110) + 'px';
+        menu.style.right = Math.max(8, innerWidth - r.right) + 'px';
+        menu.addEventListener('click', (ev) => {
+          const act = (ev.target.closest('button') || {}).dataset ? ev.target.closest('button').dataset.act : null;
+          closeMenu();
+          if (act === 'profile') userProfile.open(name);
+          if (act === 'req') userProfile.open(name, { focusRequest: true });
+        });
+        document.body.appendChild(menu);
+        openMenu = menu;
+      }
+      return;
+    }
+    if (openMenu && !e.target.closest('.online-menu')) closeMenu();
   });
 
   // ── Guided onboarding tour ──────────────────────────────────────────────────
