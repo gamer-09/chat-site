@@ -123,7 +123,7 @@
     <section class="section">
       <h2>4. Who can see information</h2>
       <h3>Public rooms</h3>
-      <p>Messages, usernames, avatars, reactions, receipts, and shared media in a public room are available to authenticated visitors who can access that room.</p>
+      <p>Messages, usernames, avatars, reactions, receipts, and shared media in a public room are available to authenticated visitors who can access that room. Online/offline status and last-seen times of all users are visible in the People panel.</p>
       <h3>Private rooms</h3>
       <p>Private rooms use Supabase row-level security, owner/admin/member lists, and passkeys. Once a passkey admits a user, that anonymous user ID may be added as a room member. Private-room content is not end-to-end encrypted.</p>
       <h3>Room administrators, operator, and providers</h3>
@@ -143,7 +143,8 @@
     <section class="section">
       <h2>6. Retention and deletion</h2>
       <p>No fixed automatic retention period currently applies to messages, rooms, profiles, receipts, reactions, or uploads. They may remain until a user deletes an eligible message, a room owner/admin clears or deletes that room, a Supabase project administrator performs a manual data operation, the project is reset, or provider retention rules require deletion.</p>
-      <p>The in-app profile deletion action removes the profile and presence records where permitted and clears several application-specific browser keys. It does <strong>not</strong> automatically erase prior messages, reactions, read receipts, room membership, uploaded objects, backups, provider logs, or every authentication/session record. Delete your own messages where available and contact the operator for a broader request.</p>
+      <p>Renaming or deleting your username performs a <strong>full wipe</strong> of that name's messages, reactions, and read receipts before the profile change completes. The operator can additionally purge any username (profile row plus its content) at any time.</p>
+      <p>Presence works as follows: while your browser tab is open you appear <strong>online</strong> (even without a room); closing the tab removes your presence and lists you <strong>offline</strong> with a "seen …" last-seen time visible to other users.</p>
       <p>Deleting a message or room record may not immediately delete an associated object from storage, cached signed URL, backup, or provider log. We do not promise instant or forensic erasure.</p>
     </section>
 
