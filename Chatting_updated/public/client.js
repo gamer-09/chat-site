@@ -1091,6 +1091,14 @@
           sec.remove();
         }
         box.style.padding = '12px';
+        const agoMs = (ms) => {
+          const sec = (Date.now() - ms) / 1000;
+          if (sec < 60) return 'just now';
+          const steps = [[31536000, 'y'], [2592000, 'mo'], [86400, 'd'], [3600, 'h'], [60, 'm']];
+          for (const [ss, n] of steps) if (sec >= ss) return Math.floor(sec / ss) + n + ' ago';
+          return 'now';
+        };
+        const escFn = (t) => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         let rendered = 0;
         arr.slice(0, 40).forEach(u => {
         try {
@@ -1100,11 +1108,11 @@
           const nm = (u.username || '').trim() || '(unknown)';
           const ls = Number(u.last_seen);
           const statusTxt = (u.last_seen && Number.isFinite(ls) && ls > 0)
-            ? 'seen ' + timeAgo(new Date(ls).toISOString())
+            ? 'seen ' + agoMs(ls)
             : 'offline';
           d.innerHTML = `<img src="${av}" alt="" style="width:28px;height:28px;border-radius:50%;opacity:.55;filter:grayscale(1);border:1px solid var(--border);object-fit:cover">
             <div style="min-width:0">
-              <div style="font-size:13px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${utils.escapeHtml(nm)}</div>
+              <div style="font-size:13px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escFn(nm)}</div>
               <div style="font-size:11px;color:var(--text-dim)">${statusTxt}</div>
             </div>`;
           box.appendChild(d);
@@ -2559,7 +2567,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260843').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260844').catch(() => {});
     });
   }
 })();
