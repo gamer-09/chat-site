@@ -788,10 +788,11 @@
 .ptr29-mobile #chat-form input,
 .ptr29-mobile .modal input[type="text"],
 .ptr29-mobile .modal input[type="url"] {
-  color: #e2e8f0 !important;
-  -webkit-text-fill-color: #e2e8f0 !important;
-  caret-color: #7db4ff !important;
-  background-color: #0f172a !important;
+  color: var(--text) !important;
+  -webkit-text-fill-color: var(--text) !important;
+  caret-color: var(--accent) !important;
+  background-color: var(--bg) !important;
+  border-color: var(--border) !important;
   opacity: 1 !important;
 }
 .ptr29-mobile #text {
