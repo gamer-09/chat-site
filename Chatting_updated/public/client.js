@@ -1079,8 +1079,8 @@
           return true;
         });
         const fb = document.getElementById('show-offline-btn');
-        if (fb) fb.textContent = 'Offline (' + arr.length + ')';
         if (!arr.length) {
+          if (fb) fb.textContent = 'Offline (0)';
           box.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:4px 8px">everyone is online ✨</div>';
           return;
         }
@@ -1091,18 +1091,33 @@
           sec.remove();
         }
         box.style.padding = '12px';
+        let rendered = 0;
         arr.slice(0, 40).forEach(u => {
+        try {
           const d = document.createElement('div');
           d.style.cssText = 'display:flex;align-items:center;gap:10px;padding:7px 8px;';
           const av = u.avatar || ('https://api.dicebear.com/7.x/thumbs/svg?seed=' + encodeURIComponent(u.username));
           const nm = (u.username || '').trim() || '(unknown)';
+          const ls = Number(u.last_seen);
+          const statusTxt = (u.last_seen && Number.isFinite(ls) && ls > 0)
+            ? 'seen ' + timeAgo(new Date(ls).toISOString())
+            : 'offline';
           d.innerHTML = `<img src="${av}" alt="" style="width:28px;height:28px;border-radius:50%;opacity:.55;filter:grayscale(1);border:1px solid var(--border);object-fit:cover">
             <div style="min-width:0">
               <div style="font-size:13px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${utils.escapeHtml(nm)}</div>
-              <div style="font-size:11px;color:var(--text-dim)">${u.last_seen ? 'seen ' + timeAgo(new Date(Number(u.last_seen)).toISOString()) : 'offline'}</div>
+              <div style="font-size:11px;color:var(--text-dim)">${statusTxt}</div>
             </div>`;
           box.appendChild(d);
+          rendered++;
+        } catch (e) {
+          const dbg = document.createElement('div');
+          dbg.style.cssText = 'font-size:10px;color:var(--danger);padding:4px 8px;word-break:break-all';
+          dbg.textContent = '(row error) ' + JSON.stringify(u).slice(0, 120);
+          box.appendChild(dbg);
+          rendered++;
+        }
         });
+        if (fb) fb.textContent = 'Offline (' + rendered + ')';
       }).catch(() => {});
     },
   };
@@ -2544,7 +2559,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260842').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260843').catch(() => {});
     });
   }
 })();
