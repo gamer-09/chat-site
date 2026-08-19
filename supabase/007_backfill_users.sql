@@ -1,10 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════
 -- REPLICA chat · backfill missing users rows from message history
 -- Run ONCE in: Supabase Dashboard → SQL Editor → paste → Run
---
--- Users who registered before the upsert fallback fix never got a row
--- in public.users, so they never appear in the Offline list. This
--- recreates their rows from distinct message authors.
+-- (corrected: jsonb key must be a quoted literal ->>'username')
 -- ═══════════════════════════════════════════════════════════════════
 
 create or replace function public.backfill_users()
@@ -16,13 +13,13 @@ as $$
 declare un text;
 begin
   for un in
-    select distinct m.payload->>username
+    select distinct m.payload->>'username'
       from public.messages m
-     where m.payload->>username is not null
-       and lower(m.payload->>username) not in ('anonymous', '🎓 guest')
+     where m.payload->>'username' is not null
+       and lower(m.payload->>'username') not in ('anonymous', '🎓 guest')
        and not exists (
          select 1 from public.users u
-          where lower(u.username) = lower(m.payload->>username)
+          where lower(u.username) = lower(m.payload->>'username')
        )
   loop
     insert into public.users (client_id, username, avatar, last_seen)
