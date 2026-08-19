@@ -20,7 +20,14 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | Typing indicators | See when others are typing |
 | Edit & delete | Edit or delete your own messages within the time window |
 | Read receipts | See who has read each message |
-| User presence | Sidebar shows who is currently online per room |
+| User presence | Online = tab open, offline = tab closed; presence pruned when stale |
+| People panel | Online/Offline toggle with live counts, **search filter**, last-seen times |
+| Member profiles | Online-list ⋮ menu → personal card (avatar, status, activity stats); view-only entry point |
+| Client-ID requests | Consent-based: reasoned request → recipient approves/denies in the 📥 Inbox; approval shares a one-time snapshot |
+| Guided tour | 🎓 watch-only demo: fake volunteers Nova & Rex; guide performs rename/passkey/privacy/add/remove/clear for real; temp rooms auto-delete |
+| Username rules | "Anonymous" reserved; abandoned/orphan names auto-reclaimable; active names protected |
+| Full wipes | Rename/delete fully erases that name's messages/reactions/receipts; operator `purge_user()` for any name |
+| Reactions | Instant hover tooltip with names ("you" for self), correct own-detection, toggle semantics |
 | Unique usernames | Server enforces no two users share the same name |
 | Auto avatars | DiceBear avatars generated from your username, or supply your own URL |
 | Admin tools | Rename, clear, delete, transfer ownership, manage admins and users |
@@ -257,3 +264,15 @@ Use Nginx or Caddy with a free Let's Encrypt certificate. Never run a public cha
 
 ### 6. Keep `.env` and `data/db.json` off GitHub
 `db.json` contains all usernames and messages. Never commit it to a public repository. The `.gitignore` already excludes `.env` — make sure `data/db.json` is also excluded if you fork or redeploy.
+
+## Database migrations (Supabase SQL Editor)
+
+| File | Purpose |
+|---|---|
+| `Chatting_updated/supabase/schema.sql` | Base schema (rooms, messages, presence, receipts, reactions, room RPCs) |
+| `supabase/001_id_requests.sql` | Client-ID request inbox table + participant-only RLS |
+| `supabase/002_rls_fix.sql` | Own-message edit/delete by any of your identities; reactions sender-only |
+| `supabase/004_username_available.sql` | One-call availability check + orphan reclaim |
+| `supabase/005_reserve_anonymous.sql` | Reserves "anonymous" |
+| `supabase/007…/008_backfill…sql` | Backfill user rows from every activity source |
+| *(inline in chat)* | `purge_user(name)` — full operator purge of a username |
