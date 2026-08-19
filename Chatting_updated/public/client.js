@@ -1069,7 +1069,7 @@
       if (!box || !window.ChatAPI.offlineUsers) return;
       window.ChatAPI.offlineUsers().then(list => {
         box.innerHTML = '';
-        const arr = (list || []).filter(u => (u.username || '') !== 'Anonymous');
+        const arr = (list || []).filter(u => (u.username || '') !== 'Anonymous' && !(u.username || '').startsWith('🎓'));
         if (!arr.length) {
           box.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:4px 8px">everyone is online ✨</div>';
           return;
@@ -2513,7 +2513,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260838').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260839').catch(() => {});
     });
   }
 })();
