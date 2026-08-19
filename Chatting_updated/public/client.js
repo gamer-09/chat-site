@@ -1076,14 +1076,21 @@
           box.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:4px 8px">everyone is online ✨</div>';
           return;
         }
+        // escape any old markup variant: hoist out of #offline-section if trapped
+        if (box.parentElement && box.parentElement.id === 'offline-section') {
+          const sec = box.parentElement;
+          sec.parentElement.appendChild(box);
+          sec.remove();
+        }
+        box.style.padding = '12px';
         arr.slice(0, 40).forEach(u => {
           const d = document.createElement('div');
-          d.className = 'online-item';
+          d.style.cssText = 'display:flex;align-items:center;gap:10px;padding:7px 8px;';
           const av = u.avatar || ('https://api.dicebear.com/7.x/thumbs/svg?seed=' + encodeURIComponent(u.username));
-          d.innerHTML = `<img src="${av}" alt="" style="opacity:.5;filter:grayscale(1)">
-            <div class="info">
-              <div class="name" style="opacity:.75">${utils.escapeHtml(u.username)}</div>
-              <div class="status">${u.last_seen ? 'seen ' + timeAgo(new Date(Number(u.last_seen)).toISOString()) : 'offline'}</div>
+          d.innerHTML = `<img src="${av}" alt="" style="width:28px;height:28px;border-radius:50%;opacity:.55;filter:grayscale(1);border:1px solid var(--border);object-fit:cover">
+            <div style="min-width:0">
+              <div style="font-size:13px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${utils.escapeHtml(u.username)}</div>
+              <div style="font-size:11px;color:var(--text-dim)">${u.last_seen ? 'seen ' + timeAgo(new Date(Number(u.last_seen)).toISOString()) : 'offline'}</div>
             </div>`;
           box.appendChild(d);
         });
@@ -2528,7 +2535,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260840').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260841').catch(() => {});
     });
   }
 })();
