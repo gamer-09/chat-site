@@ -1069,7 +1069,15 @@
       if (!box || !window.ChatAPI.offlineUsers) return;
       window.ChatAPI.offlineUsers().then(list => {
         box.innerHTML = '';
-        const arr = (list || []).filter(u => (u.username || '') !== 'Anonymous' && !(u.username || '').startsWith('🎓'));
+        const seen = {};
+        const arr = (list || []).filter(u => {
+          const nm = (u.username || '').trim();
+          if (!nm || nm === 'Anonymous' || nm.startsWith('🎓')) return false;
+          const k = nm.toLowerCase();
+          if (seen[k]) return false;
+          seen[k] = true;
+          return true;
+        });
         const fb = document.getElementById('show-offline-btn');
         if (fb) fb.textContent = 'Offline (' + arr.length + ')';
         if (!arr.length) {
@@ -1087,9 +1095,10 @@
           const d = document.createElement('div');
           d.style.cssText = 'display:flex;align-items:center;gap:10px;padding:7px 8px;';
           const av = u.avatar || ('https://api.dicebear.com/7.x/thumbs/svg?seed=' + encodeURIComponent(u.username));
+          const nm = (u.username || '').trim() || '(unknown)';
           d.innerHTML = `<img src="${av}" alt="" style="width:28px;height:28px;border-radius:50%;opacity:.55;filter:grayscale(1);border:1px solid var(--border);object-fit:cover">
             <div style="min-width:0">
-              <div style="font-size:13px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${utils.escapeHtml(u.username)}</div>
+              <div style="font-size:13px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${utils.escapeHtml(nm)}</div>
               <div style="font-size:11px;color:var(--text-dim)">${u.last_seen ? 'seen ' + timeAgo(new Date(Number(u.last_seen)).toISOString()) : 'offline'}</div>
             </div>`;
           box.appendChild(d);
@@ -2535,7 +2544,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260841').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260842').catch(() => {});
     });
   }
 })();
