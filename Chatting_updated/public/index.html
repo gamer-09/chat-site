@@ -15,7 +15,7 @@
   <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
   <link rel="manifest" href="site.webmanifest">
-  <link id="ptr29-mobile-styles" rel="stylesheet" href="mobile.css?v=260839" media="(max-width: 768px)">
+  <link id="ptr29-mobile-styles" rel="stylesheet" href="mobile.css?v=260840" media="(max-width: 768px)">
   <style>
     :root {
       color-scheme: dark;
@@ -787,28 +787,17 @@
       letter-spacing: 0.5px;
     }
 
-    #offline-section {
-      border-top: 1px solid var(--border);
-      background: var(--panel2);
-      padding: 10px 16px 12px;
-      flex-shrink: 0;
-      max-height: 42%;
-      overflow-y: auto;
+    .people-toggle { display: flex; gap: 4px; margin-top: 8px; }
+    .pt-btn {
+      flex: 1; padding: 5px 8px; font-size: 11px; border-radius: 6px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-muted); cursor: pointer;
+      text-transform: uppercase; letter-spacing: .5px;
     }
-
-    #offline-section h2 {
-      margin: 0 0 8px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    #offline-section .online-item { margin-bottom: 2px; padding: 6px 8px; }
-    #offline-section .online-item img { width: 26px; height: 26px; }
-    #offline-section .online-item .name { font-size: 13px; }
-    #offline-section .online-item .status { font-size: 11px; }
+    .pt-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    #offline-list { flex: 1; overflow-y: auto; padding: 12px; }
+    #offline-list .online-item img { opacity: .5; filter: grayscale(1); }
+    #offline-list .online-item .name { opacity: .8; }
     
     #online-list {
       flex: 1;
@@ -1602,13 +1591,14 @@
     
     <aside id="online-panel">
       <div id="online-header">
-        <h2>Online Users</h2>
+        <h2>People</h2>
+        <div class="people-toggle">
+          <button type="button" id="show-online-btn" class="pt-btn active">Online</button>
+          <button type="button" id="show-offline-btn" class="pt-btn">Offline</button>
+        </div>
       </div>
       <div id="online-list"></div>
-      <div id="offline-section">
-        <h2>Offline</h2>
-        <div id="offline-list"></div>
-      </div>
+      <div id="offline-list" hidden></div>
     </aside>
   </main>
 
@@ -2084,7 +2074,7 @@
     </div>
   </div>
   <script src="vendor/supabase.min.js"></script>
-  <script src="supabase-client.js?v=260839"></script>
-  <script src="client.js?v=260839"></script>
+  <script src="supabase-client.js?v=260840"></script>
+  <script src="client.js?v=260840"></script>
 </body>
 </html>

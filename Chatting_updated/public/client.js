@@ -1070,6 +1070,8 @@
       window.ChatAPI.offlineUsers().then(list => {
         box.innerHTML = '';
         const arr = (list || []).filter(u => (u.username || '') !== 'Anonymous' && !(u.username || '').startsWith('🎓'));
+        const fb = document.getElementById('show-offline-btn');
+        if (fb) fb.textContent = 'Offline (' + arr.length + ')';
         if (!arr.length) {
           box.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:4px 8px">everyone is online ✨</div>';
           return;
@@ -1096,6 +1098,8 @@
       setTimeout(() => offline.refresh(), 250);
       elements.onlineList.innerHTML = '';
       const listAll = (users || []).concat(state.tourMode ? (state.tourFakes || []) : []);
+      const ob = document.getElementById('show-online-btn');
+      if (ob) ob.textContent = 'Online (' + listAll.length + ')';
       listAll.forEach(user => {
         const seed = encodeURIComponent(user.username || 'Anonymous');
         const av = user.avatar || `${CONSTANTS.DEFAULT_AVATAR}${seed}`;
@@ -1135,6 +1139,17 @@
       window.addEventListener('pagehide', () => { if (window.ChatAPI.goOffline) window.ChatAPI.goOffline(); });
       window.addEventListener('beforeunload', () => { if (window.ChatAPI.goOffline) window.ChatAPI.goOffline(); });
       setInterval(() => offline.refresh(), 60000);
+      const setPeopleView = (off) => {
+        const ol = document.getElementById('online-list'), of = document.getElementById('offline-list');
+        if (ol) ol.hidden = !!off;
+        if (of) of.hidden = !off;
+        const b1 = document.getElementById('show-online-btn'), b2 = document.getElementById('show-offline-btn');
+        if (b1) b1.classList.toggle('active', !off);
+        if (b2) b2.classList.toggle('active', !!off);
+        if (off) offline.refresh();
+      };
+      document.getElementById('show-online-btn')?.addEventListener('click', () => setPeopleView(false));
+      document.getElementById('show-offline-btn')?.addEventListener('click', () => setPeopleView(true));
       // silently remove leftover tour rooms from crashed tours
       if (window.ChatAPI.tourRooms) window.ChatAPI.tourRooms().then(l => (l || []).forEach(n => window.ChatAPI.deleteRoom(n).catch(() => {}))).catch(() => {});
 
@@ -2513,7 +2528,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260839').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260840').catch(() => {});
     });
   }
 })();
