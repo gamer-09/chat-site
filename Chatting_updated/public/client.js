@@ -1078,8 +1078,10 @@
           seen[k] = true;
           return true;
         });
+        const pq2 = (state.peopleQuery || '').toLowerCase();
+        const arrShown = pq2 ? arr.filter(u => (u.username || '').toLowerCase().includes(pq2)) : arr;
         const fb = document.getElementById('show-offline-btn');
-        if (!arr.length) {
+        if (!arrShown.length) {
           if (fb) fb.textContent = 'Offline (0)';
           box.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:4px 8px">everyone is online ✨</div>';
           return;
@@ -1100,7 +1102,7 @@
         };
         const escFn = (t) => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         let rendered = 0;
-        arr.slice(0, 40).forEach(u => {
+        arrShown.slice(0, 40).forEach(u => {
         try {
           const d = document.createElement('div');
           d.style.cssText = 'display:flex;align-items:center;gap:10px;padding:7px 8px;';
@@ -1137,9 +1139,12 @@
       setTimeout(() => offline.refresh(), 250);
       elements.onlineList.innerHTML = '';
       const listAll = (users || []).concat(state.tourMode ? (state.tourFakes || []) : []);
+      state.lastPresenceUsers = listAll;
+      const pq = (state.peopleQuery || '').toLowerCase();
+      const shown = pq ? listAll.filter(u => (u.username || '').toLowerCase().includes(pq)) : listAll;
       const ob = document.getElementById('show-online-btn');
-      if (ob) ob.textContent = 'Online (' + listAll.length + ')';
-      listAll.forEach(user => {
+      if (ob) ob.textContent = 'Online (' + shown.length + ')';
+      shown.forEach(user => {
         const seed = encodeURIComponent(user.username || 'Anonymous');
         const av = user.avatar || `${CONSTANTS.DEFAULT_AVATAR}${seed}`;
         const el = document.createElement('div');
@@ -1187,6 +1192,12 @@
         if (b2) b2.classList.toggle('active', !!off);
         if (off) offline.refresh();
       };
+      const psBox = document.getElementById('people-search');
+      if (psBox) psBox.addEventListener('input', () => {
+        state.peopleQuery = psBox.value.trim();
+        online.update(state.lastPresenceUsers || []);
+        offline.refresh();
+      });
       document.getElementById('show-online-btn')?.addEventListener('click', () => setPeopleView(false));
       document.getElementById('show-offline-btn')?.addEventListener('click', () => setPeopleView(true));
       // silently remove leftover tour rooms from crashed tours
@@ -2567,7 +2578,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=260844').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=260845').catch(() => {});
     });
   }
 })();
