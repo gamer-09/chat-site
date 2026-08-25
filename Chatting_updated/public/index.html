@@ -1430,11 +1430,40 @@
     #tour-card p{margin:0 0 12px;color:var(--text-muted);font-size:13px;line-height:1.55}
     #tour-card .tour-nav{display:flex;gap:8px;align-items:center}
     #tour-card .tour-step-count{margin-right:auto;color:var(--text-dim);font-size:11px}
+
+    /* ── Brand logo ──────────────────────────────────────────────── */
+    .brand { display: flex; align-items: center; gap: 10px; user-select: none; }
+    .brand svg { filter: drop-shadow(0 0 7px rgba(59,130,246,.5)); flex-shrink: 0; }
+    .brand-name { font-size: 17px; font-weight: 700; letter-spacing: .3px; color: var(--text); white-space: nowrap; }
+    .bn-accent { background: linear-gradient(90deg,#22d3ee,#3b82f6 55%,#a855f7); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 800; }
+
+    /* ── Account gate (centered, branded) ────────────────────────── */
+    .ag-overlay { position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(4,8,18,.74); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); overflow: auto; }
+    .ag-card { width: min(440px, 100%); background: linear-gradient(180deg, var(--panel), var(--panel2)); border: 1px solid var(--border-light); border-radius: 18px; padding: 26px 26px 20px; box-shadow: 0 24px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(59,130,246,.14), 0 0 46px rgba(59,130,246,.12); animation: ag-pop .3s cubic-bezier(.2,.9,.3,1.15); }
+    @keyframes ag-pop { from { opacity: 0; transform: translateY(16px) scale(.97); } to { opacity: 1; transform: none; } }
+    .ag-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .ag-brand svg { filter: drop-shadow(0 0 8px rgba(59,130,246,.55)); }
+    .ag-title { font-size: 21px; font-weight: 800; color: var(--text); }
+    .ag-title b { background: linear-gradient(90deg,#22d3ee,#3b82f6 55%,#a855f7); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .ag-sub { font-size: 12.5px; line-height: 1.6; color: var(--text-muted); margin: 0 0 16px; }
+    .ag-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 4px; margin-bottom: 14px; }
+    .ag-tab { border: 0; background: transparent; color: var(--text-muted); font-weight: 700; font-size: 11.5px; letter-spacing: .7px; text-transform: uppercase; padding: 9px 0; border-radius: 8px; cursor: pointer; transition: all .15s ease; }
+    .ag-tab.active { background: linear-gradient(90deg,#2563eb,#7c3aed); color: #fff; box-shadow: 0 4px 14px rgba(37,99,235,.35); }
+    .ag-card input { width: 100%; margin-bottom: 10px; }
+    .ag-err { color: var(--danger); font-size: 12px; min-height: 18px; margin: 2px 0 10px; word-break: break-word; }
+    .ag-go { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(90deg,#2563eb,#7c3aed); border: none; color: #fff; font-weight: 700; font-size: 14px; padding: 12px 0; border-radius: 10px; cursor: pointer; box-shadow: 0 6px 18px rgba(37,99,235,.35); transition: filter .15s ease, transform .05s ease; }
+    .ag-go:hover { filter: brightness(1.1); }
+    .ag-go:active { transform: translateY(1px); }
+    .ag-go:disabled { opacity: .6; cursor: wait; }
+    .ag-foot { margin-top: 12px; font-size: 11px; color: var(--text-dim); text-align: center; }
   </style>
 </head>
 <body>
   <header>
-    <h1>💬 ptr_29 Chat</h1>
+    <div class="brand" title="ptr_29 Chat">
+      <svg viewBox="0 0 48 48" width="27" height="27" aria-hidden="true"><defs><linearGradient id="ptr29g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".55" stop-color="#3b82f6"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs><path d="M24 5C13 5 4 12.8 4 22.4c0 5.4 2.9 10.2 7.5 13.4-.2 2.9-1.4 5.5-3.4 7.5 4.4-.4 8.2-1.8 10.9-3.7 1.6.3 3.3.5 5 .5 11 0 20-7.8 20-17.4S35 5 24 5z" fill="none" stroke="url(#ptr29g)" stroke-width="3.2" stroke-linejoin="round"/><path d="M26.8 13.5 18.6 25h5.6l-2.3 9.5L30.4 22h-5.6l2-8.5z" fill="url(#ptr29g)"/></svg>
+      <span class="brand-name">ptr_29&nbsp;<span class="bn-accent">Chat</span></span>
+    </div>
     <div class="header-actions">
       <a href="terms.html" class="secondary" style="text-decoration: none; padding: 10px 18px; font-size: 14px; font-weight: 500; border-radius: 8px; border: 1px solid var(--border); background: var(--border); color: var(--text); transition: all 0.15s ease; white-space: nowrap; display: inline-block;">Terms</a>
       <a href="privacy.html" class="secondary" style="text-decoration: none; padding: 10px 18px; font-size: 14px; font-weight: 500; border-radius: 8px; border: 1px solid var(--border); background: var(--border); color: var(--text); transition: all 0.15s ease; white-space: nowrap; display: inline-block;">Privacy</a>
@@ -1663,7 +1692,7 @@
   <div id="help-modal" class="modal-overlay">
     <div class="help-modal-inner">
       <div class="help-header">
-        <div class="help-logo">💬</div>
+        <div class="help-logo"><svg viewBox="0 0 48 48" width="40" height="40" aria-hidden="true"><defs><linearGradient id="ptr29g3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".55" stop-color="#3b82f6"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs><path d="M24 5C13 5 4 12.8 4 22.4c0 5.4 2.9 10.2 7.5 13.4-.2 2.9-1.4 5.5-3.4 7.5 4.4-.4 8.2-1.8 10.9-3.7 1.6.3 3.3.5 5 .5 11 0 20-7.8 20-17.4S35 5 24 5z" fill="none" stroke="url(#ptr29g3)" stroke-width="3.2" stroke-linejoin="round"/><path d="M26.8 13.5 18.6 25h5.6l-2.3 9.5L30.4 22h-5.6l2-8.5z" fill="url(#ptr29g3)"/></svg></div>
         <div>
           <h3 class="help-title">How to Use ptr_29 Chat</h3>
           <p class="help-sub">Production guide — features, privacy, and limits</p>

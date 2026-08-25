@@ -2584,40 +2584,51 @@
     }
     return n;
   }
+  const BRAND_SVG = '<svg viewBox="0 0 48 48" width="34" height="34" aria-hidden="true"><defs><linearGradient id="ptr29g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".55" stop-color="#3b82f6"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs><path d="M24 5C13 5 4 12.8 4 22.4c0 5.4 2.9 10.2 7.5 13.4-.2 2.9-1.4 5.5-3.4 7.5 4.4-.4 8.2-1.8 10.9-3.7 1.6.3 3.3.5 5 .5 11 0 20-7.8 20-17.4S35 5 24 5z" fill="none" stroke="url(#ptr29g2)" stroke-width="3.2" stroke-linejoin="round"/><path d="M26.8 13.5 18.6 25h5.6l-2.3 9.5L30.4 22h-5.6l2-8.5z" fill="url(#ptr29g2)"/></svg>';
+
   function showAuthGate() {
-    const boot = document.getElementById('boot');
-    if (boot) { boot.classList.remove('off'); boot.innerHTML = ''; }
     let mode = 'login';
-    const card = el('div', { class: 'modal', style: 'max-width:430px;width:94%;padding:24px' });
-    card.innerHTML = `
-      <h3 style="font-size:20px;margin-bottom:6px">🔐 REPLICA Account</h3>
-      <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">Your content follows your <b>account</b> across devices. Passwords are SHA-256-salted on this device, then <b>bcrypt-hashed with a server-side pepper</b>. Hashes are unreadable through the API and logins are rate-limited.</p>
-      <div class="people-toggle" style="margin-bottom:12px">
-        <button type="button" class="pt-btn ag-tab active" data-m="login">Log in</button>
-        <button type="button" class="pt-btn ag-tab" data-m="reg">Create account</button>
-      </div>
-      <input id="ag-user" placeholder="Username" autocomplete="username" style="margin-bottom:10px">
-      <input id="ag-pass" type="password" placeholder="Password (min 6 characters)" autocomplete="current-password" style="margin-bottom:10px">
-      <div id="ag-err" style="color:var(--danger);font-size:12px;min-height:18px;margin-bottom:8px"></div>
-      <button id="ag-go" class="btn primary" style="width:100%;justify-content:center">Continue ➤</button>`;
-    (boot || document.body).append(card);
-    card.querySelectorAll('.ag-tab').forEach(b => b.addEventListener('click', () => {
+    const ov = el('div', { class: 'ag-overlay', id: 'ag-overlay' });
+    ov.innerHTML = `
+      <div class="ag-card" role="dialog" aria-modal="true" aria-label="REPLICA account">
+        <div class="ag-brand">${BRAND_SVG}<div class="ag-title">ptr_29 <b>Chat</b></div></div>
+        <p class="ag-sub">Your content follows your <b>account</b> across devices. Passwords are SHA-256-salted on this device, then <b>bcrypt-hashed with a server-side pepper</b> — hashes stay unreadable through the API and logins are rate-limited.</p>
+        <div class="ag-tabs">
+          <button type="button" class="ag-tab active" data-m="login">Log in</button>
+          <button type="button" class="ag-tab" data-m="reg">Create account</button>
+        </div>
+        <input id="ag-user" placeholder="Username" autocomplete="username">
+        <input id="ag-pass" type="password" placeholder="Password" autocomplete="current-password">
+        <div id="ag-err" class="ag-err"></div>
+        <button id="ag-go" class="ag-go" type="button">Continue ➤</button>
+        <div class="ag-foot">🔒 No plaintext passwords ever stored</div>
+      </div>`;
+    document.body.append(ov);
+    try { document.body.style.overflow = 'hidden'; } catch {}
+    ov.querySelectorAll('.ag-tab').forEach(b => b.addEventListener('click', () => {
       mode = b.dataset.m;
-      card.querySelectorAll('.ag-tab').forEach(x => x.classList.toggle('active', x === b));
-      card.querySelector('#ag-pass').placeholder = mode === 'reg' ? 'Choose a password (min 6 characters)' : 'Password';
+      ov.querySelectorAll('.ag-tab').forEach(x => x.classList.toggle('active', x === b));
+      const p = ov.querySelector('#ag-pass');
+      p.placeholder = mode === 'reg' ? 'Choose a password (min 6 characters)' : 'Password';
+      p.setAttribute('autocomplete', mode === 'reg' ? 'new-password' : 'current-password');
     }));
-    card.querySelector('#ag-go').addEventListener('click', async () => {
-      const un = card.querySelector('#ag-user').value.trim();
-      const pw = card.querySelector('#ag-pass').value;
-      const err = card.querySelector('#ag-err');
+    ov.querySelector('#ag-go').addEventListener('click', async () => {
+      const un = ov.querySelector('#ag-user').value.trim();
+      const pw = ov.querySelector('#ag-pass').value;
+      const err = ov.querySelector('#ag-err');
+      const btn = ov.querySelector('#ag-go');
       err.textContent = '';
       if (!un || !pw) { err.textContent = 'Enter username and password.'; return; }
       if (pw.length < 6) { err.textContent = 'Password too short (min 6 characters).'; return; }
       const h = await sha256hex(pw + ':' + un.toLowerCase());
       if (!h) { err.textContent = 'Crypto unavailable in this browser.'; return; }
+      btn.disabled = true;
+      btn.textContent = mode === 'reg' ? 'Creating account…' : 'Logging in…';
       const res = mode === 'login'
         ? await window.ChatAPI.accountLogin(un, h)
         : await window.ChatAPI.accountRegister(un, h);
+      btn.disabled = false;
+      btn.textContent = 'Continue ➤';
       if (!res || !res.ok) {
         const map = {
           taken: 'That username already has an account — log in instead.',
@@ -2634,6 +2645,8 @@
       } catch {}
       location.reload();
     });
+    const u = ov.querySelector('#ag-user');
+    if (u) u.focus();
   }
   function logout() {
     try { localStorage.removeItem(ACCOUNT_KEY); localStorage.removeItem(CONSTANTS.CLIENT_ID_KEY); } catch {}
