@@ -220,6 +220,16 @@
             if (b.name === 'general') return 1;
             return (a.created_at || 0) - (b.created_at || 0);
           });
+          if (!rooms.some(function (r) { return r.name === 'general'; })) {
+            // fresh world: seed the default room once
+            sb.from('rooms').insert({
+              name: 'general', is_private: false,
+              owner_id: api._clientId || api.uid,
+              admins: [api._clientId || api.uid],
+              members: [], passkey: '', created_at: Date.now()
+            }).then(function () { setTimeout(function () { api.refreshRooms(); }, 400); });
+            return;
+          }
           api._lastRooms = rooms;
           dispatch('rooms', rooms);
         });

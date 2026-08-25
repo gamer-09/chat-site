@@ -2638,6 +2638,13 @@
     const sess = getAccountSession();
     if (!sess) { showAuthGate(); return; }
     try { localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, sess.id); } catch {}
+    // fresh world: adopt account identity as local profile if none exists yet
+    try {
+      const prof = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
+      if (!prof.username && sess.username) {
+        utils.saveToStorage(CONSTANTS.STORAGE_KEY, { username: sess.username, avatar: '', termsAgreed: true });
+      }
+    } catch {}
     if (window.ChatAPI && window.ChatAPI.setClientId) window.ChatAPI.setClientId(sess.id);
     document.getElementById('logout-btn')?.addEventListener('click', logout);
     init();
