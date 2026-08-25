@@ -106,3 +106,8 @@ $$;
 
 grant execute on function public.register_account(text, text) to anon, authenticated;
 grant execute on function public.login_account(text, text)   to anon, authenticated;
+
+-- Belt & braces: make sure the account functions can always resolve
+-- pgcrypto (crypt/gen_salt) no matter which schema the extension lives in.
+alter function public.register_account(text, text) set search_path = public, extensions;
+alter function public.login_account(text, text)    set search_path = public, extensions;
