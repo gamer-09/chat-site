@@ -392,18 +392,32 @@
     delete: async () => {
       try {
         const un = state.myUsername || String((utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {}) || {}).username || '').trim();
-        if (un && window.ChatAPI.purgeMessagesFor) {
+        const sess = getAccountSession();
+        if (sess) {
+          // Full erase: password-verified server-side deletion of the
+          // account AND every trace of the user.
+          const pwInput = document.getElementById('delete-pass');
+          const pw = pwInput ? pwInput.value : '';
+          if (!pw) { showToast('Enter your account password to confirm the full erase.', 'error'); return; }
+          const h = await sha256hex(pw + ':' + String(sess.username || un).toLowerCase());
+          if (!h) { showToast('Crypto unavailable in this browser.', 'error'); return; }
+          const res = await window.ChatAPI.accountDelete(sess.id, h);
+          if (pwInput) pwInput.value = '';
+          if (!res || !res.ok) {
+            showToast(res && res.error === 'invalid_credentials' ? 'Wrong password — nothing was deleted.' : 'Failed to delete the account.', 'error');
+            return;
+          }
+          try { localStorage.removeItem(ACCOUNT_KEY); } catch {}
+        } else if (un && window.ChatAPI.purgeMessagesFor) {
           try { await window.ChatAPI.purgeMessagesFor(un); } catch (e) {}
         }
-        const ok = await window.ChatAPI.deleteUser();
-        if (ok) {
-          [CONSTANTS.STORAGE_KEY, CONSTANTS.CLIENT_ID_KEY, CONSTANTS.PASSKEYS_KEY, CONSTANTS.UNREAD_KEY]
-            .forEach(k => localStorage.removeItem(k));
-          showToast('Profile and all messages under "' + (un || 'your name') + '" removed.', 'success');
-          setTimeout(() => window.location.reload(), 1500);
-        } else {
-          showToast('Failed to delete profile data', 'error');
-        }
+        try { await window.ChatAPI.deleteUser(); } catch (e) {}
+        [CONSTANTS.STORAGE_KEY, CONSTANTS.CLIENT_ID_KEY, CONSTANTS.PASSKEYS_KEY, CONSTANTS.UNREAD_KEY, ACCOUNT_KEY]
+          .forEach(k => { try { localStorage.removeItem(k); } catch {} });
+        showToast(sess
+          ? 'Account and every trace of "' + (sess.username || un) + '" erased.'
+          : 'Profile and all messages under "' + (un || 'your name') + '" removed.', 'success');
+        setTimeout(() => window.location.reload(), 1500);
       } catch { showToast('Failed to delete profile data', 'error'); }
     },
   };

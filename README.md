@@ -26,9 +26,9 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | Client-ID requests | Consent-based: reasoned request → recipient approves/denies in the 📥 Inbox; approval shares a one-time snapshot |
 | Guided tour | 🎓 watch-only demo: fake volunteers Nova & Rex; guide performs rename/passkey/privacy/add/remove/clear for real; temp rooms auto-delete |
 | Username rules | "Anonymous" reserved; abandoned/orphan names auto-reclaimable; active names protected |
-| Full wipes | Rename/delete fully erases that name's messages/reactions/receipts; operator `purge_user()` for any name |
+| Full wipes | Rename fully erases the old name's messages/reactions/receipts; **Delete Account** (password-verified) erases account + user + all content + owned rooms; operator `purge_user()` for any name |
 | Reactions | Instant hover tooltip with names ("you" for self), correct own-detection, toggle semantics |
-| Accounts | 🔐 Login/register gate before app access; bcrypt+pepper hashed passwords (SHA-256 on-device first); hashes unreadable via API; 5-try rate limit; logout button; content follows the account across devices |
+| Accounts | 🔐 Login/register gate before app access; bcrypt+pepper hashed passwords (SHA-256 on-device first); hashes unreadable via API; 5-try rate limit; logout button; content follows the account across devices; Delete Account = full erase (account, user, messages, reactions, receipts, presence, owned rooms) |
 | Unique usernames | Server enforces no two users share the same name |
 | Auto avatars | DiceBear avatars generated from your username, or supply your own URL |
 | Admin tools | Rename, clear, delete, transfer ownership, manage admins and users |
@@ -278,3 +278,4 @@ Use Nginx or Caddy with a free Let's Encrypt certificate. Never run a public cha
 | `supabase/007…/008_backfill…sql` | Backfill user rows from every activity source |
 | *(inline in chat)* | `purge_user(name)` — full operator purge of a username |
 | `supabase/009_accounts.sql` | Hardened accounts: no client-facing table policies, peppered bcrypt, rate limiting, anti-enumeration |
+| `supabase/010_delete_account.sql` | `delete_account(acct, pass)` — password-verified SECURITY DEFINER full erase |

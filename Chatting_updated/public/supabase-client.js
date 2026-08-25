@@ -751,6 +751,9 @@
     accountRegister: function (un, hash) {
       return sb.rpc('register_account', { un: un, pass: hash }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
     },
+    accountDelete: function (id, hash) {
+      return sb.rpc('delete_account', { acct: id, pass: hash }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
+    },
 
     tourRooms: function () {
       var cid = api._clientId || api.uid;

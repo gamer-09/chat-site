@@ -1504,7 +1504,7 @@
         </div>
         <div class="user-actions">
           <button id="edit-profile-btn" class="secondary">Edit Profile</button>
-          <button id="delete-user-btn" class="danger">Delete Profile</button>
+          <button id="delete-user-btn" class="danger">Delete Account</button>
           <button id="logout-btn" class="secondary">Logout</button>
         </div>
       </div>
@@ -1676,14 +1676,15 @@
   <!-- Delete Profile Modal -->
   <div id="delete-user-modal" class="modal-overlay">
     <div class="modal">
-      <h3>⚠️ Delete Profile Data</h3>
+      <h3>⚠️ Delete Everything</h3>
       <div class="warning">
-        <strong>Important:</strong> This removes your profile and presence records where permitted and clears app-specific browser keys. It does not automatically erase previous messages, reactions, read receipts, room membership, uploaded files, backups, or every Supabase authentication record.
+        <strong>Full erase:</strong> this permanently deletes your <b>account</b>, your chat <b>user</b>, every message, reaction and read receipt sent under your name, your presence, and any rooms you own. This cannot be undone.
       </div>
-      <p>Remove the profile data available through this control?</p>
+      <input id="delete-pass" type="password" placeholder="Enter your account password to confirm" autocomplete="current-password" style="margin:10px 0 0;width:100%">
+      <p>Delete your account and all data?</p>
       <div class="modal-actions">
         <button type="button" id="cancel-delete-user" class="secondary">Cancel</button>
-        <button id="confirm-delete-user" class="danger">Delete Profile Data</button>
+        <button id="confirm-delete-user" class="danger">Delete Everything</button>
       </div>
     </div>
   </div>
@@ -1765,7 +1766,7 @@
               <li>✏️ <strong>Username</strong> is checked live and must currently be available</li>
               <li>🖼️ <strong>Avatar</strong> — paste an image URL or tap <strong>📷 Upload picture</strong> (works on phones); leave blank for a DiceBear avatar</li>
               <li>🪪 <strong>Client ID</strong> identifies this browser; it stays private unless you explicitly approve sharing it; clearing site data may change it</li>
-              <li>🗑️ <strong>Delete Profile / rename</strong> fully wipes every message, reaction and receipt sent under that name, then removes your profile row</li>
+              <li>🗑️ <strong>Delete Account</strong> asks for your password, then permanently erases the account, the chat user, every message/reaction/receipt under the name, presence, and owned rooms. Renaming still wipes the old name's content.</li>
               <li>♻️ <strong>Abandoned names</strong> (holder offline, or orphaned rows) can be reclaimed by anyone; active names are protected</li>
             </ul>
           </div>
