@@ -2402,7 +2402,7 @@
     function buildSteps() {
       return [
         { title: 'Welcome 🎓', html: 'Sit back — the guide does everything while you watch. Two demo rooms were created; fake volunteers <b>Nova</b> and <b>Rex</b> will help demonstrate. Press <b>Next</b> to continue.' },
-        { sel: ['#user-section'], mobile: 'rooms', title: '1 · Guest mode', html: 'You are browsing as a guest: everything is viewable; chatting unlocks after registration + Terms. (“Anonymous” is reserved as a name.)' },
+        { sel: ['#user-section'], mobile: 'rooms', title: '1 · Account identity', html: 'You entered through the 🔐 account gate — login or register is required before anything else, and your username, rooms and content follow your account across devices. (“Anonymous” is reserved as a name.)' },
         { sel: ['#room-list'], mobile: 'rooms', title: '2 · Demo rooms', html: `The guide created <b>#${pubRoom}</b> (public) and 🔒 <b>#${privRoom}</b> (private). You own them for this tour; they vanish at the end.` },
         { sel: ['#messages'], mobile: 'chat', run: async () => { closeSettings(); await joinRoom(pubRoom); }, title: '3 · Entering the room', html: 'The guide just walked into the public demo room. Watch the chat panel light up.' },
         { sel: ['#online-panel'], mobile: 'online', run: async () => { state.tourFakes = fakePeople(); refreshOnline(); }, title: '4 · Volunteers join', html: '<b>Nova</b> and <b>Rex</b> just appeared in the Online list — the fake people who help demonstrate management.' },

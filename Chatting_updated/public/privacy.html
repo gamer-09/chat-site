@@ -81,7 +81,7 @@
     <header>
       <h1>Privacy Policy</h1>
       <p class="subtitle">How ptr_29 Chat handles data</p>
-      <p class="effective">Effective and last updated: August 11, 2026</p>
+      <p class="effective">Effective and last updated: August 25, 2026</p>
     </header>
 
     <div class="notice" role="note">
@@ -97,7 +97,7 @@
     <section class="section">
       <h2>2. Information processed</h2>
       <ul class="data-list">
-        <li><strong>Anonymous account data:</strong> Supabase creates a unique anonymous user ID and browser session. There is no traditional username/password account or password-recovery process.</li>
+        <li><strong>Account data:</strong> access requires login or registration at the start gate. We store your username and a password hash — the password is SHA-256-salted on your device, then bcrypt-hashed server-side with a secret pepper — plus avatar and creation time. There is no password-recovery process, and hashes are not readable, listable, or modifiable through the API.</li>
         <li><strong>Profile data:</strong> your chosen username, optional avatar URL, anonymous user/client ID, and last-seen time.</li>
         <li><strong>Room data:</strong> room name, public/private setting, owner, administrators, members, creation time, and any room passkey.</li>
         <li><strong>Content:</strong> messages, replies, edit state, timestamps, reactions, read receipts, files, images, original filenames, MIME type, and file size.</li>
@@ -146,6 +146,7 @@
       <p>Renaming or deleting your username performs a <strong>full wipe</strong> of that name's messages, reactions, and read receipts before the profile change completes. The operator can additionally purge any username (profile row plus its content) at any time.</p>
       <p>Presence works as follows: while your browser tab is open you appear <strong>online</strong> (even without a room); closing the tab removes your presence and lists you <strong>offline</strong> with a "seen …" last-seen time visible to other users.</p>
       <p>Accounts: access to the app requires login. Passwords are SHA-256-salted on your device and then bcrypt-hashed server-side with a secret pepper; password hashes are not readable, listable, or modifiable through the API (the tables have no client-facing policies). Failed logins are rate-limited (5 tries, 15-minute lock). Your chat content is tied to your account id, so it follows you across devices after login.</p>
+      <p>Deleting your account (the in-app <strong>Delete Account</strong> control, confirmed with your password) permanently erases the account record, your chat user, every message, reaction and read receipt sent under your name, your presence, and any rooms you own; the username then becomes available for registration again. A wrong password deletes nothing.</p>
       <p>Deleting a message or room record may not immediately delete an associated object from storage, cached signed URL, backup, or provider log. We do not promise instant or forensic erasure.</p>
     </section>
 
@@ -174,7 +175,7 @@
     <section class="section">
       <h2>11. Your choices and rights</h2>
       <p>Depending on where you live, you may have rights to access, correct, delete, restrict, or object to certain processing, or to receive a portable copy. These rights may be limited by the anonymous nature of the Service, other users’ rights, legal obligations, and the ability to verify that a browser identity or content belongs to you.</p>
-      <p>You can edit your own profile, delete eligible messages, leave rooms, clear browser data, disable notifications, or use the in-app deletion control. For a broader request, contact the operator and provide the minimum information needed to identify the relevant anonymous user ID, room, or message.</p>
+      <p>You can edit your own profile, delete eligible messages, leave rooms, clear browser data, disable notifications, or use the in-app <strong>Delete Account</strong> control, which performs the full erase described in section 6. For a broader request, contact the operator and provide the minimum information needed to identify the relevant account, room, or message.</p>
       <p>The current creator/admin interface cannot terminate another anonymous identity, ban a user across the platform, revoke or reserve a username, or automatically erase every record associated with a person. A request may require a manual Supabase data operation, may be limited by the ability to verify ownership, and may not be technically possible for every provider record or copy.</p>
     </section>
 
@@ -192,7 +193,7 @@
     </section>
 
     <footer class="last-updated">
-      <p>This Privacy Policy was last updated on August 11, 2026.</p>
+      <p>This Privacy Policy was last updated on August 25, 2026.</p>
     </footer>
   </main>
 </body>

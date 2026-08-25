@@ -5,7 +5,7 @@
 # Chat Site
 
 
-A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supabase (anonymous auth); the repo also includes the original Node.js/Express/Socket.io server for self-hosting. No accounts required — pick a username and start chatting instantly.
+A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supabase; the repo also includes the original Node.js/Express/Socket.io server for self-hosting. Access requires an account (login/register gate); your username, rooms and content follow the account across devices.
 
 ---
 

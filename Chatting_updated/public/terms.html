@@ -80,7 +80,7 @@
     <header>
       <h1>Terms of Use</h1>
       <p class="subtitle">Rules for using ptr_29 Chat</p>
-      <p class="effective">Effective and last updated: August 11, 2026</p>
+      <p class="effective">Effective and last updated: August 25, 2026</p>
     </header>
 
     <div class="notice" role="note">
@@ -96,7 +96,7 @@
     <section class="section">
       <h2>2. What the Service provides</h2>
       <p>The Service provides public and access-controlled chat rooms, anonymous browser-based identities, real-time messages, reactions, read receipts, presence indicators, and file sharing. The production application is hosted on GitHub Pages and uses Supabase for authentication, database, realtime, and file storage.</p>
-      <p>You do not create a traditional password account. The Service assigns an anonymous Supabase identity to the browser. Clearing browser data, changing browsers, or losing that session may permanently remove access to the same identity, rooms, or content.</p>
+      <p>Access requires an account: you register a username and password at the start gate. Passwords are SHA-256-salted on your device and bcrypt-hashed server-side with a secret pepper; there is no password-recovery process. Your content follows your account across devices — logging in on a new device restores your username, rooms, and history.</p>
     </section>
 
     <section class="section">
@@ -104,6 +104,7 @@
       <p>You are responsible for activity performed through your browser identity and for the content you submit. You agree to:</p>
       <ul>
         <li>Choose a username and avatar that do not impersonate or mislead others; "Anonymous" is reserved and abandoned names may be reclaimed.</li>
+        <li>Keep your password confidential and understand there is no recovery process; logins are rate-limited (5 failed tries lock the name for 15 minutes).</li>
         <li>Understand that your online/offline status and last-seen time are visible to other users while the service is used.</li>
         <li>Keep private-room passkeys confidential and share them only with intended participants.</li>
         <li>Confirm that you have the right and permission to upload or share content.</li>
@@ -146,6 +147,7 @@
     <section class="section">
       <h2>7. Deletion and data persistence</h2>
       <p>Deleting a browser profile is not the same as erasing every prior contribution. Messages, reactions, read receipts, room records, uploaded objects, backups, and provider logs may remain until separately deleted through an available control, a room is cleared or deleted, a Supabase project administrator performs a manual data operation, or the applicable provider retention period ends.</p>
+      <p>The in-app <strong>Delete Account</strong> control (confirmed with your password) performs a full erase: the account, the chat user, every message, reaction and read receipt under the name, presence, and rooms you own are deleted, and the username becomes available for registration again. Renaming your profile likewise wipes all content previously sent under the old name.</p>
       <p>Do not rely on the Service as your only copy of important content. Data can be lost because of user action, moderation, software defects, free-tier limits, provider action, or service shutdown.</p>
     </section>
 
@@ -180,7 +182,7 @@
     </section>
 
     <footer class="last-updated">
-      <p>These Terms of Use were last updated on August 11, 2026.</p>
+      <p>These Terms of Use were last updated on August 25, 2026.</p>
     </footer>
   </main>
 </body>
