@@ -2577,6 +2577,13 @@
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     } catch { return null; }
   }
+  function el(tag, attrs) {
+    const n = document.createElement(tag);
+    if (attrs) for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'class') n.className = v; else n.setAttribute(k, v);
+    }
+    return n;
+  }
   function showAuthGate() {
     const boot = document.getElementById('boot');
     if (boot) { boot.classList.remove('off'); boot.innerHTML = ''; }
