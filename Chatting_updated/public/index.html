@@ -2082,7 +2082,12 @@
     </div>
   </div>
   <script src="vendor/supabase.min.js"></script>
-  <script src="supabase-client.js?v=260850"></script>
-  <script src="client.js?v=260850"></script>
+  <script>
+    // per-load cache-busting: stale JS can never run again
+    document.write('<link rel="stylesheet" href="styles.css?t=' + Date.now() + '">');
+    document.write('<link rel="stylesheet" href="mobile.css?t=' + Date.now() + '" media="(max-width: 768px)">');
+    document.write('<script src="supabase-client.js?t=' + Date.now() + '"><\/script>');
+    document.write('<script src="client.js?t=' + Date.now() + '"><\/script>');
+  </script>
 </body>
 </html>
