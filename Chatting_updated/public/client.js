@@ -2568,13 +2568,85 @@
   const tourBtn = document.getElementById('tour-btn');
   if (tourBtn) tourBtn.addEventListener('click', () => tour.start());
 
-  // Auto-start for first-time visitors
-  let tourDone = false;
-  try { tourDone = !!localStorage.getItem('ptr29_tour_done_v1'); } catch {}
-  if (!tourDone) setTimeout(() => tour.start(), 900);
+  // ── Accounts: gate, login, register, logout ──────────────────────────────
+  const ACCOUNT_KEY = 'ptr29_account_session';
+  const getAccountSession = () => { try { return JSON.parse(localStorage.getItem(ACCOUNT_KEY) || 'null'); } catch { return null; } };
+  async function sha256hex(str) {
+    try {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch { return null; }
+  }
+  function showAuthGate() {
+    const boot = document.getElementById('boot');
+    if (boot) { boot.classList.remove('off'); boot.innerHTML = ''; }
+    let mode = 'login';
+    const card = el('div', { class: 'modal', style: 'max-width:430px;width:94%;padding:24px' });
+    card.innerHTML = `
+      <h3 style="font-size:20px;margin-bottom:6px">🔐 REPLICA Account</h3>
+      <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">Your content follows your <b>account</b> across devices. Passwords are SHA-256-salted on this device, then <b>bcrypt-hashed with a server-side pepper</b>. Hashes are unreadable through the API and logins are rate-limited.</p>
+      <div class="people-toggle" style="margin-bottom:12px">
+        <button type="button" class="pt-btn ag-tab active" data-m="login">Log in</button>
+        <button type="button" class="pt-btn ag-tab" data-m="reg">Create account</button>
+      </div>
+      <input id="ag-user" placeholder="Username" autocomplete="username" style="margin-bottom:10px">
+      <input id="ag-pass" type="password" placeholder="Password (min 6 characters)" autocomplete="current-password" style="margin-bottom:10px">
+      <div id="ag-err" style="color:var(--danger);font-size:12px;min-height:18px;margin-bottom:8px"></div>
+      <button id="ag-go" class="btn primary" style="width:100%;justify-content:center">Continue ➤</button>`;
+    (boot || document.body).append(card);
+    card.querySelectorAll('.ag-tab').forEach(b => b.addEventListener('click', () => {
+      mode = b.dataset.m;
+      card.querySelectorAll('.ag-tab').forEach(x => x.classList.toggle('active', x === b));
+      card.querySelector('#ag-pass').placeholder = mode === 'reg' ? 'Choose a password (min 6 characters)' : 'Password';
+    }));
+    card.querySelector('#ag-go').addEventListener('click', async () => {
+      const un = card.querySelector('#ag-user').value.trim();
+      const pw = card.querySelector('#ag-pass').value;
+      const err = card.querySelector('#ag-err');
+      err.textContent = '';
+      if (!un || !pw) { err.textContent = 'Enter username and password.'; return; }
+      if (pw.length < 6) { err.textContent = 'Password too short (min 6 characters).'; return; }
+      const h = await sha256hex(pw + ':' + un.toLowerCase());
+      if (!h) { err.textContent = 'Crypto unavailable in this browser.'; return; }
+      const res = mode === 'login'
+        ? await window.ChatAPI.accountLogin(un, h)
+        : await window.ChatAPI.accountRegister(un, h);
+      if (!res || !res.ok) {
+        const map = {
+          taken: 'That username already has an account — log in instead.',
+          invalid_credentials: 'Wrong username or password.',
+          locked: 'Too many failed attempts — locked for 15 minutes.',
+          invalid_username: 'Invalid username.',
+        };
+        err.textContent = (map[res && res.error]) || (res && res.error) || 'Failed.';
+        return;
+      }
+      try {
+        localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ id: res.id, username: res.username }));
+        localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, res.id);
+      } catch {}
+      location.reload();
+    });
+  }
+  function logout() {
+    try { localStorage.removeItem(ACCOUNT_KEY); localStorage.removeItem(CONSTANTS.CLIENT_ID_KEY); } catch {}
+    location.reload();
+  }
 
-  init();
-  initMobile();  // Run after init
+  // Gated startup: no account session → auth gate blocks the whole app
+  (async () => {
+    const sess = getAccountSession();
+    if (!sess) { showAuthGate(); return; }
+    try { localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, sess.id); } catch {}
+    if (window.ChatAPI && window.ChatAPI.setClientId) window.ChatAPI.setClientId(sess.id);
+    document.getElementById('logout-btn')?.addEventListener('click', logout);
+    init();
+    initMobile();  // Run after init
+    // Auto-start for first-time visitors
+    let tourDone = false;
+    try { tourDone = !!localStorage.getItem('ptr29_tour_done_v1'); } catch {}
+    if (!tourDone) setTimeout(() => tour.start(), 900);
+  })();
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

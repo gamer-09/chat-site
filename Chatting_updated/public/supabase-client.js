@@ -735,6 +735,13 @@
         .then(function (res) { return res.error ? { ok: false, error: res.error.message } : { ok: true }; });
     },
 
+    accountLogin: function (un, hash) {
+      return sb.rpc('login_account', { un: un, pass: hash }).then(function (r) { return r.data || { ok: false }; });
+    },
+    accountRegister: function (un, hash) {
+      return sb.rpc('register_account', { un: un, pass: hash }).then(function (r) { return r.data || { ok: false }; });
+    },
+
     tourRooms: function () {
       var cid = api._clientId || api.uid;
       return sb.from('rooms').select('name,owner_id').like('name', 'tour-%')

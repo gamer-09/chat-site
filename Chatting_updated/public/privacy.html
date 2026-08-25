@@ -145,6 +145,7 @@
       <p>No fixed automatic retention period currently applies to messages, rooms, profiles, receipts, reactions, or uploads. They may remain until a user deletes an eligible message, a room owner/admin clears or deletes that room, a Supabase project administrator performs a manual data operation, the project is reset, or provider retention rules require deletion.</p>
       <p>Renaming or deleting your username performs a <strong>full wipe</strong> of that name's messages, reactions, and read receipts before the profile change completes. The operator can additionally purge any username (profile row plus its content) at any time.</p>
       <p>Presence works as follows: while your browser tab is open you appear <strong>online</strong> (even without a room); closing the tab removes your presence and lists you <strong>offline</strong> with a "seen …" last-seen time visible to other users.</p>
+      <p>Accounts: access to the app requires login. Passwords are SHA-256-salted on your device and then bcrypt-hashed server-side with a secret pepper; password hashes are not readable, listable, or modifiable through the API (the tables have no client-facing policies). Failed logins are rate-limited (5 tries, 15-minute lock). Your chat content is tied to your account id, so it follows you across devices after login.</p>
       <p>Deleting a message or room record may not immediately delete an associated object from storage, cached signed URL, backup, or provider log. We do not promise instant or forensic erasure.</p>
     </section>
 

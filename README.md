@@ -28,6 +28,7 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | Username rules | "Anonymous" reserved; abandoned/orphan names auto-reclaimable; active names protected |
 | Full wipes | Rename/delete fully erases that name's messages/reactions/receipts; operator `purge_user()` for any name |
 | Reactions | Instant hover tooltip with names ("you" for self), correct own-detection, toggle semantics |
+| Accounts | 🔐 Login/register gate before app access; bcrypt+pepper hashed passwords (SHA-256 on-device first); hashes unreadable via API; 5-try rate limit; logout button; content follows the account across devices |
 | Unique usernames | Server enforces no two users share the same name |
 | Auto avatars | DiceBear avatars generated from your username, or supply your own URL |
 | Admin tools | Rename, clear, delete, transfer ownership, manage admins and users |
@@ -276,3 +277,4 @@ Use Nginx or Caddy with a free Let's Encrypt certificate. Never run a public cha
 | `supabase/005_reserve_anonymous.sql` | Reserves "anonymous" |
 | `supabase/007…/008_backfill…sql` | Backfill user rows from every activity source |
 | *(inline in chat)* | `purge_user(name)` — full operator purge of a username |
+| `supabase/009_accounts.sql` | Hardened accounts: no client-facing table policies, peppered bcrypt, rate limiting, anti-enumeration |
