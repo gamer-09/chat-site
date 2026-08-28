@@ -1,3 +1,8 @@
+/*
+ * © 2026 gamer-09. All rights reserved.
+ * This code is proprietary. Unauthorized copying, modification,
+ * distribution, or use of this software is strictly prohibited.
+ */
 (() => {
   // Socket.IO is replaced by the Supabase adapter (window.ChatAPI) for the
   // GitHub Pages edition — same event/emit interface, backend lives in the cloud.

@@ -1,3 +1,8 @@
+/*
+ * © 2026 gamer-09. All rights reserved.
+ * This code is proprietary. Unauthorized copying, modification,
+ * distribution, or use of this software is strictly prohibited.
+ */
 // ── Network-first shell: always serve fresh same-origin assets ─────────────
 // GitHub Pages sends max-age=600; this SW bypasses the HTTP cache so deploys
 // reach users instantly, with cache fallback only when the network is dead.
