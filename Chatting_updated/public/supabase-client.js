@@ -67,7 +67,6 @@
     _pruneTimer: null,
     _typingChannel: null,
     _reactions: {},   // room -> messageId -> { emoji: [{userId, username}] }
-    _receipts: {},    // room -> messageId -> [{userId, username, at}]
     _presence: {},    // uid -> row
     _urlCache: {},
     _urlPromises: {},
@@ -100,7 +99,6 @@
         case 'edit-message':         api.editMessage(p.messageId, p.text); break;
         case 'delete-message':       api.deleteMessage(p.messageId); break;
         case 'react-message':        api.toggleReaction(p.messageId, p.emoji); break;
-        case 'mark-read':            api.markRead(p.room || api._currentRoom, p.messageId); break;
         case 'update-profile':       api.updateProfile(p.room, p.username, p.avatar); break;
         case 'delete-user':          api.deleteUser().then(respond); break;
         case 'rename-identity':      if (typeof cb === 'function') cb({ ok: true }); break;
@@ -479,31 +477,20 @@
     },
 
     loadMetaTables: function (room) {
-      var jobs = [
-        sb.from('reactions').select('*').eq('room', room),
-        sb.from('receipts').select('*').eq('room', room)
-      ];
-      return Promise.all(jobs).then(function (results) {
+      return sb.from('reactions').select('*').eq('room', room).then(function (r0) {
         var reac = {};
-        (results[0].data || []).forEach(function (x) {
+        (r0.data || []).forEach(function (x) {
           (reac[x.message_id] = reac[x.message_id] || {});
           (reac[x.message_id][x.emoji] = reac[x.message_id][x.emoji] || []);
           reac[x.message_id][x.emoji].push({ userId: x.uid, username: x.username });
         });
         api._reactions[room] = reac;
-        var rec = {};
-        (results[1].data || []).forEach(function (x) {
-          (rec[x.message_id] = rec[x.message_id] || []);
-          rec[x.message_id].push({ userId: x.uid, username: x.username, at: x.at });
-        });
-        api._receipts[room] = rec;
       }).catch(function () {});
     },
 
     mergeMeta: function (room, msg) {
       var copy = Object.assign({}, msg);
       copy.reactions = (api._reactions[room] && api._reactions[room][msg.id]) || {};
-      copy.readBy = (api._receipts[room] && api._receipts[room][msg.id]) || [];
       return copy;
     },
 
@@ -628,14 +615,6 @@
         if (!list[emoji].length) delete list[emoji];
       }
       dispatch('message-reaction', { room: room, messageId: messageId, reactions: bucket[messageId] || {} });
-    },
-
-    markRead: function (room, messageId) {
-      if (!api.uid || !room || !messageId) return;
-      sb.from('receipts').upsert({
-        message_id: messageId, room: room, uid: api.uid,
-        username: api._username || 'Anonymous', at: Date.now()
-      }, { onConflict: 'message_id,uid' }).then(function () {});
     },
 
     searchMessages: function (room, q) {
@@ -948,15 +927,6 @@
       ch.on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'reactions' }, function (p) {
         if (p.old.uid === api.uid) return;
         api._applyReaction(p.old.room, p.old.message_id, p.old.emoji, p.old.uid, p.old.username, false);
-      });
-
-      ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'receipts' }, function (p) {
-        var rec = api._receipts[p.new.room] = api._receipts[p.new.room] || {};
-        var list = rec[p.new.message_id] = rec[p.new.message_id] || [];
-        if (!list.some(function (r) { return r.userId === p.new.uid; })) {
-          list.push({ userId: p.new.uid, username: p.new.username, at: p.new.at });
-        }
-        dispatch('read-receipt', { messageId: p.new.message_id, room: p.new.room, username: p.new.username, userId: p.new.uid });
       });
 
       ch.on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, function (p) {

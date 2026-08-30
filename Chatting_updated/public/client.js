@@ -128,7 +128,6 @@
     canManageCurrentRoom: false,
     canDeleteRoom: false,
     unreadCounts: {},
-    readSent: new Set(),
     rooms: [],
     currentRoomPresence: [],
   };
@@ -221,12 +220,6 @@
 
     formatTime: (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
 
-    formatReadBy: (names, maxShow = 3) => {
-      const list = names || [];
-      const shown = list.slice(0, maxShow).map(n => utils.escapeHtml(n));
-      const rest = list.length - shown.length;
-      return shown.join(', ') + (rest > 0 ? ` <span class="receipts-more">+${rest}</span>` : '');
-    },
     truncate: (str, maxLen) => {
       const s = String(str ?? '');
       return s.length > maxLen ? s.slice(0, maxLen) + '…' : s;
@@ -834,10 +827,6 @@
           }).join('')}</div>`
         : '<div class="reactions"></div>';
 
-      const readByOthers = (msg.readBy || []).filter(r => r.username !== (msg.username || 'Anonymous'));
-      const receiptsHtml = isMe && readByOthers.length > 0
-        ? `<div class="receipts" title="Read by ${utils.escapeHtml(readByOthers.map(r => r.username).join(', '))}">✓ Read by ${utils.formatReadBy(readByOthers.map(r => r.username))}</div>`
-        : '<div class="receipts"></div>';
 
       content += `
         <div class="msg-actions">
@@ -854,8 +843,7 @@
           ${msg.edited ? '<span class="edited">(edited)</span>' : ''}
         </div>
         <div class="body">${bodyHtml}</div>
-        ${reactionsHtml}
-        ${receiptsHtml}`;
+        ${reactionsHtml}`;
 
       el.innerHTML = content;
 
@@ -922,11 +910,6 @@
 
       prepend ? elements.messages.prepend(el) : elements.messages.appendChild(el);
       elements.messages.scrollTop = elements.messages.scrollHeight;
-
-      if (!isMe && !state.readSent.has(msg.id)) {
-        socket.emit('mark-read', { room: state.currentRoom, messageId: msg.id });
-        state.readSent.add(msg.id);
-      }
     },
 
     send: (text) => {
@@ -997,21 +980,6 @@
           socket.emit('react-message', { messageId: msgId, emoji: pill.dataset.emoji });
         });
       });
-    },
-
-    renderReceipts: (msgEl, readBy) => {
-      let div = msgEl.querySelector('.receipts');
-      if (!div) { div = document.createElement('div'); div.className = 'receipts'; msgEl.appendChild(div); }
-      const senderUsername = msgEl.dataset.username;
-      const isMyMsg = isMineDataset(msgEl);
-      const readByOthers = (readBy || []).filter(r => r.username !== senderUsername);
-      if (isMyMsg && readByOthers.length > 0) {
-        div.title = 'Read by ' + readByOthers.map(r => r.username).join(', ');
-        div.innerHTML = '✓ Read by ' + utils.formatReadBy(readByOthers.map(r => r.username));
-      } else {
-        div.textContent = '';
-        div.title = '';
-      }
     },
 
     showContextMenu: (e, msgEl, msg) => {
@@ -1251,8 +1219,6 @@
       if (document.querySelector(`[data-id="${data.id}"]`)) return; // dedupe (realtime + optimistic)
       if (data.room === state.currentRoom) {
         messages.render(data);
-        if (data.clientId !== state.myClientId)
-          socket.emit('mark-read', { room: state.currentRoom, messageId: data.id });
       } else {
         state.unreadCounts[data.room] = (state.unreadCounts[data.room] || 0) + 1;
         utils.saveToStorage(CONSTANTS.UNREAD_KEY, state.unreadCounts);
@@ -1355,18 +1321,6 @@
         if ((data.clientId && el.dataset.clientId === data.clientId) ||
             (data.username && el.dataset.username === data.username)) el.remove();
       });
-    },
-
-    'read-receipt': (data) => {
-      const msgEl = document.querySelector(`[data-id="${data.messageId}"]`);
-      if (!msgEl) return;
-      const div = msgEl.querySelector('.receipts');
-      if (!div) return;
-      if (!isMineDataset(msgEl)) return;
-      const current = div.textContent.replace('✓ Read by ', '');
-      const names = current ? current.split(', ').filter(Boolean) : [];
-      if (!names.includes(data.username)) names.push(data.username);
-      div.textContent = `✓ Read by ${names.join(', ')}`;
     },
 
     'message-reaction': (data) => {

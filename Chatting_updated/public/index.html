@@ -505,23 +505,7 @@
       margin-top: 8px;
     }
     
-    .receipts {
-      margin-top: 6px;
-      font-size: 11px;
-      color: var(--text-dim);
-      overflow-wrap: anywhere;
-    }
-    .receipts-more {
-      display: inline-block;
-      margin-left: 4px;
-      padding: 1px 7px;
-      border-radius: 10px;
-      background: rgba(37,99,235,0.16);
-      color: var(--accent);
-      font-weight: 700;
-      font-size: 10.5px;
-      line-height: 1.5;
-    }
+
     
     .reply-preview {
       display: block;
@@ -1694,7 +1678,7 @@
     <div class="modal">
       <h3>⚠️ Delete Everything</h3>
       <div class="warning">
-        <strong>Full erase:</strong> this permanently deletes your <b>account</b>, your chat <b>user</b>, every message, reaction and read receipt sent under your name, your presence, and any rooms you own. This cannot be undone.
+        <strong>Full erase:</strong> this permanently deletes your <b>account</b>, your chat <b>user</b>, every message and reaction sent under your name, your presence, and any rooms you own. This cannot be undone.
       </div>
       <input id="delete-pass" type="password" placeholder="Enter your account password to confirm" autocomplete="current-password" style="margin:10px 0 0;width:100%">
       <p>Delete your account and all data?</p>
@@ -1782,7 +1766,7 @@
               <li>✏️ <strong>Username</strong> is checked live and must currently be available</li>
               <li>🖼️ <strong>Avatar</strong> — paste an image URL or tap <strong>📷 Upload picture</strong> (works on phones); leave blank for a DiceBear avatar</li>
               <li>🪪 <strong>Client ID</strong> identifies this browser; it stays private unless you explicitly approve sharing it; clearing site data may change it</li>
-              <li>🗑️ <strong>Delete Account</strong> asks for your password, then permanently erases the account, the chat user, every message/reaction/receipt under the name, presence, and owned rooms. Renaming still wipes the old name's content.</li>
+              <li>🗑️ <strong>Delete Account</strong> asks for your password, then permanently erases the account, the chat user, every message/reaction under the name, presence, and owned rooms. Renaming still wipes the old name's content.</li>
               <li>♻️ <strong>Abandoned names</strong> (holder offline, or orphaned rows) can be reclaimed by anyone; active names are protected</li>
             </ul>
           </div>
@@ -1861,7 +1845,7 @@
               <li>⏱️ <strong>Edit</strong> is shown for your own messages during the first 5 minutes</li>
               <li>👆 <strong>Tap a message on mobile</strong> or right-click it on desktop to reveal actions</li>
               <li>📎 <strong>Files</strong> can be up to 25 MB; 📷 <strong>images</strong> can be up to 10 MB</li>
-              <li>✓ <strong>Read receipts</strong> and typing status are visible to room participants</li>
+              <li>⌨️ <strong>Typing status</strong> is visible to room participants</li>
               <li>⚠️ Deleting a message removes it from chat, but an associated uploaded storage object may remain</li>
             </ul>
           </div>
@@ -1995,7 +1979,7 @@
               <li>🆔 <strong>Your identity follows your account</strong> — log in on any device and your content is there; passwords are SHA-256-salted on-device, then bcrypt + pepper server-side; the name “Anonymous” is reserved</li>
               <li>🌙 <strong>Theme</strong> — switch dark/light with the 🌙/☀️ toolbar button; your choice is remembered</li>
               <li>🔒 <strong>Private rooms are not end-to-end encrypted</strong>; authorized participants and infrastructure providers may technically access content</li>
-              <li>🗑️ <strong>Delete Account</strong> (password-verified) erases account + user + every message/reaction/receipt + presence + owned rooms; renames wipe the old name; the operator can purge any username</li>
+              <li>🗑️ <strong>Delete Account</strong> (password-verified) erases account + user + every message/reaction + presence + owned rooms; renames wipe the old name; the operator can purge any username</li>
               <li>⚪ <strong>Presence &amp; last-seen</strong> are visible to other users while your tab is open and as a “seen …” time after you leave</li>
               <li>🛡️ <strong>Admin rights are room-scoped</strong>; there is no global ban, account termination, or username-revocation control</li>
               <li>📄 Read the <a href="terms.html" target="_blank" rel="noopener noreferrer">Terms of Use</a> and <a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacy Policy</a> for full details</li>
