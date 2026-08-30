@@ -27,6 +27,8 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true  # auto-enable Pages if not yet configured (avoids "Get Pages site failed / Not Found")
 
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
