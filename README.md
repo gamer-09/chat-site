@@ -19,15 +19,16 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | Image sharing | Upload and send images up to 10 MB |
 | Typing indicators | See when others are typing |
 | Edit & delete | Edit or delete your own messages within the time window |
+| Read receipts | See who has read each message |
 | User presence | Online = tab open, offline = tab closed; presence pruned when stale |
 | People panel | Online/Offline toggle with live counts, **search filter**, last-seen times |
 | Member profiles | Online-list ⋮ menu → personal card (avatar, status, activity stats); view-only entry point |
 | Client-ID requests | Consent-based: reasoned request → recipient approves/denies in the 📥 Inbox; approval shares a one-time snapshot |
 | Guided tour | 🎓 watch-only demo: fake volunteers Nova & Rex; guide performs rename/passkey/privacy/add/remove/clear for real; temp rooms auto-delete |
 | Username rules | "Anonymous" reserved; abandoned/orphan names auto-reclaimable; active names protected |
-| Full wipes | Rename fully erases the old name's messages/reactions; **Delete Account** (password-verified) erases account + user + all content + owned rooms; operator `purge_user()` for any name |
+| Full wipes | Rename fully erases the old name's messages/reactions/receipts; **Delete Account** (password-verified) erases account + user + all content + owned rooms; operator `purge_user()` for any name |
 | Reactions | Instant hover tooltip with names ("you" for self), correct own-detection, toggle semantics |
-| Accounts | 🔐 Login/register gate before app access; bcrypt+pepper hashed passwords (SHA-256 on-device first); hashes unreadable via API; 5-try rate limit; logout button; content follows the account across devices; Delete Account = full erase (account, user, messages, reactions, presence, owned rooms) |
+| Accounts | 🔐 Login/register gate before app access; bcrypt+pepper hashed passwords (SHA-256 on-device first); hashes unreadable via API; 5-try rate limit; logout button; content follows the account across devices; Delete Account = full erase (account, user, messages, reactions, receipts, presence, owned rooms) |
 | Unique usernames | Server enforces no two users share the same name |
 | Auto avatars | DiceBear avatars generated from your username, or supply your own URL |
 | Admin tools | Rename, clear, delete, transfer ownership, manage admins and users |
@@ -231,7 +232,7 @@ Room owners have a settings panel with:
 
 ### WebSocket events (server → client)
 
-`message`, `presence`, `system`, `typing`, `users`, `room-renamed`, `room-deleted`
+`message`, `presence`, `system`, `typing`, `users`, `receipt`, `room-renamed`, `room-deleted`
 
 ---
 
@@ -269,7 +270,7 @@ Use Nginx or Caddy with a free Let's Encrypt certificate. Never run a public cha
 
 | File | Purpose |
 |---|---|
-| `Chatting_updated/supabase/schema.sql` | Base schema (rooms, messages, presence, reactions, room RPCs) |
+| `Chatting_updated/supabase/schema.sql` | Base schema (rooms, messages, presence, receipts, reactions, room RPCs) |
 | `supabase/001_id_requests.sql` | Client-ID request inbox table + participant-only RLS |
 | `supabase/002_rls_fix.sql` | Own-message edit/delete by any of your identities; reactions sender-only |
 | `supabase/004_username_available.sql` | One-call availability check + orphan reclaim |
