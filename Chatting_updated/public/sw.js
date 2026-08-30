@@ -19,6 +19,12 @@ self.addEventListener('activate', (event) => {
     const keys = await caches.keys();
     await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
     await self.clients.claim();
+    // One-time takeover reload: frees any tab pinned to a stale build by an
+    // ancient worker. Runs once per SW version (activate fires once).
+    try {
+      const wins = await self.clients.matchAll({ type: 'window' });
+      await Promise.all(wins.map((w) => w.navigate(w.url).catch(() => {})));
+    } catch (e) {}
   })());
 });
 
