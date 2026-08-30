@@ -221,6 +221,12 @@
 
     formatTime: (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
 
+    formatReadBy: (names, maxShow = 3) => {
+      const list = names || [];
+      const shown = list.slice(0, maxShow).map(n => utils.escapeHtml(n));
+      const rest = list.length - shown.length;
+      return shown.join(', ') + (rest > 0 ? ` <span class="receipts-more">+${rest}</span>` : '');
+    },
     truncate: (str, maxLen) => {
       const s = String(str ?? '');
       return s.length > maxLen ? s.slice(0, maxLen) + '…' : s;
@@ -830,7 +836,7 @@
 
       const readByOthers = (msg.readBy || []).filter(r => r.username !== (msg.username || 'Anonymous'));
       const receiptsHtml = isMe && readByOthers.length > 0
-        ? `<div class="receipts">✓ Read by ${readByOthers.map(r => utils.escapeHtml(r.username)).join(', ')}</div>`
+        ? `<div class="receipts" title="Read by ${utils.escapeHtml(readByOthers.map(r => r.username).join(', '))}">✓ Read by ${utils.formatReadBy(readByOthers.map(r => r.username))}</div>`
         : '<div class="receipts"></div>';
 
       content += `
@@ -999,7 +1005,13 @@
       const senderUsername = msgEl.dataset.username;
       const isMyMsg = isMineDataset(msgEl);
       const readByOthers = (readBy || []).filter(r => r.username !== senderUsername);
-      div.textContent = (isMyMsg && readByOthers.length > 0) ? `✓ Read by ${readByOthers.map(r=>r.username).join(', ')}` : '';
+      if (isMyMsg && readByOthers.length > 0) {
+        div.title = 'Read by ' + readByOthers.map(r => r.username).join(', ');
+        div.innerHTML = '✓ Read by ' + utils.formatReadBy(readByOthers.map(r => r.username));
+      } else {
+        div.textContent = '';
+        div.title = '';
+      }
     },
 
     showContextMenu: (e, msgEl, msg) => {
