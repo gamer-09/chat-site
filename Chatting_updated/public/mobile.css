@@ -323,7 +323,8 @@
   overscroll-behavior: contain;
 }
 .ptr29-mobile .msg {
-  max-width: 85%;
+  max-width: min(85%, 560px);
+  width: fit-content;
   min-width: 0;
   border-radius: 14px;
   padding: 8px 12px;
@@ -338,8 +339,8 @@
 .ptr29-mobile .meta .time   { font-size: 11px; }
 .ptr29-mobile .body { font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; word-break: break-word; min-width: 0; }
 .ptr29-mobile .msg img.msg-image {
-  max-width: 100%;
-  max-height: 220px;
+  max-width: min(330px, 100%);
+  max-height: 360px;
   width: auto;
   height: auto;
 }
