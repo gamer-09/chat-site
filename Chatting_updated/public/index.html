@@ -1408,6 +1408,9 @@
     .flash-in { animation: flashIn 1.2s ease forwards; }
     
     .mobile-only { display: none; }
+    .show-desktop-only { display: inline; }
+    .show-tablet-only { display: none; }
+    .show-mobile-only { display: none; }
     .lightbox img { max-height: 92dvh; }
     /* Prevent horizontal clipping on narrow screens */
     .file-attachment, .body, .reply-preview { max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
@@ -1545,6 +1548,11 @@
       .help-text h3 { font-size: 15px; }
       .help-text p { font-size: 12px; margin-bottom: 8px; }
       .help-tips li { font-size: 11px; padding: 6px 8px; }
+
+      /* ── Device-specific content visibility ─────────────────────── */
+      .show-desktop-only { display: none !important; }
+      .show-tablet-only { display: inline !important; }
+      .show-mobile-only { display: none !important; }
 
       /* ── Chat input area ──────────────────────────────────────────── */
       #username { width: 90px; }
@@ -1847,7 +1855,7 @@
               <li>🔐 <strong>Log in or create your account</strong> at the start gate — your username, rooms and content follow the account across devices</li>
               <li>🏠 <strong>Choose a room</strong> from the sidebar; #general is the shared starting room</li>
               <li>✉️ <strong>Type and press Enter</strong> (or Send) to post a message</li>
-              <li>📱 <strong>On mobile</strong>, use the Rooms, Chat, and Online tabs at the bottom</li>
+              <li><span class="show-mobile-only">📱 Use the <strong>Rooms</strong>, <strong>Chat</strong>, and <strong>Online</strong> tabs at the bottom</span><span class="show-tablet-only">👥 Tap the <strong>People button</strong> in the room bar to open the People panel</span><span class="show-desktop-only">👤 The <strong>People panel</strong> on the right shows who is online</span></li>
               <li>🎓 <strong>Guided tour</strong> is watch-only: fake volunteers (Nova &amp; Rex) help the guide demonstrate every room control while you just press Next; demo rooms auto-delete afterwards</li>
               <li>❓ <strong>Navigate this guide</strong> with its buttons or the ← and → keyboard keys</li>
             </ul>
@@ -2045,7 +2053,7 @@
           </div>
           <div class="help-text">
             <h3>🟢 Online Users &amp; Info</h3>
-            <p>The right <strong>People</strong> panel shows everyone — Online and Offline — with a toggle, live counts, and a search box. On mobile, open the <strong>Online</strong> tab.</p>
+            <p><span class="show-desktop-only">The right <strong>People</strong> panel shows everyone — Online and Offline — with a toggle, live counts, and a search box.</span><span class="show-tablet-only">Tap the <strong>👥 button</strong> in the room bar to slide open the <strong>People panel</strong> — it shows everyone with Online/Offline toggle, live counts, and search.</span><span class="show-mobile-only">Open the <strong>Online</strong> tab at the bottom to see everyone — Online and Offline — with a toggle, live counts, and a search box.</span></p>
             <ul class="help-tips">
               <li>🟢 <strong>Online = tab open</strong> — leaving a room keeps you online; closing the tab makes you offline</li>
               <li> <strong>Offline list</strong> shows everyone not present, with “seen …” last-seen times</li>

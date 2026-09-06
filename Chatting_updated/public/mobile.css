@@ -799,3 +799,8 @@
 .ptr29-mobile #text {
   line-height: 24px; /* keep glyphs vertically inside the 40px pill on iOS */
 }
+
+/* ── Device-specific content visibility (mobile) ─────────────────────── */
+.ptr29-mobile .show-desktop-only { display: none !important; }
+.ptr29-mobile .show-tablet-only { display: none !important; }
+.ptr29-mobile .show-mobile-only { display: inline !important; }

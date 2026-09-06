@@ -2451,7 +2451,7 @@
         { sel: ['#user-section'], mobile: 'rooms', title: '1 · Account identity', html: 'You entered through the 🔐 account gate — login or register is required before anything else, and your username, rooms and content follow your account across devices. (“Anonymous” is reserved as a name.)' },
         { sel: ['#room-list'], mobile: 'rooms', title: '2 · Demo rooms', html: `The guide created <b>#${pubRoom}</b> (public) and 🔒 <b>#${privRoom}</b> (private). You own them for this tour; they vanish at the end.` },
         { sel: ['#messages'], mobile: 'chat', run: async () => { closeSettings(); await joinRoom(pubRoom); }, title: '3 · Entering the room', html: 'The guide just walked into the public demo room. Watch the chat panel light up.' },
-        { sel: ['#online-panel'], mobile: 'online', run: async () => { state.tourFakes = fakePeople(); refreshOnline(); }, title: '4 · Volunteers join', html: '<b>Nova</b> and <b>Rex</b> just appeared in the Online list — the fake people who help demonstrate management.' },
+        { sel: ['#online-panel'], mobile: 'online', tabletPeople: true, run: async () => { state.tourFakes = fakePeople(); refreshOnline(); }, title: '4 · Volunteers join', html: '<b>Nova</b> and <b>Rex</b> just appeared in the <span class="show-desktop-only">Online list</span><span class="show-tablet-only">People panel (tap 👥 to open)</span><span class="show-mobile-only">Online tab</span> — the fake people who help demonstrate management.' },
         { sel: ['#messages'], mobile: 'chat', run: async () => { fakeMessage('Nova', 'Hey! Ready to help with the demo 👋'); }, title: '5 · A message arrives', html: 'That is what incoming messages look like — avatar, name, time, bubbles on the left; yours would sit on the right.' },
         { sel: ['#room-settings-panel'], run: async () => { openSettings(); }, title: '6 · Control panel', html: '⚙️ Settings opened. Every management feature lives here — watch the guide use each one on this room.' },
         { sel: ['#rename-input'], run: async () => { await emitP('rename-room', { room: state.currentRoom, newName: 'guided-demo' }); rooms.fetch(); }, title: '7 · Rename (done for you)', html: 'The guide just renamed the room to <b>#guided-demo</b> — see the sidebar update. Owners can rename any room except #general.' },
@@ -2462,7 +2462,7 @@
         { sel: ['#room-members-list'], run: async () => { socket.emit('remove-room-admin', { room: state.currentRoom, adminId: fakeIds[1] }); await new Promise(r => setTimeout(r, 400)); socket.emit('remove-room-member', { room: state.currentRoom, memberId: fakeIds[1] }); await new Promise(r => setTimeout(r, 400)); socket.emit('get-room-meta', { room: state.currentRoom }, () => {}); }, title: '12 · Removing people', html: 'The guide demoted and removed <b>Rex</b> with the ✕ buttons — access revoked instantly. Add, promote, remove: the full cycle.' },
         { sel: ['#clear-room-btn'], mobile: 'chat', run: async () => { closeSettings(); await window.ChatAPI.clearRoom(state.currentRoom); }, title: '13 · Clearing a room', html: 'The room’s messages were just wiped with <b>Clear</b> (owner/admins only). Messages gone, room intact.' },
         { sel: ['#room-settings-panel'], mobile: 'rooms', run: async () => { await joinRoom(privRoom); openSettings(); }, title: '14 · The private room', html: `Now inside 🔒 <b>#${privRoom}</b> — same controls, already private. Everything you just watched works here too.` },
-        { sel: ['#online-panel'], mobile: 'online', run: async () => { closeSettings(); state.tourFakes = []; refreshOnline(); }, title: '15 · Volunteers leave', html: 'Nova and Rex left the demo. The Online list always reflects live presence.' },
+        { sel: ['#online-panel'], mobile: 'online', tabletPeople: true, run: async () => { closeSettings(); state.tourFakes = []; refreshOnline(); }, title: '15 · Volunteers leave', html: 'Nova and Rex left the demo. The <span class="show-desktop-only">Online list</span><span class="show-tablet-only">People panel</span><span class="show-mobile-only">Online tab</span> always reflects live presence.' },
         { sel: ['#inbox-btn'], title: '16 · Done 🎉', html: '📥 Inbox = Client-ID requests · ❓ full guide · 🎓 replay. Finishing now deletes both demo rooms.' },
       ];
     }
@@ -2497,11 +2497,24 @@
       return null;
     }
 
+    function isTablet() {
+      return !document.body.classList.contains('ptr29-mobile') && window.innerWidth >= 769 && window.innerWidth <= 1024;
+    }
+
     function place() {
       const st = steps[idx];
       if (!st) return;
       const isMobile = document.body.classList.contains('ptr29-mobile');
       if (st.mobile && isMobile) setMobileView(st.mobile);
+      // On tablet, open the People slide-in panel when the step targets it
+      if (st.tabletPeople && isTablet()) {
+        const panel = document.getElementById('online-panel');
+        const backdrop = document.getElementById('tablet-people-backdrop');
+        if (panel && !panel.classList.contains('tablet-open')) {
+          panel.classList.add('tablet-open');
+          if (backdrop) backdrop.classList.add('open');
+        }
+      }
       const target = targetFor(st);
       if (target) {
         try { target.scrollIntoView({ block: 'center' }); } catch {}
@@ -2572,6 +2585,11 @@
       state.tourMode = false;
       state.tourFakes = [];
       closeSettings();
+      // Close tablet people panel if open
+      const tPanel = document.getElementById('online-panel');
+      const tBdrop = document.getElementById('tablet-people-backdrop');
+      if (tPanel) tPanel.classList.remove('tablet-open');
+      if (tBdrop) tBdrop.classList.remove('open');
       const a = pubRoom, b = privRoom;
       pubRoom = privRoom = '';
       if (state.currentRoom === a || state.currentRoom === b) {
