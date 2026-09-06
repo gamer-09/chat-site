@@ -1441,10 +1441,14 @@
     #tour-overlay.open{display:block}
     #tour-spot{position:fixed;z-index:99990;display:none;border-radius:12px;pointer-events:none;
       box-shadow:0 0 0 9999px rgba(4,8,16,.78),0 0 0 2px var(--accent),0 0 22px var(--accent);
-      transition:left .3s ease,top .3s ease,width .3s ease,height .3s ease}
+      transition:opacity .25s ease}
+    #tour-spot.tour-pulse{animation:tourPulse 1.9s ease-in-out infinite}
+    @keyframes tourPulse{0%,100%{box-shadow:0 0 0 9999px rgba(4,8,16,.78),0 0 0 2px var(--accent),0 0 22px var(--accent)}50%{box-shadow:0 0 0 9999px rgba(4,8,16,.78),0 0 0 3px var(--accent),0 0 34px var(--accent)}}
     #tour-card{position:fixed;z-index:99991;display:none;max-width:min(360px,92vw);
       background:var(--panel);border:1px solid var(--border-light);border-radius:14px;
-      padding:16px 16px 12px;box-shadow:0 18px 50px rgba(0,0,0,.55)}
+      padding:16px 16px 12px;box-shadow:0 18px 50px rgba(0,0,0,.55);
+      transition:opacity .25s ease,transform .3s ease}
+    #tour-card.hidden{opacity:0;transform:translateY(10px)}
     #tour-card h4{margin:0 0 6px;color:var(--text);font-size:15px}
     #tour-card p{margin:0 0 12px;color:var(--text-muted);font-size:13px;line-height:1.55}
     #tour-card .tour-nav{display:flex;gap:8px;align-items:center}
@@ -1553,6 +1557,7 @@
       .show-desktop-only { display: none !important; }
       .show-tablet-only { display: inline !important; }
       .show-mobile-only { display: none !important; }
+      .show-tablet-only b { display: inline; }
 
       /* ── Chat input area ──────────────────────────────────────────── */
       #username { width: 90px; }

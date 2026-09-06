@@ -2403,8 +2403,23 @@
     const KEY = 'ptr29_tour_done_v1';
     let overlay, spot, card, titleEl, bodyEl, countEl, backBtn, nextBtn, skipBtn;
     let idx = 0, active = false, steps = [];
-    let pubRoom = '', privRoom = '';
-    let unwatch = null;
+    const PEOPLE_BTN_SEL = '#tablet-people-btn';
+
+    const isMobileDev = () => document.body.classList.contains('ptr29-mobile');
+    const isTabletDev = () => !isMobileDev() && window.innerWidth >= 769 && window.innerWidth <= 1024;
+
+    // Device-aware target: tablets must point at the 👥 room-bar button —
+    // the panel itself is a slide-in that only exists while opened.
+    function targetFor(st) {
+      const sels = (isTabletDev() && st.tabletPeople)
+        ? [PEOPLE_BTN_SEL].concat(st.sel || [])
+        : (st.sel || []);
+      for (const ssel of sels) {
+        const t = document.querySelector(ssel);
+        if (t && t.getClientRects().length) return t;
+      }
+      return null;
+    }
 
     function setWatch(st) {
       if (unwatch) { unwatch(); unwatch = null; }
@@ -2424,6 +2439,20 @@
 
     function openSettings() { if (elements.roomSettingsPanel) elements.roomSettingsPanel.style.display = 'block'; }
     function closeSettings() { if (elements.roomSettingsPanel) elements.roomSettingsPanel.style.display = 'none'; }
+    function openTabletPeople() {
+      if (!isTabletDev()) return;
+      const panel = document.getElementById('online-panel');
+      const backdrop = document.getElementById('tablet-people-backdrop');
+      if (panel) panel.classList.add('tablet-open');
+      if (backdrop) backdrop.classList.add('open');
+    }
+    function closeTabletPeople() {
+      const panel = document.getElementById('online-panel');
+      const backdrop = document.getElementById('tablet-people-backdrop');
+      const bdrop = backdrop;
+      if (panel) panel.classList.remove('tablet-open');
+      if (bdrop) bdrop.classList.remove('open');
+    }
     async function joinRoom(name) {
       if (!name || state.currentRoom === name) return;
       rooms.join(name);
@@ -2451,9 +2480,9 @@
         { sel: ['#user-section'], mobile: 'rooms', title: '1 · Account identity', html: 'You entered through the 🔐 account gate — login or register is required before anything else, and your username, rooms and content follow your account across devices. (“Anonymous” is reserved as a name.)' },
         { sel: ['#room-list'], mobile: 'rooms', title: '2 · Demo rooms', html: `The guide created <b>#${pubRoom}</b> (public) and 🔒 <b>#${privRoom}</b> (private). You own them for this tour; they vanish at the end.` },
         { sel: ['#messages'], mobile: 'chat', run: async () => { closeSettings(); await joinRoom(pubRoom); }, title: '3 · Entering the room', html: 'The guide just walked into the public demo room. Watch the chat panel light up.' },
-        { sel: ['#online-panel'], mobile: 'online', tabletPeople: true, run: async () => { state.tourFakes = fakePeople(); refreshOnline(); }, title: '4 · Volunteers join', html: '<b>Nova</b> and <b>Rex</b> just appeared in the <span class="show-desktop-only">Online list</span><span class="show-tablet-only">People panel (tap 👥 to open)</span><span class="show-mobile-only">Online tab</span> — the fake people who help demonstrate management.' },
+        { sel: [PEOPLE_BTN_SEL, '#online-panel'], mobile: 'online', tabletPeople: true, before: openTabletPeople, title: '4 · Meet the volunteers', html: '<b>Nova</b> and <b>Rex</b> just appeared in the <span class="show-desktop-only">Online list</span><span class="show-tablet-only">People panel — it slides in from the 👥 button highlighted above</span><span class="show-mobile-only">Online tab</span> — the fake people who help demonstrate management.' },
         { sel: ['#messages'], mobile: 'chat', run: async () => { fakeMessage('Nova', 'Hey! Ready to help with the demo 👋'); }, title: '5 · A message arrives', html: 'That is what incoming messages look like — avatar, name, time, bubbles on the left; yours would sit on the right.' },
-        { sel: ['#room-settings-panel'], run: async () => { openSettings(); }, title: '6 · Control panel', html: '⚙️ Settings opened. Every management feature lives here — watch the guide use each one on this room.' },
+        { sel: ['#room-settings-panel'], mobile: 'chat', run: async () => { openSettings(); }, title: '6 · Control panel', html: '⚙️ Settings opened. Every management feature lives here — watch the guide use each one on this room.' },
         { sel: ['#rename-input'], run: async () => { await emitP('rename-room', { room: state.currentRoom, newName: 'guided-demo' }); rooms.fetch(); }, title: '7 · Rename (done for you)', html: 'The guide just renamed the room to <b>#guided-demo</b> — see the sidebar update. Owners can rename any room except #general.' },
         { sel: ['#passkey-input'], run: async () => { await emitP('set-room-passkey', { room: state.currentRoom, passkey: 'DEMO-1234' }); if (elements.passkeyInput) elements.passkeyInput.value = 'DEMO-1234'; }, title: '8 · Passkey (done for you)', html: 'A passkey <b>DEMO-1234</b> was generated and saved. Anyone with it can enter once the room is private.' },
         { sel: ['#save-privacy-btn'], run: async () => { await emitP('set-room-privacy', { room: state.currentRoom, isPrivate: true }); rooms.fetch(); }, title: '9 · Going private (done)', html: 'The room is now 🔒 private: only owner / admins / members / passkey-holders get in. Flipping back is the same button.' },
@@ -2462,7 +2491,7 @@
         { sel: ['#room-members-list'], run: async () => { socket.emit('remove-room-admin', { room: state.currentRoom, adminId: fakeIds[1] }); await new Promise(r => setTimeout(r, 400)); socket.emit('remove-room-member', { room: state.currentRoom, memberId: fakeIds[1] }); await new Promise(r => setTimeout(r, 400)); socket.emit('get-room-meta', { room: state.currentRoom }, () => {}); }, title: '12 · Removing people', html: 'The guide demoted and removed <b>Rex</b> with the ✕ buttons — access revoked instantly. Add, promote, remove: the full cycle.' },
         { sel: ['#clear-room-btn'], mobile: 'chat', run: async () => { closeSettings(); await window.ChatAPI.clearRoom(state.currentRoom); }, title: '13 · Clearing a room', html: 'The room’s messages were just wiped with <b>Clear</b> (owner/admins only). Messages gone, room intact.' },
         { sel: ['#room-settings-panel'], mobile: 'rooms', run: async () => { await joinRoom(privRoom); openSettings(); }, title: '14 · The private room', html: `Now inside 🔒 <b>#${privRoom}</b> — same controls, already private. Everything you just watched works here too.` },
-        { sel: ['#online-panel'], mobile: 'online', tabletPeople: true, run: async () => { closeSettings(); state.tourFakes = []; refreshOnline(); }, title: '15 · Volunteers leave', html: 'Nova and Rex left the demo. The <span class="show-desktop-only">Online list</span><span class="show-tablet-only">People panel</span><span class="show-mobile-only">Online tab</span> always reflects live presence.' },
+        { sel: [PEOPLE_BTN_SEL, '#online-panel'], mobile: 'online', tabletPeople: true, before: closeTabletPeople, title: '15 · Volunteers leave', html: 'Nova and Rex left the demo. The <span class="show-desktop-only">Online list</span><span class="show-tablet-only">People panel (reopen it anytime from 👥)</span><span class="show-mobile-only">Online tab</span> always reflects live presence.' },
         { sel: ['#inbox-btn'], title: '16 · Done 🎉', html: '📥 Inbox = Client-ID requests · ❓ full guide · 🎓 replay. Finishing now deletes both demo rooms.' },
       ];
     }
@@ -2487,74 +2516,63 @@
       backBtn.addEventListener('click', async () => { await show(Math.max(0, idx - 1)); });
       skipBtn.addEventListener('click', () => end(true));
       window.addEventListener('resize', () => { if (active) place(); });
-    }
-
-    function targetFor(st) {
-      for (const ssel of (st.sel || [])) {
-        const t = document.querySelector(ssel);
-        if (t && t.getClientRects().length) return t;
-      }
-      return null;
-    }
-
-    function isTablet() {
-      return !document.body.classList.contains('ptr29-mobile') && window.innerWidth >= 769 && window.innerWidth <= 1024;
+      window.addEventListener('keydown', (e) => {
+        if (!active) return;
+        if (e.key === 'Escape') { end(true); }
+        else if (e.key === 'ArrowRight' || e.key === 'Enter') { nextBtn.click(); }
+        else if (e.key === 'ArrowLeft') { backBtn.click(); }
+      });
     }
 
     function place() {
       const st = steps[idx];
       if (!st) return;
-      const isMobile = document.body.classList.contains('ptr29-mobile');
+      const isMobile = isMobileDev();
       if (st.mobile && isMobile) setMobileView(st.mobile);
-      // On tablet, open the People slide-in panel when the step targets it
-      if (st.tabletPeople && isTablet()) {
-        const panel = document.getElementById('online-panel');
-        const backdrop = document.getElementById('tablet-people-backdrop');
-        if (panel && !panel.classList.contains('tablet-open')) {
-          panel.classList.add('tablet-open');
-          if (backdrop) backdrop.classList.add('open');
-        }
-      }
       const target = targetFor(st);
       if (target) {
-        try { target.scrollIntoView({ block: 'center' }); } catch {}
+        try { target.scrollIntoView({ block: 'nearest' }); } catch {}
         const r = target.getBoundingClientRect();
         const pad = 6;
-        spot.style.display = 'block';
         spot.style.left   = (r.left - pad) + 'px';
         spot.style.top    = (r.top - pad) + 'px';
         spot.style.width  = (r.width + pad * 2) + 'px';
         spot.style.height = (r.height + pad * 2) + 'px';
+        spot.style.display = 'block';
+        spot.classList.add('tour-pulse');
       } else {
         spot.style.display = 'none';
+        spot.classList.remove('tour-pulse');
       }
       titleEl.textContent = st.title;
       bodyEl.innerHTML = st.html;
       countEl.textContent = (idx + 1) + ' / ' + steps.length;
       backBtn.style.display = idx === 0 ? 'none' : '';
       nextBtn.textContent = idx === steps.length - 1 ? 'Finish 🎉' : 'Next ➤';
+      // Fade the card out during repositioning, then settle it in place
+      card.classList.add('hidden');
       requestAnimationFrame(() => {
         const cw = card.offsetWidth, ch = card.offsetHeight;
-        card.style.display = 'block';
         if (isMobile) {
           card.style.left = '12px'; card.style.right = '12px';
           card.style.width = 'auto'; card.style.top = 'auto';
           card.style.bottom = 'calc(var(--mobile-nav-h, 56px) + 12px)';
-          return;
-        }
-        card.style.right = 'auto'; card.style.width = 'min(360px, 92vw)';
-        let top, left;
-        if (target) {
-          const r = target.getBoundingClientRect();
-          top = r.bottom + 14;
-          if (top + ch > innerHeight - 12) top = Math.max(12, r.top - ch - 14);
-          left = Math.min(Math.max(12, r.left), Math.max(12, innerWidth - cw - 12));
         } else {
-          top = Math.max(12, (innerHeight - ch) / 2);
-          left = Math.max(12, (innerWidth - cw) / 2);
+          card.style.right = 'auto'; card.style.width = 'min(360px, 92vw)';
+          let top, left;
+          if (target) {
+            const r = target.getBoundingClientRect();
+            top = r.bottom + 14;
+            if (top + ch > innerHeight - 12) top = Math.max(12, r.top - ch - 14);
+            left = Math.min(Math.max(12, r.left), Math.max(12, innerWidth - cw - 12));
+          } else {
+            top = Math.max(12, (innerHeight - ch) / 2);
+            left = Math.max(12, (innerWidth - cw) / 2);
+          }
+          card.style.top = top + 'px'; card.style.left = left + 'px';
+          card.style.bottom = 'auto';
         }
-        card.style.top = top + 'px'; card.style.left = left + 'px';
-        card.style.bottom = 'auto';
+        requestAnimationFrame(() => card.classList.remove('hidden'));
       });
     }
 
@@ -2562,7 +2580,7 @@
       idx = i; active = true; overlay.classList.add('open');
       const st = steps[idx];
       setWatch(st);
-      if (st && st.enter) { try { await st.enter(); } catch {} await new Promise(r => setTimeout(r, 150)); }
+      if (st && st.before) { try { await st.before(); } catch {} await new Promise(r => setTimeout(r, 150)); }
       if (st && st.run) { try { await st.run(); } catch {} await new Promise(r => setTimeout(r, 300)); }
       place();
     }
@@ -2584,12 +2602,9 @@
     function cleanup() {
       state.tourMode = false;
       state.tourFakes = [];
+      if (spotTTimer) { clearTimeout(spotTTimer); spotTTimer = null; }
       closeSettings();
-      // Close tablet people panel if open
-      const tPanel = document.getElementById('online-panel');
-      const tBdrop = document.getElementById('tablet-people-backdrop');
-      if (tPanel) tPanel.classList.remove('tablet-open');
-      if (tBdrop) tBdrop.classList.remove('open');
+      closeTabletPeople();
       const a = pubRoom, b = privRoom;
       pubRoom = privRoom = '';
       if (state.currentRoom === a || state.currentRoom === b) {
@@ -2613,7 +2628,9 @@
       setWatch(null);
       overlay.classList.remove('open');
       spot.style.display = 'none';
+      spot.classList.remove('tour-pulse');
       card.style.display = 'none';
+      card.classList.remove('hidden');
       if (done) { try { localStorage.setItem(KEY, '1'); } catch {} }
       cleanup();
     }
