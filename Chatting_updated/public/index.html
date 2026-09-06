@@ -1472,6 +1472,92 @@
     .ag-go:active { transform: translateY(1px); }
     .ag-go:disabled { opacity: .6; cursor: wait; }
     .ag-foot { margin-top: 12px; font-size: 11px; color: var(--text-dim); text-align: center; }
+
+    /* ── Tablet people toggle — hidden by default (desktop/mobile) ────── */
+    #tablet-people-btn { display: none; }
+
+    /* ── Tablet view (769px–1024px) ──────────────────────────────────────── */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      /* Show the people toggle button */
+      #tablet-people-btn { display: inline-flex; }
+      /* Narrow the sidebar */
+      #sidebar { width: 220px; min-width: 180px; }
+      /* Strip text labels from room-bar buttons — show icon only */
+      #room-bar button span { display: none; }
+      #room-bar button { padding: 8px 10px; min-width: 36px; }
+      /* Narrower search input */
+      #search-messages-input { width: 100px; font-size: 11px; }
+      /* Compact header */
+      header { padding: 10px 12px; gap: 8px; }
+      header h1 { font-size: 16px; }
+      header .header-actions a.secondary {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+      /* People panel becomes a slide-in overlay */
+      #online-panel {
+        display: none !important;
+        position: fixed;
+        top: 0; right: 0; bottom: 0;
+        width: 280px;
+        max-width: 85vw;
+        z-index: 9000;
+        box-shadow: -4px 0 24px rgba(0,0,0,0.5);
+        transform: translateX(100%);
+        transition: transform 0.25s ease;
+      }
+      #online-panel.tablet-open {
+        display: flex !important;
+        transform: translateX(0);
+      }
+      /* Backdrop behind the slide-in */
+      #tablet-people-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 8999;
+      }
+      #tablet-people-backdrop.open { display: block; }
+
+      /* ── Help modal ────────────────────────────────────────────────── */
+      .help-modal-inner {
+        width: 94vw;
+        max-height: 92dvh;
+        min-height: 0;
+      }
+      .help-slide {
+        flex-direction: column;
+        gap: 16px;
+        padding: 18px 20px;
+      }
+      .help-demo {
+        width: 100%;
+        flex-shrink: 0;
+      }
+      .help-header { padding: 14px 18px 12px; gap: 10px; }
+      .help-logo { font-size: 26px; }
+      .help-title { font-size: 17px; }
+      .help-sub { font-size: 12px; }
+      .help-dots { padding: 10px 0 4px; }
+      .help-nav { padding: 10px 18px 16px; }
+      .help-prev, .help-next { padding: 7px 14px; font-size: 12px; }
+      .help-text h3 { font-size: 15px; }
+      .help-text p { font-size: 12px; margin-bottom: 8px; }
+      .help-tips li { font-size: 11px; padding: 6px 8px; }
+
+      /* ── Standard modals ───────────────────────────────────────────── */
+      .modal {
+        width: 94%;
+        max-width: 440px;
+        padding: 20px;
+        border-radius: 14px;
+      }
+      .modal h3 { font-size: 16px; }
+      .modal p { font-size: 13px; }
+      .modal-actions { gap: 10px; }
+      .modal-actions button { padding: 8px 14px; font-size: 13px; }
+    }
   </style>
 </head>
 <body>
@@ -1537,6 +1623,7 @@
         <div style="display:flex; gap:8px; align-items:center">
           <input type="text" id="search-messages-input" placeholder="Search..." style="padding:4px 8px; font-size:12px; width:120px;" autocomplete="off">
           <button type="button" id="mobile-search-btn" class="secondary mobile-only" title="Search messages">🔍</button>
+          <button type="button" id="tablet-people-btn" class="secondary" title="People">👥</button>
           <button id="room-settings-btn" class="secondary">⚙️ <span>Settings</span></button>
           <button id="clear-room-btn" class="secondary">🗑️ <span>Clear</span></button>
           <button id="leave-btn" class="secondary">🚪 <span>Leave</span></button>
@@ -2126,6 +2213,9 @@
       </div>
     </div>
   </div>
+  <!-- Tablet people-panel backdrop -->
+  <div id="tablet-people-backdrop"></div>
+
   <script src="vendor/supabase.min.js"></script>
   <script>
     // per-load cache-busting: stale JS can never run again

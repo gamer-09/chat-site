@@ -1592,6 +1592,35 @@
     elements.closeSettingsBtn.addEventListener('click', () =>
       elements.roomSettingsPanel.style.display = 'none');
 
+    // ── Tablet people-panel slide-in toggle ──────────────────────────────
+    const tabletPeopleBtn = document.getElementById('tablet-people-btn');
+    const onlinePanel     = document.getElementById('online-panel');
+    const peopleBackdrop  = document.getElementById('tablet-people-backdrop');
+    const closeTabletPeople = () => {
+      if (onlinePanel) onlinePanel.classList.remove('tablet-open');
+      if (peopleBackdrop) peopleBackdrop.classList.remove('open');
+    };
+    if (tabletPeopleBtn && onlinePanel) {
+      tabletPeopleBtn.addEventListener('click', () => {
+        const opening = !onlinePanel.classList.contains('tablet-open');
+        if (opening) {
+          onlinePanel.classList.add('tablet-open');
+          if (peopleBackdrop) peopleBackdrop.classList.add('open');
+        } else {
+          closeTabletPeople();
+        }
+      });
+      if (peopleBackdrop) {
+        peopleBackdrop.addEventListener('click', closeTabletPeople);
+      }
+      // Close when switching rooms (on mobile/tablet view)
+      const _origJoin2 = rooms.join;
+      rooms.join = (roomName, passkey) => {
+        closeTabletPeople();
+        return _origJoin2(roomName, passkey);
+      };
+    }
+
     elements.renameBtn.addEventListener('click', () => {
       const newName = elements.renameInput.value.trim();
       if (newName && newName !== state.currentRoom) rooms.rename(newName);
