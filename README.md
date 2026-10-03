@@ -264,13 +264,26 @@ For high-traffic deployments, replace the read/write calls in `data/store.js` wi
 
 ---
 
+## Operator contact
+
+Official operator channels:
+
+- WhatsApp: [+234 902 378 5212](https://wa.me/2349023785212)
+- Instagram: [@not_udo2025](https://www.instagram.com/not_udo2025/)
+- YouTube: [@WhiteWanderer-j4w](https://www.youtube.com/@WhiteWanderer-j4w)
+- GitHub: [gamer-09](https://github.com/gamer-09)
+
+Do not send passwords, room passkeys, or unnecessary sensitive information through contact channels.
+
+---
+
 ## Legal & Safety
 
 Running a public chat platform makes you the operator. These steps protect you:
 
 ### Included Terms and Privacy pages
 
-The app already includes `public/terms.html` (Terms of Service / Terms of Use) and `public/privacy.html`, linked from the header and Help guide. They now describe the 13+ age requirement, account gates, uploads, safe links, Client-ID requests/Stop sharing, account deletion, private-room limits, and operator contact.
+The app already includes `public/terms.html` (Terms of Service / Terms of Use) and `public/privacy.html`, linked from the header, Contact modal, and Help guide. They now describe the 13+ age requirement, account gates, uploads, safe links, Client-ID requests/Stop sharing, account deletion, private-room limits, and operator contact.
 
 ### Remaining operator responsibilities
 

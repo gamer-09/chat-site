@@ -98,6 +98,9 @@
     editProfileForm:  document.getElementById('edit-profile-form'),
     editClientId:     document.getElementById('edit-client-id'),
     copyClientIdBtn:  document.getElementById('copy-client-id-btn'),
+    contactBtn:       document.getElementById('contact-btn'),
+    contactModal:     document.getElementById('contact-modal'),
+    closeContactBtn:  document.getElementById('close-contact'),
     editUsername:     document.getElementById('edit-username'),
     usernameChangeWarning:document.getElementById('username-change-warning'),
     editAvatar:       document.getElementById('edit-avatar'),
@@ -1631,6 +1634,11 @@
     document.getElementById('help-btn').addEventListener('click', openHelp);
     document.getElementById('help-close-btn').addEventListener('click', () => helpModal.classList.remove('open'));
     helpModal.addEventListener('click', (e) => { if (e.target === helpModal) helpModal.classList.remove('open'); });
+    if (elements.contactBtn && elements.contactModal) {
+      elements.contactBtn.addEventListener('click', () => modals.open(elements.contactModal));
+      elements.contactModal.addEventListener('click', (e) => { if (e.target === elements.contactModal) modals.close(elements.contactModal); });
+      if (elements.closeContactBtn) elements.closeContactBtn.addEventListener('click', () => modals.close(elements.contactModal));
+    }
     helpPrev.addEventListener('click', () => { if (helpStep > 0) goToStep(helpStep - 1); });
     helpNext.addEventListener('click', () => {
       if (helpStep < helpSlides.length - 1) goToStep(helpStep + 1);

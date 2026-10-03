@@ -1622,6 +1622,7 @@
     <div class="header-actions">
       <a href="terms.html" class="secondary" style="text-decoration: none; padding: 10px 18px; font-size: 14px; font-weight: 500; border-radius: 8px; border: 1px solid var(--border); background: var(--border); color: var(--text); transition: all 0.15s ease; white-space: nowrap; display: inline-block;">Terms</a>
       <a href="privacy.html" class="secondary" style="text-decoration: none; padding: 10px 18px; font-size: 14px; font-weight: 500; border-radius: 8px; border: 1px solid var(--border); background: var(--border); color: var(--text); transition: all 0.15s ease; white-space: nowrap; display: inline-block;">Privacy</a>
+      <button id="contact-btn" class="secondary" title="Contact operator" aria-label="Contact operator">☎️</button>
       <button id="help-btn" class="secondary" title="How to use">❓</button>
       <button id="tour-btn" class="secondary" title="Live guided tour">🎓</button>
       <button id="inbox-btn" class="secondary" title="Inbox — Client ID requests">📥<span id="inbox-badge" hidden></span></button>
@@ -2140,6 +2141,7 @@
               <li>⚪ <strong>Presence &amp; last-seen</strong> are visible to other users while your tab is open and as a “seen …” time after you leave</li>
               <li>🛡️ <strong>Admin rights are room-scoped</strong>; there is no global ban, account termination, or username-revocation control</li>
               <li>📄 Read the <a href="terms.html" target="_blank" rel="noopener noreferrer">Terms of Use</a> and <a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacy Policy</a>; they cover the 13+ rule, uploads, safe links, Client-ID requests, and account deletion</li>
+              <li>☎️ <strong>Contact</strong> is available from the header: WhatsApp, Instagram, YouTube, and GitHub links are the official operator channels</li>
             </ul>
           </div>
         </div>
@@ -2216,6 +2218,23 @@
 
   <!-- Right-click / long-press context menu for messages -->
   <div id="context-menu" class="context-menu"></div>
+
+  <!-- Contact Modal -->
+  <div id="contact-modal" class="modal-overlay">
+    <div class="modal">
+      <h3>☎️ Contact the operator</h3>
+      <p>Use these official links for abuse reports, privacy requests, security concerns, project updates, and support. Do not send passwords, passkeys, or unnecessary sensitive information.</p>
+      <div style="display:grid;grid-template-columns:1fr;gap:10px;margin:14px 0">
+        <a class="secondary" href="https://wa.me/2349023785212" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:block;text-align:center;padding:11px 12px;border-radius:10px">💬 WhatsApp · +234 902 378 5212</a>
+        <a class="secondary" href="https://www.instagram.com/not_udo2025/" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:block;text-align:center;padding:11px 12px;border-radius:10px">📸 Instagram · @not_udo2025</a>
+        <a class="secondary" href="https://www.youtube.com/@WhiteWanderer-j4w" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:block;text-align:center;padding:11px 12px;border-radius:10px">▶️ YouTube · @WhiteWanderer-j4w</a>
+        <a class="secondary" href="https://github.com/gamer-09" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:block;text-align:center;padding:11px 12px;border-radius:10px">💻 GitHub · gamer-09</a>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="close-contact" class="secondary">Close</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Edit Profile Modal -->
   <div id="edit-profile-modal" class="modal-overlay">
