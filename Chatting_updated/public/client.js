@@ -98,6 +98,7 @@
     editClientId:     document.getElementById('edit-client-id'),
     copyClientIdBtn:  document.getElementById('copy-client-id-btn'),
     editUsername:     document.getElementById('edit-username'),
+    usernameChangeWarning:document.getElementById('username-change-warning'),
     editAvatar:       document.getElementById('edit-avatar'),
     avatarUploadBtn:  document.getElementById('avatar-upload-btn'),
     avatarFile:       document.getElementById('avatar-file'),
@@ -428,6 +429,31 @@
       }, 400);
     },
 
+    updateUsernameChangeWarning: (value) => {
+      const warn = elements.usernameChangeWarning || document.getElementById('username-change-warning');
+      if (!warn) return false;
+      const saved = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
+      const oldU = String(saved.username || '').trim();
+      const newU = String(value || '').trim();
+      const willRename = !!(oldU && newU && oldU !== newU);
+      warn.style.display = willRename ? 'block' : 'none';
+      return willRename;
+    },
+
+    confirmUsernameChange: (oldUsername, newUsername) => {
+      const oldU = String(oldUsername || '').trim();
+      const newU = String(newUsername || '').trim();
+      if (!oldU || !newU || oldU === newU) return true;
+      return window.confirm(
+        'Username change warning:\n\n' +
+        'Saving this username will create a brand-new Client ID.\n' +
+        'If you later change back to a previous username, your Client ID will still change again. Old Client IDs are not reused.\n\n' +
+        'Current username: ' + oldU + '\n' +
+        'New username: ' + newU + '\n\n' +
+        'Continue saving?'
+      );
+    },
+
     // Validate then save; returns a Promise<boolean>
     validateAndSave: (username, avatar, termsAgreed = true) => new Promise((resolve) => {
       const val = String(username || '').trim();
@@ -447,7 +473,15 @@
           return resolve(false);
         }
         const oldU = String(saved.username || '').trim();
-        const willRename = !!(oldU && oldU.toLowerCase() !== val.toLowerCase());
+        const willRename = !!(oldU && oldU !== val);
+        if (willRename && !profile.confirmUsernameChange(oldU, val)) {
+          if (elements.editUsername) elements.editUsername.value = oldU;
+          if (elements.username) elements.username.value = oldU;
+          if (elements.mobileUsername) elements.mobileUsername.value = oldU;
+          profile.updateUsernameChangeWarning(oldU);
+          showToast('Username change cancelled — your Client ID was not changed.', 'info');
+          return resolve(false);
+        }
         const done = () => { profile.save(val, avatar, termsAgreed); resolve(true); };
         if (willRename && window.ChatAPI.purgeMessagesFor) {
           // full wipe of the old name happens while it is still "you" (RLS)
@@ -1532,6 +1566,7 @@
           elements.editUsername.value = val;
           elements.editClientId.textContent = state.myClientId || '';
           document.querySelector('#edit-profile-modal h3').textContent = 'Create Account';
+          profile.updateUsernameChangeWarning(elements.editUsername ? elements.editUsername.value : '');
           modals.open(elements.editProfileModal);
           showToast('Please agree to the Terms and Conditions to create an account.', 'info');
           return;
@@ -1562,6 +1597,7 @@
           elements.editUsername.value = val;
           elements.editClientId.textContent = state.myClientId || '';
           document.querySelector('#edit-profile-modal h3').textContent = 'Create Account';
+          profile.updateUsernameChangeWarning(elements.editUsername ? elements.editUsername.value : '');
           modals.open(elements.editProfileModal);
           showToast('Please agree to the Terms and Conditions to create an account.', 'info');
           return;
@@ -1731,6 +1767,7 @@
       if (termsCheckbox) {
         termsCheckbox.checked = !!data.termsAgreed;
       }
+      profile.updateUsernameChangeWarning(elements.editUsername ? elements.editUsername.value : '');
       modals.open(elements.editProfileModal);
     });
     elements.cancelEditProfileBtn.addEventListener('click', () => modals.close(elements.editProfileModal));
@@ -1761,8 +1798,10 @@
         }
       });
     }
-    elements.editUsername.addEventListener('input', () =>
-      profile.checkUsername(elements.editUsername, elements.editUsername.value));
+    elements.editUsername.addEventListener('input', () => {
+      profile.checkUsername(elements.editUsername, elements.editUsername.value);
+      profile.updateUsernameChangeWarning(elements.editUsername.value);
+    });
 
     elements.editProfileForm.addEventListener('submit', async (e) => {
       e.preventDefault();
