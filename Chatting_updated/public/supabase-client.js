@@ -42,6 +42,9 @@
     'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['pptx']
   };
   var BLOCKED_UPLOAD_EXT = ['html', 'htm', 'svg', 'js', 'mjs', 'exe', 'dll', 'bat', 'cmd', 'sh', 'php', 'py', 'jar', 'apk', 'ipa', 'dmg', 'msi', 'wasm'];
+  var MAX_LINKS_PER_MESSAGE = 5;
+  var MAX_LINK_LENGTH = 2048;
+  var BLOCKED_LINK_EXT = ['exe', 'msi', 'apk', 'ipa', 'dmg', 'pkg', 'bat', 'cmd', 'sh', 'ps1', 'vbs', 'scr', 'jar', 'js', 'mjs', 'wasm'];
 
   // ── Event dispatch ─────────────────────────────────────────────────────────
   var handlers = {};
@@ -99,6 +102,57 @@
     var allowedExts = ALLOWED_FILE_MIME[mime] || [];
     if (allowedExts.indexOf(ext) === -1) return { ok: false, error: 'unsupported_file_type' };
     return { ok: true, mime: mime, ext: ext, max: MAX_FILE_BYTES };
+  }
+  function trimLinkToken(raw) {
+    var s = String(raw || '').trim();
+    while (/[),.!?;:'"\]]$/.test(s)) s = s.slice(0, -1);
+    return s;
+  }
+  function extractLinks(text) {
+    var out = [];
+    String(text || '').replace(/\b((?:https?:\/\/|www\.)[^\s<>"']+)/gi, function (m) { var u = trimLinkToken(m); if (u) out.push(u); return m; });
+    return out;
+  }
+  function isPrivateIpv4Host(host) {
+    var parts = String(host || '').split('.');
+    if (parts.length !== 4 || !parts.every(function (p) { return /^\d+$/.test(p); })) return false;
+    var n = parts.map(function (p) { return Number(p); });
+    if (n.some(function (x) { return x < 0 || x > 255; })) return true;
+    var a = n[0], b = n[1];
+    return a === 0 || a === 10 || a === 127 || a >= 224 ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168);
+  }
+  function validateLink(raw) {
+    var original = trimLinkToken(raw);
+    if (!original) return { ok: false, reason: 'empty link' };
+    if (original.length > MAX_LINK_LENGTH) return { ok: false, reason: 'link is too long' };
+    var url;
+    try { url = new URL(/^www\./i.test(original) ? 'https://' + original : original); }
+    catch (e) { return { ok: false, reason: 'invalid link format' }; }
+    if (['http:', 'https:'].indexOf(url.protocol) === -1) return { ok: false, reason: 'only http/https links are allowed' };
+    if (url.username || url.password) return { ok: false, reason: 'links with hidden usernames/passwords are blocked' };
+    var host = url.hostname.toLowerCase().replace(/\.$/, '');
+    if (!host || host === 'localhost' || host.endsWith('.localhost')) return { ok: false, reason: 'local links are blocked' };
+    if (host.indexOf(':') !== -1 || host[0] === '[' || host[host.length - 1] === ']') return { ok: false, reason: 'IPv6/local-style links are blocked' };
+    if (host === '0.0.0.0' || isPrivateIpv4Host(host)) return { ok: false, reason: 'private network links are blocked' };
+    if (host.indexOf('xn--') === 0 || host.indexOf('.xn--') !== -1) return { ok: false, reason: 'look-alike internationalized domains are blocked' };
+    var m = url.pathname.match(/\.([a-z0-9]{1,8})$/i);
+    var ext = m && m[1] ? m[1].toLowerCase() : '';
+    if (ext && BLOCKED_LINK_EXT.indexOf(ext) !== -1) return { ok: false, reason: 'links to .' + ext + ' files are blocked' };
+    return { ok: true, url: url.href };
+  }
+  function validateMessageLinks(text) {
+    if (/\b(?:javascript|data|file|vbscript)\s*:/i.test(String(text || ''))) return { ok: false, error: 'unsafe_link', reason: 'unsafe link protocol' };
+    var links = extractLinks(text);
+    if (links.length > MAX_LINKS_PER_MESSAGE) return { ok: false, error: 'too_many_links' };
+    for (var i = 0; i < links.length; i++) {
+      var check = validateLink(links[i]);
+      if (!check.ok) return { ok: false, error: 'unsafe_link', reason: check.reason };
+    }
+    return { ok: true };
   }
 
   // ── API object ─────────────────────────────────────────────────────────────
@@ -558,6 +612,11 @@
       if (!api.uid || !api._joined || !api._currentRoom) return;
       var text = String((typeof p.text === 'string') ? p.text : (p.text || '')).trim();
       if (!text) return;
+      var linkCheck = validateMessageLinks(text);
+      if (!linkCheck.ok) {
+        dispatch('system', { type: 'error', message: 'Blocked unsafe link' + (linkCheck.reason ? ': ' + linkCheck.reason : '.') });
+        return;
+      }
       var room = api._currentRoom;
       var payload = {
         id: genId(),
@@ -613,8 +672,14 @@
             dispatch('error', { action: 'edit-message', error: 'not_found' });
             return;
           }
+          var newText = String(text || '').slice(0, 2000);
+          var linkCheck = validateMessageLinks(newText);
+          if (!linkCheck.ok) {
+            dispatch('system', { type: 'error', message: 'Blocked unsafe link' + (linkCheck.reason ? ': ' + linkCheck.reason : '.') });
+            return;
+          }
           var merged = Object.assign({}, res.data.payload, {
-            message: String(text || '').slice(0, 2000),
+            message: newText,
             edited: true,
             editedAt: Date.now()
           });

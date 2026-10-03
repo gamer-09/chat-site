@@ -41,6 +41,7 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | Built-in help | Slide-by-slide help guide accessible from the toolbar |
 | Mobile layout | Responsive design with a dedicated mobile sidebar |
 | PWA | Service worker included for offline caching |
+| Safe links | http/https links are clickable after validation; unsafe protocols, private/local links, credential-obfuscated links, punycode look-alikes, risky downloads, and link spam are blocked |
 | Docker ready | `Dockerfile` included for container deployments |
 
 ---
@@ -111,7 +112,7 @@ For the GitHub Pages + Supabase deployment, run the SQL files in `supabase/` in 
 supabase/011_security_hardening.sql
 ```
 
-It enforces account-session binding, stricter RLS, upload type/size limits, and safer message payload checks on the server side.
+It enforces account-session binding, stricter RLS, upload type/size limits, and safer message payload checks on the server side. Then run `supabase/012_safe_links.sql` to enforce safe-link validation in Supabase too.
 
 ---
 
@@ -295,3 +296,5 @@ Use Nginx or Caddy with a free Let's Encrypt certificate. Never run a public cha
 | *(inline in chat)* | `purge_user(name)` — full operator purge of a username |
 | `supabase/009_accounts.sql` | Hardened accounts: no client-facing table policies, peppered bcrypt, rate limiting, anti-enumeration |
 | `supabase/010_delete_account.sql` | `delete_account(acct, pass)` — password-verified SECURITY DEFINER full erase |
+| `supabase/011_security_hardening.sql` | Account-session binding, stricter RLS, upload type/size limits |
+| `supabase/012_safe_links.sql` | Safe-link validation for messages and edits |

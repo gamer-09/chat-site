@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const express = require('express');
 const http = require('http');
+const net = require('net');
 const crypto = require('crypto');
 const { Server } = require('socket.io');
 const {
@@ -67,6 +68,9 @@ const ALLOWED_FILE_MIME = new Map([
   ['application/vnd.openxmlformats-officedocument.presentationml.presentation', ['pptx']],
 ]);
 const BLOCKED_FILE_EXT = new Set(['html', 'htm', 'svg', 'js', 'mjs', 'exe', 'dll', 'bat', 'cmd', 'sh', 'php', 'py', 'jar', 'apk', 'ipa', 'dmg', 'msi', 'wasm']);
+const MAX_LINKS_PER_MESSAGE = parseInt(process.env.MAX_LINKS_PER_MESSAGE || '5', 10);
+const MAX_LINK_LENGTH = parseInt(process.env.MAX_LINK_LENGTH || '2048', 10);
+const BLOCKED_LINK_EXT = new Set(['exe', 'msi', 'apk', 'ipa', 'dmg', 'pkg', 'bat', 'cmd', 'sh', 'ps1', 'vbs', 'scr', 'jar', 'js', 'mjs', 'wasm']);
 const apiLimiter = createRateLimiter({ windowMs: 60 * 1000, limit: 180 });
 const uploadLimiter = createRateLimiter({ windowMs: 60 * 1000, limit: 20 });
 
@@ -158,6 +162,55 @@ function displayFileName(name) {
 function fileExt(name) {
   const m = String(name || '').toLowerCase().match(/\.([a-z0-9]+)(?:[?#]|$)/);
   return m ? m[1] : '';
+}
+function trimLinkToken(raw) {
+  let s = String(raw || '').trim();
+  while (/[),.!?;:'"\]]$/.test(s)) s = s.slice(0, -1);
+  return s;
+}
+function extractLinks(text) {
+  const out = [];
+  String(text || '').replace(/\b((?:https?:\/\/|www\.)[^\s<>"']+)/gi, (m) => { const u = trimLinkToken(m); if (u) out.push(u); return m; });
+  return out;
+}
+function isPrivateIpv4Host(host) {
+  if (net.isIP(host) !== 4) return false;
+  const n = host.split('.').map(x => Number(x));
+  if (n.some(x => x < 0 || x > 255)) return true;
+  const [a, b] = n;
+  return a === 0 || a === 10 || a === 127 || a >= 224 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168);
+}
+function validateLink(raw) {
+  const original = trimLinkToken(raw);
+  if (!original) return { ok: false, reason: 'empty link' };
+  if (original.length > MAX_LINK_LENGTH) return { ok: false, reason: 'link is too long' };
+  let url;
+  try { url = new URL(/^www\./i.test(original) ? `https://${original}` : original); }
+  catch { return { ok: false, reason: 'invalid link format' }; }
+  if (!['http:', 'https:'].includes(url.protocol)) return { ok: false, reason: 'only http/https links are allowed' };
+  if (url.username || url.password) return { ok: false, reason: 'links with hidden usernames/passwords are blocked' };
+  const host = url.hostname.toLowerCase().replace(/\.$/, '');
+  if (!host || host === 'localhost' || host.endsWith('.localhost')) return { ok: false, reason: 'local links are blocked' };
+  if (net.isIP(host) === 6 || host.includes(':') || host.startsWith('[') || host.endsWith(']')) return { ok: false, reason: 'IPv6/local-style links are blocked' };
+  if (host === '0.0.0.0' || isPrivateIpv4Host(host)) return { ok: false, reason: 'private network links are blocked' };
+  if (host.startsWith('xn--') || host.includes('.xn--')) return { ok: false, reason: 'look-alike internationalized domains are blocked' };
+  const ext = (url.pathname.match(/\.([a-z0-9]{1,8})$/i) || [])[1]?.toLowerCase();
+  if (ext && BLOCKED_LINK_EXT.has(ext)) return { ok: false, reason: `links to .${ext} files are blocked` };
+  return { ok: true, url: url.href };
+}
+function validateMessageLinks(text) {
+  if (/\b(?:javascript|data|file|vbscript)\s*:/i.test(String(text || ''))) return { ok: false, reason: 'unsafe link protocol' };
+  const links = extractLinks(text);
+  if (links.length > MAX_LINKS_PER_MESSAGE) return { ok: false, reason: `too many links (max ${MAX_LINKS_PER_MESSAGE})` };
+  for (const link of links) {
+    const check = validateLink(link);
+    if (!check.ok) return check;
+  }
+  return { ok: true };
 }
 function parseBase64DataUrl(dataUrl) {
   if (typeof dataUrl !== 'string' || dataUrl.length > Math.ceil(MAX_JSON_BYTES * 1.05)) return null;
@@ -350,6 +403,8 @@ app.post('/api/rooms/:room/messages/:id/edit', (req, res) => {
   const clientId = (req.body && req.body.clientId) || '';
   ensureRoom(room);
   if (!canAccessRoom(room, clientId) && !hasEphemeralAccess(room, clientId)) return res.status(403).json({ error: 'forbidden' });
+  const linkCheck = validateMessageLinks(text);
+  if (!linkCheck.ok) return res.status(400).json({ error: 'unsafe_link', reason: linkCheck.reason });
   const result = editMessage(room, id, '', text, Date.now(), clientId);
   if (!result.ok) return res.status(400).json({ error: result.error });
   io.to(room).emit('message-updated', result.message);
@@ -712,6 +767,11 @@ io.on('connection', (socket) => {
     if (!msg || !room) return;
     const hasEphemeral = socket.data.passkeyAccess.has(room);
     if (!canAccessRoom(room, socket.data.clientId) && !hasEphemeral) return;
+    const linkCheck = validateMessageLinks(msg);
+    if (!linkCheck.ok) {
+      socket.emit('system', { type: 'error', message: `Blocked unsafe link: ${linkCheck.reason}.` });
+      return;
+    }
 
     let replySnapshot = null;
     if (replyToId) {
@@ -757,6 +817,8 @@ io.on('connection', (socket) => {
   socket.on('edit-message', ({ messageId, text } = {}) => {
     const room = socket.data.currentRoom;
     if (!room || !messageId || typeof text !== 'string') return;
+    const linkCheck = validateMessageLinks(text);
+    if (!linkCheck.ok) { socket.emit('system', { type: 'error', message: `Blocked unsafe link: ${linkCheck.reason}.` }); return; }
     const result = editMessage(room, messageId, socket.data.userId, text, Date.now(), socket.data.clientId);
     if (result.ok) { io.to(room).emit('message-updated', result.message); }
     else { socket.emit('error', { action: 'edit-message', error: result.error }); }

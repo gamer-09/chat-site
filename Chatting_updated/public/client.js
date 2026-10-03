@@ -157,6 +157,9 @@
       'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['pptx'],
     },
     BLOCKED_UPLOAD_EXT: ['html', 'htm', 'svg', 'js', 'mjs', 'exe', 'dll', 'bat', 'cmd', 'sh', 'php', 'py', 'jar', 'apk', 'ipa', 'dmg', 'msi', 'wasm'],
+    MAX_LINKS_PER_MESSAGE: 5,
+    MAX_LINK_LENGTH: 2048,
+    BLOCKED_LINK_EXT: ['exe', 'msi', 'apk', 'ipa', 'dmg', 'pkg', 'bat', 'cmd', 'sh', 'ps1', 'vbs', 'scr', 'jar', 'js', 'mjs', 'wasm'],
   };
 
   // ── Utilities ──────────────────────────────────────────────────────────────
@@ -298,6 +301,80 @@
       return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     },
 
+    trimLinkToken: (raw) => {
+      let s = String(raw || '').trim();
+      while (/[),.!?;:'"\]]$/.test(s)) s = s.slice(0, -1);
+      return s;
+    },
+
+    extractLinks: (text) => {
+      const out = [];
+      const re = /\b((?:https?:\/\/|www\.)[^\s<>"']+)/gi;
+      String(text || '').replace(re, (m) => { const u = utils.trimLinkToken(m); if (u) out.push(u); return m; });
+      return out;
+    },
+
+    isPrivateIpv4Host: (host) => {
+      const parts = String(host || '').split('.');
+      if (parts.length !== 4 || !parts.every(p => /^\d+$/.test(p))) return false;
+      const n = parts.map(p => Number(p));
+      if (n.some(x => x < 0 || x > 255)) return true;
+      const [a, b] = n;
+      return a === 0 || a === 10 || a === 127 || a >= 224 ||
+        (a === 100 && b >= 64 && b <= 127) ||
+        (a === 169 && b === 254) ||
+        (a === 172 && b >= 16 && b <= 31) ||
+        (a === 192 && b === 168);
+    },
+
+    validateLink: (raw) => {
+      const original = utils.trimLinkToken(raw);
+      if (!original) return { ok: false, reason: 'empty link' };
+      if (original.length > CONSTANTS.MAX_LINK_LENGTH) return { ok: false, reason: 'link is too long' };
+      let url;
+      try {
+        url = new URL(/^www\./i.test(original) ? `https://${original}` : original);
+      } catch { return { ok: false, reason: 'invalid link format' }; }
+      if (!['http:', 'https:'].includes(url.protocol)) return { ok: false, reason: 'only http/https links are allowed' };
+      if (url.username || url.password) return { ok: false, reason: 'links with hidden usernames/passwords are blocked' };
+      const host = url.hostname.toLowerCase().replace(/\.$/, '');
+      if (!host || host === 'localhost' || host.endsWith('.localhost')) return { ok: false, reason: 'local links are blocked' };
+      if (host.includes(':') || host.startsWith('[') || host.endsWith(']')) return { ok: false, reason: 'IPv6/local-style links are blocked' };
+      if (host === '0.0.0.0' || utils.isPrivateIpv4Host(host)) return { ok: false, reason: 'private network links are blocked' };
+      if (host.startsWith('xn--') || host.includes('.xn--')) return { ok: false, reason: 'look-alike internationalized domains are blocked' };
+      const ext = (url.pathname.match(/\.([a-z0-9]{1,8})$/i) || [])[1]?.toLowerCase();
+      if (ext && CONSTANTS.BLOCKED_LINK_EXT.includes(ext)) return { ok: false, reason: `links to .${ext} files are blocked` };
+      return { ok: true, url: url.href, display: original };
+    },
+
+    validateMessageLinks: (text) => {
+      if (/\b(?:javascript|data|file|vbscript)\s*:/i.test(String(text || ''))) {
+        return { ok: false, message: 'Blocked unsafe link protocol.' };
+      }
+      const links = utils.extractLinks(text);
+      if (links.length > CONSTANTS.MAX_LINKS_PER_MESSAGE) {
+        return { ok: false, message: `Too many links (max ${CONSTANTS.MAX_LINKS_PER_MESSAGE} per message).` };
+      }
+      for (const link of links) {
+        const check = utils.validateLink(link);
+        if (!check.ok) return { ok: false, message: `Blocked unsafe link: ${check.reason}.` };
+      }
+      return { ok: true };
+    },
+
+    replaceOutsideTags: (html, regex, replacer) => String(html || '').split(/(<[^>]+>)/g)
+      .map(part => part.startsWith('<') ? part : part.replace(regex, replacer)).join(''),
+
+    linkifySafeHtml: (html) => utils.replaceOutsideTags(html, /\b((?:https?:\/\/|www\.)[^\s<>"']+)/gi, (match) => {
+      const trailing = match.slice(utils.trimLinkToken(match).length);
+      const clean = utils.trimLinkToken(match);
+      const check = utils.validateLink(clean);
+      if (!check.ok) return match;
+      const href = utils.escapeHtml(check.url);
+      const label = utils.escapeHtml(clean.length > 80 ? clean.slice(0, 77) + '…' : clean);
+      return `<a class="safe-link" href="${href}" data-url="${href}" target="_blank" rel="noopener noreferrer nofollow ugc">${label}</a>${utils.escapeHtml(trailing)}`;
+    }),
+
     renderMarkdown: (text) => {
       try {
         let safe = utils.escapeHtml(text);
@@ -305,8 +382,9 @@
         safe = safe.replace(/\*\*([^*<>]+)\*\*/g, '<strong>$1</strong>');
         // Italic: *text* — only remaining single * pairs after bold consumed
         safe = safe.replace(/\*([^*<>]+)\*/g, '<em>$1</em>');
-        // @mentions
-        safe = safe.replace(/@([\w.-]+)/g, '<span class="mention">@$1</span>');
+        safe = utils.linkifySafeHtml(safe);
+        // @mentions outside links
+        safe = utils.replaceOutsideTags(safe, /@([\w.-]+)/g, '<span class="mention">@$1</span>');
         return safe;
       } catch (e) {
         return utils.escapeHtml(text);
@@ -1029,6 +1107,8 @@
         showToast('👀 View-only during the tour — register & accept the Terms to chat', 'error');
         return;
       }
+      const linkCheck = utils.validateMessageLinks(text);
+      if (!linkCheck.ok) { showToast(linkCheck.message, 'error'); return; }
       socket.emit('chat-message', { text, replyTo: state.replyTarget?.id || '' });
       messages.clearReply();
     },
@@ -1041,7 +1121,11 @@
     },
 
     // Both use socket so they work for passkey sessions
-    edit: (id, newText) => socket.emit('edit-message', { messageId: id, text: newText }),
+    edit: (id, newText) => {
+      const linkCheck = utils.validateMessageLinks(newText);
+      if (!linkCheck.ok) { showToast(linkCheck.message, 'error'); return; }
+      socket.emit('edit-message', { messageId: id, text: newText });
+    },
     delete: (id)          => socket.emit('delete-message', { messageId: id }),
 
     setReply: (msgEl) => {
@@ -1357,7 +1441,7 @@
       const msgEl = document.querySelector(`[data-id="${data.id}"]`);
       if (!msgEl) return;
       const bodyEl = msgEl.querySelector('.body');
-      if (bodyEl) bodyEl.textContent = data.message;
+      if (bodyEl) bodyEl.innerHTML = utils.renderMarkdown(data.message || '');
       if (!msgEl.querySelector('.edited')) {
         msgEl.querySelector('.time')?.insertAdjacentHTML('afterend', '<span class="edited">(edited)</span>');
       }
@@ -1856,6 +1940,19 @@
         const wasVisible = msgEl.classList.contains('actions-visible');
         document.querySelectorAll('.msg.actions-visible').forEach(m => m.classList.remove('actions-visible'));
         if (!wasVisible) msgEl.classList.add('actions-visible');
+      }
+    });
+
+    // Safe external links: validate again and ask before leaving the chat.
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('a.safe-link[data-url]');
+      if (!link) return;
+      e.preventDefault();
+      const url = link.dataset.url || link.href || '';
+      const check = utils.validateLink(url);
+      if (!check.ok) { showToast('Blocked unsafe link: ' + check.reason, 'error'); return; }
+      if (confirm('Open this external link?\n\n' + check.url)) {
+        window.open(check.url, '_blank', 'noopener,noreferrer');
       }
     });
 

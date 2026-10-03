@@ -694,6 +694,19 @@
     .msg-content em {
       font-style: italic;
     }
+
+    .msg-content a.safe-link {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      word-break: break-all;
+    }
+
+    .msg-content a.safe-link::after {
+      content: " ↗";
+      font-size: 11px;
+      opacity: .8;
+    }
     
     .emoji-picker-popup {
       position: absolute;
