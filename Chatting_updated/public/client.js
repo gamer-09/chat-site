@@ -20,6 +20,7 @@
       publicProfile: function () { return Promise.resolve(null); },
       sendIdRequest: function () { return Promise.resolve({ ok: false, error: 'offline' }); },
       resolveRequest: function () { return Promise.resolve({ ok: false, error: 'offline' }); },
+      stopSharingClientId: function () { return Promise.resolve({ ok: false, error: 'offline' }); },
       upload: function () { return Promise.resolve({ ok: false, error: 'offline' }); },
       checkUsername: function () { return Promise.resolve({ available: false, error: 'offline' }); },
       searchMessages: function () { return Promise.resolve({ results: [] }); },
@@ -2401,7 +2402,8 @@
         '<h3>📥 Inbox</h3>' +
         '<div style="display:flex;gap:8px;margin:8px 0 12px">' +
         '<button class="secondary" id="ib-tab-rec" type="button">Requests for you</button>' +
-        '<button class="secondary" id="ib-tab-sent" type="button">Your requests</button></div>' +
+        '<button class="secondary" id="ib-tab-sent" type="button">Your requests</button>' +
+        '<button class="secondary" id="ib-tab-shared" type="button">Stop sharing</button></div>' +
         '<div id="ib-body" style="max-height:55vh;overflow-y:auto"></div>' +
         '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="secondary" id="ib-close" type="button">Close</button></div></div>';
       document.body.appendChild(ov);
@@ -2409,6 +2411,7 @@
       ov.querySelector('#ib-close').addEventListener('click', () => ov.classList.remove('open'));
       ov.querySelector('#ib-tab-rec').addEventListener('click', () => render('rec'));
       ov.querySelector('#ib-tab-sent').addEventListener('click', () => render('sent'));
+      ov.querySelector('#ib-tab-shared').addEventListener('click', () => render('shared'));
       return ov;
     }
     function row(html) { const d = document.createElement('div'); d.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--panel2)'; d.innerHTML = html; return d; }
@@ -2418,13 +2421,54 @@
       if (!opts.silent) body.innerHTML = '<p style="color:var(--text-dim)">Loading…</p>';
       window.ChatAPI.inbox().then(rows => {
         const me = inboxIdentity().toLowerCase();
-        const list = rows.filter(r => activeTab === 'rec'
-          ? String(r.target_username || '').trim().toLowerCase() === me
-          : String(r.requester_username || '').trim().toLowerCase() === me);
+        const allRows = rows || [];
+        const sharedMap = {};
+        allRows.forEach(r => {
+          const isMine = String(r.target_username || '').trim().toLowerCase() === me;
+          const activeShare = String(r.status || '').toLowerCase() === 'approved' && !!r.disclosed_client_id;
+          if (!isMine || !activeShare) return;
+          const key = String(r.requester_username || '').trim().toLowerCase();
+          if (!key) return;
+          if (!sharedMap[key] || String(r.resolved_at || r.created_at || '') > String(sharedMap[key].resolved_at || sharedMap[key].created_at || '')) sharedMap[key] = r;
+        });
+        const list = activeTab === 'shared'
+          ? Object.values(sharedMap).sort((a, b) => String(b.resolved_at || b.created_at || '').localeCompare(String(a.resolved_at || a.created_at || '')))
+          : allRows.filter(r => activeTab === 'rec'
+              ? String(r.target_username || '').trim().toLowerCase() === me
+              : String(r.requester_username || '').trim().toLowerCase() === me);
         body.innerHTML = '';
-        if (!list.length) { body.innerHTML = '<p style="color:var(--text-dim);padding:8px 0">' + (activeTab === 'rec' ? 'No requests received.' : 'You haven\'t requested any Client IDs.') + '</p>'; return; }
+        if (!list.length) {
+          const msg = activeTab === 'rec'
+            ? 'No requests received.'
+            : (activeTab === 'shared' ? 'You are not currently sharing your Client ID with anyone.' : 'You haven\'t requested any Client IDs.');
+          body.innerHTML = '<p style="color:var(--text-dim);padding:8px 0">' + msg + '</p>';
+          return;
+        }
         list.forEach(r => {
-          if (activeTab === 'rec') {
+          if (activeTab === 'shared') {
+            const elr = row(`
+              <div style="font-size:13.5px;color:var(--text)">You are sharing your Client ID with <b>${utils.escapeHtml(r.requester_username)}</b></div>
+              <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Approved ${fmtDate(r.resolved_at || r.created_at)}</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:6px">Stopping sharing removes their visible copy in the app. They will need to request your Client ID again.</div>
+              <div class="ib-actions" style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"></div>`);
+            const stop = document.createElement('button');
+            stop.type = 'button'; stop.className = 'danger'; stop.textContent = 'Stop sharing';
+            stop.addEventListener('click', () => {
+              if (!confirm('Stop sharing your Client ID with ' + r.requester_username + '?\n\nThey will need to request it again.')) return;
+              stop.disabled = true; stop.textContent = 'Stopping…';
+              window.ChatAPI.stopSharingClientId(r.requester_username).then(res => {
+                stop.disabled = false; stop.textContent = 'Stop sharing';
+                if (res && res.ok) {
+                  showToast('Stopped sharing your Client ID with ' + r.requester_username, 'success');
+                  render('shared', { silent: true });
+                  refreshInboxBadge({ notify: false });
+                  if (window.__ptrRefreshUserProfileIdSection) window.__ptrRefreshUserProfileIdSection();
+                } else showToast((res && res.error) || 'Failed to stop sharing', 'error');
+              });
+            });
+            elr.querySelector('.ib-actions').appendChild(stop);
+            body.appendChild(elr);
+          } else if (activeTab === 'rec') {
             const elr = row(`
               <div style="font-size:13.5px;color:var(--text)"><b>${utils.escapeHtml(r.requester_username)}</b> <span style="color:var(--text-dim)">asks for your Client ID</span></div>
               <div style="font-size:12.5px;color:var(--text-muted);margin:6px 0">“${utils.escapeHtml(r.reason)}”</div>
@@ -2438,7 +2482,7 @@
               dn.addEventListener('click', () => window.ChatAPI.resolveRequest(r.id, false).then(res => { if (res.ok) { showToast('Denied', 'info'); render('rec'); refreshInboxBadge({ notify: false }); } else showToast(res.error || 'Failed', 'error'); }));
               acts.append(ap, dn);
             } else {
-              acts.innerHTML = `<span style="font-size:12px;color:${r.status === 'approved' ? 'var(--success)' : 'var(--danger)'}">${r.status === 'approved' ? '✅ Approved — ID shared' : '❌ Denied'} · ${fmtDate(r.resolved_at)}</span>`;
+              acts.innerHTML = `<span style="font-size:12px;color:${r.status === 'approved' ? 'var(--success)' : (r.status === 'revoked' ? 'var(--warning)' : 'var(--danger)')}">${r.status === 'approved' ? '✅ Approved — ID shared' : (r.status === 'revoked' ? '🔒 Sharing stopped' : '❌ Denied')} · ${fmtDate(r.resolved_at)}</span>`;
             }
             body.appendChild(elr);
           } else {
@@ -2455,6 +2499,8 @@
                   <button class="secondary ib-copy" type="button">Copy</button>
                 </div>`;
               st.querySelector('.ib-copy').addEventListener('click', () => copyText(r.disclosed_client_id));
+            } else if (r.status === 'revoked') {
+              st.innerHTML = '<span style="font-size:12px;color:var(--warning)">🔒 Sharing stopped — request again if you still need it.</span>';
             } else {
               st.innerHTML = `<span style="font-size:12px;color:${r.status === 'denied' ? 'var(--danger)' : 'var(--warning)'}">${r.status === 'denied' ? '❌ Denied' : '⏳ Pending'}</span>`;
             }
@@ -2636,7 +2682,7 @@
         } else {
           const deniedNote = rel && rel.status === 'denied'
             ? '<div style="font-size:11.5px;color:var(--danger);margin-top:8px">❌ Your previous request was denied — you may ask again.</div>'
-            : '';
+            : (rel && rel.status === 'revoked' ? '<div style="font-size:11.5px;color:var(--warning);margin-top:8px">🔒 Sharing was stopped — you may request the Client ID again.</div>' : '');
           setHtml(
             (rel ? 'denied:' + rel.id + ':' + String(rel.resolved_at || '') : 'none') + ':' + targetLc,
             deniedNote + `<button class="secondary" type="button" id="up-req" style="margin-top:10px">🔑 Request Client ID</button><div id="up-req-form"></div>`,

@@ -866,6 +866,22 @@
         });
     },
 
+    stopSharingClientId: function (requesterUsername) {
+      var me = String(api._username || '').trim();
+      var requester = String(requesterUsername || '').trim();
+      if (!me || !requester) return Promise.resolve({ ok: false, error: 'missing' });
+      return sb.from('id_requests').update({
+        status: 'revoked',
+        resolved_at: new Date().toISOString(),
+        disclosed_client_id: null
+      }).ilike('target_username', me).ilike('requester_username', requester).eq('status', 'approved')
+        .then(function (res) {
+          if (res.error) return { ok: false, error: res.error.message };
+          dispatch('inbox-changed', { action: 'revoked', requester: requester });
+          return { ok: true };
+        });
+    },
+
     accountLogin: function (un, hash) {
       return sb.rpc('login_account', { un: un, pass: hash }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
     },
