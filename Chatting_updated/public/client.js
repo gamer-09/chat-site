@@ -2813,7 +2813,8 @@
   const tour = (() => {
     const KEY = 'ptr29_tour_done_v1';
     let overlay, spot, card, titleEl, bodyEl, countEl, backBtn, nextBtn, skipBtn;
-    let idx = 0, active = false, steps = [];
+    let idx = 0, active = false, starting = false, cleaning = false, steps = [];
+    let pubRoom = '', privRoom = '', unwatch = null, spotTTimer = null;
     const PEOPLE_BTN_SEL = '#tablet-people-btn';
 
     const isMobileDev = () => document.body.classList.contains('ptr29-mobile');
@@ -2865,9 +2866,9 @@
       if (bdrop) bdrop.classList.remove('open');
     }
     async function joinRoom(name) {
-      if (!name || state.currentRoom === name) return;
-      rooms.join(name);
-      await new Promise(r => setTimeout(r, 400));
+      if (!name) return;
+      if (state.currentRoom !== name) rooms.join(name);
+      await new Promise(r => setTimeout(r, 650));
     }
 
     const emitP = (ev, p) => new Promise(res => socket.emit(ev, p, res));
@@ -2923,8 +2924,14 @@
       backBtn = card.querySelector('#tour-back');
       nextBtn = card.querySelector('#tour-next');
       skipBtn = card.querySelector('#tour-skip');
-      nextBtn.addEventListener('click', async () => { idx >= steps.length - 1 ? end(true) : await show(idx + 1); });
-      backBtn.addEventListener('click', async () => { await show(Math.max(0, idx - 1)); });
+      nextBtn.addEventListener('click', async () => {
+        if (!active || nextBtn.disabled) return;
+        idx >= steps.length - 1 ? end(true) : await show(idx + 1);
+      });
+      backBtn.addEventListener('click', async () => {
+        if (!active || backBtn.disabled) return;
+        await show(Math.max(0, idx - 1));
+      });
       skipBtn.addEventListener('click', () => end(true));
       window.addEventListener('resize', () => { if (active) place(); });
       window.addEventListener('keydown', (e) => {
@@ -2988,12 +2995,22 @@
     }
 
     async function show(i) {
-      idx = i; active = true; overlay.classList.add('open');
+      if (!steps.length) return;
+      idx = Math.max(0, Math.min(i, steps.length - 1));
+      active = true;
+      overlay.classList.add('open');
+      card.style.display = 'block';
       const st = steps[idx];
       setWatch(st);
-      if (st && st.before) { try { await st.before(); } catch {} await new Promise(r => setTimeout(r, 150)); }
-      if (st && st.run) { try { await st.run(); } catch {} await new Promise(r => setTimeout(r, 300)); }
-      place();
+      if (nextBtn) nextBtn.disabled = true;
+      if (backBtn) backBtn.disabled = true;
+      if (skipBtn) skipBtn.disabled = true;
+      if (st && st.before) { try { await st.before(); } catch (e) { console.warn('tour before failed', e); } await new Promise(r => setTimeout(r, 150)); }
+      if (st && st.run) { try { await st.run(); } catch (e) { console.warn('tour step failed', e); } await new Promise(r => setTimeout(r, 300)); }
+      if (active) place();
+      if (nextBtn) nextBtn.disabled = false;
+      if (backBtn) backBtn.disabled = false;
+      if (skipBtn) skipBtn.disabled = false;
     }
 
     async function setup() {
@@ -3001,16 +3018,22 @@
       try {
         const left = await window.ChatAPI.tourRooms();
         for (const n of left || []) { try { await window.ChatAPI.deleteRoom(n); } catch {} }
-      } catch {}
+      } catch (e) { console.warn('tour stale cleanup failed', e); }
       const suf = Math.random().toString(36).slice(2, 7);
       pubRoom = 'tour-public-' + suf;
       privRoom = 'tour-private-' + suf;
-      try { await window.ChatAPI.createRoom(pubRoom, false); } catch {}
-      try { await window.ChatAPI.createRoom(privRoom, true); } catch {}
+      const pub = await window.ChatAPI.createRoom(pubRoom, false).catch(e => ({ ok: false, error: e && e.message }));
+      const priv = await window.ChatAPI.createRoom(privRoom, true).catch(e => ({ ok: false, error: e && e.message }));
+      if ((pub && pub.ok === false) || (priv && priv.ok === false)) {
+        console.warn('tour room creation warning', pub, priv);
+      }
       rooms.fetch();
+      await new Promise(r => setTimeout(r, 500));
     }
 
     function cleanup() {
+      if (cleaning) return;
+      cleaning = true;
       state.tourMode = false;
       state.tourFakes = [];
       if (spotTTimer) { clearTimeout(spotTTimer); spotTTimer = null; }
@@ -3031,27 +3054,38 @@
       if (b) socket.emit('leave', { room: b });
       if (a) window.ChatAPI.deleteRoom(a).catch(() => {});
       if (b) window.ChatAPI.deleteRoom(b).catch(() => {});
-      setTimeout(() => rooms.fetch(), 400);
+      setTimeout(() => { rooms.fetch(); cleaning = false; }, 400);
     }
 
     function end(done) {
       active = false;
+      starting = false;
       setWatch(null);
-      overlay.classList.remove('open');
-      spot.style.display = 'none';
-      spot.classList.remove('tour-pulse');
-      card.style.display = 'none';
-      card.classList.remove('hidden');
+      if (overlay) overlay.classList.remove('open');
+      if (spot) { spot.style.display = 'none'; spot.classList.remove('tour-pulse'); }
+      if (card) { card.style.display = 'none'; card.classList.remove('hidden'); }
       if (done) { try { localStorage.setItem(KEY, '1'); } catch {} }
       cleanup();
     }
 
     async function start() {
-      if (!overlay) build();
-      await setup();
-      steps = buildSteps();
-      idx = 0;
-      await show(0);
+      if (starting) return;
+      starting = true;
+      try {
+        if (active) end(false);
+        if (!overlay) build();
+        if (!window.ChatAPI || window.ChatAPI._offline) { showToast('Tour needs the backend connection. Reload and try again.', 'error'); return; }
+        await setup();
+        steps = buildSteps();
+        idx = 0;
+        await show(0);
+      } catch (e) {
+        console.error('Tour failed:', e);
+        showToast('Could not start the guided tour. Please reload and try again.', 'error');
+        cleanup();
+      } finally {
+        starting = false;
+      }
     }
     return { start, end };
   })();
@@ -3252,10 +3286,9 @@
     document.getElementById('logout-btn')?.addEventListener('click', logout);
     init();
     initMobile();  // Run after init
-    // Auto-start for first-time visitors
-    let tourDone = false;
-    try { tourDone = !!localStorage.getItem('ptr29_tour_done_v1'); } catch {}
-    if (!tourDone) setTimeout(() => tour.start(), 900);
+    // Guided tour is manual only (🎓 button / Help replay). Do not auto-create
+    // tour rooms on login/relogin; that caused duplicate tour rooms if users
+    // refreshed, logged out/in, or hit a broken tour state.
   })();
 
   if ('serviceWorker' in navigator) {

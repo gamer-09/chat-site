@@ -33,7 +33,7 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | Auto avatars | DiceBear avatars generated from your username, or supply your own URL |
 | Admin tools | Rename, clear, delete, transfer ownership, manage admins and users |
 | Inbox | Received + sent Client-ID requests, realtime badge/popup notifications, approval/denial status, and Stop sharing controls |
-| Guided tour | 🎓 Live walkthrough; auto-runs for first-time visitors and is replayable from Help |
+| Guided tour | 🎓 Manual live walkthrough from the 🎓 button or Help replay; creates temporary demo rooms only when started and deletes them when finished |
 | Themes | 🌙/☀️ dark-light toggle, remembered per browser |
 | Resilience | Self-hosted Supabase lib, versioned assets, network-first service worker |
 | Built-in help | Slide-by-slide help guide accessible from the toolbar |
