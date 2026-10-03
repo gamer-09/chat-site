@@ -85,16 +85,32 @@ app.use(express.static(path.join(__dirname, 'public'), { fallthrough: true, setH
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "form-action 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co ws: wss:",
+  "media-src 'self' data: blob: https:",
+  "manifest-src 'self'",
+  "worker-src 'self' blob:",
+  "upgrade-insecure-requests"
+].join('; ');
 function securityHeaders(req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('Content-Security-Policy', CONTENT_SECURITY_POLICY);
   next();
 }
 function securityStaticHeaders(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Content-Security-Policy', CONTENT_SECURITY_POLICY);
 }
 function createRateLimiter({ windowMs, limit }) {
   const hits = new Map();
@@ -211,6 +227,17 @@ function validateMessageLinks(text) {
     if (!check.ok) return check;
   }
   return { ok: true };
+}
+function sanitizeAvatarUrl(avatar) {
+  const v = String(avatar || '').trim();
+  if (!v) return '';
+  if (/^data:image\/(png|jpeg|jpg|gif|webp);base64,[a-z0-9+/=\r\n]+$/i.test(v)) return v.length <= 1500000 ? v : '';
+  try {
+    const url = new URL(v);
+    if (url.protocol !== 'https:') return '';
+    const check = validateLink(url.href);
+    return check.ok ? url.href : '';
+  } catch { return ''; }
 }
 function parseBase64DataUrl(dataUrl) {
   if (typeof dataUrl !== 'string' || dataUrl.length > Math.ceil(MAX_JSON_BYTES * 1.05)) return null;
@@ -678,7 +705,7 @@ io.on('connection', (socket) => {
     if (typeof p === 'string') p = { username: p, room: DEFAULT_ROOM };
     const username = (typeof p.username === 'string' && p.username.trim()) ? p.username.trim().slice(0, 50) : 'Anonymous';
     const room     = sanitizeRoomName(p.room);
-    const avatar   = (typeof p.avatar === 'string' && p.avatar.trim()) ? p.avatar.trim() : defaultAvatar(username);
+    const avatar   = sanitizeAvatarUrl(p.avatar) || defaultAvatar(username);
     const clientId = (typeof p.clientId === 'string' && p.clientId.trim()) ? p.clientId.trim().slice(0, 64) : null;
     const passkey  = (typeof p.passkey === 'string') ? p.passkey.trim() : '';
 
@@ -1088,7 +1115,7 @@ io.on('connection', (socket) => {
     }
 
     socket.data.username = newUsername;
-    socket.data.avatar = (typeof avatar === 'string' && avatar.trim()) ? avatar.trim() : `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(newUsername)}`;
+    socket.data.avatar = sanitizeAvatarUrl(avatar) || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(newUsername)}`;
     if (socket.data.clientId) recordUser(socket.data.clientId, { username: socket.data.username, avatar: socket.data.avatar });
 
     const map = presence.get(r);

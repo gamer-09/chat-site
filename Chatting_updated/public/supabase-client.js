@@ -155,6 +155,17 @@
     return { ok: true };
   }
 
+  function sanitizeAvatarUrl(avatar) {
+    var v = String(avatar || '').trim();
+    if (!v) return '';
+    if (/^data:image\/(png|jpeg|jpg|gif|webp);base64,[a-z0-9+/=\r\n]+$/i.test(v)) return v.length <= 1500000 ? v : '';
+    try {
+      var url = new URL(v);
+      if (url.protocol !== 'https:') return '';
+      return validateLink(url.href).ok ? url.href : '';
+    } catch (e) { return ''; }
+  }
+
   // ── API object ─────────────────────────────────────────────────────────────
   var api = {
     sb: sb,
@@ -275,7 +286,7 @@
     upsertProfile: function (username, avatar) {
       if (!api.uid) return Promise.resolve();
       var un = String(username || '').trim().slice(0, 50) || 'Anonymous';
-      var av = String(avatar || '').trim() || defaultAvatar(un);
+      var av = sanitizeAvatarUrl(avatar) || defaultAvatar(un);
       api._username = un;
       api._avatar = av;
       var row = function (cid) {
@@ -292,7 +303,7 @@
 
     updateProfile: function (room, username, avatar) {
       var un = String(username || '').trim().slice(0, 50);
-      var av = String(avatar || '').trim();
+      var av = sanitizeAvatarUrl(avatar);
       api._username = un || api._username;
       api._avatar = av || api._avatar;
       api.upsertProfile(un, av).then(function () { api.heartbeat(true); });
@@ -416,7 +427,7 @@
         api._currentRoom = room;
         api._joined = true;
         var username = String(p.username || '').trim() || api._username || 'Anonymous';
-        var avatar = String(p.avatar || '').trim() || api._avatar || defaultAvatar(username);
+        var avatar = sanitizeAvatarUrl(p.avatar) || api._avatar || defaultAvatar(username);
           api.upsertProfile(username, avatar);
           api.heartbeat(true);
 
@@ -885,8 +896,8 @@
     accountLogin: function (un, hash) {
       return sb.rpc('login_account', { un: un, pass: hash }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
     },
-    accountRegister: function (un, hash) {
-      return sb.rpc('register_account', { un: un, pass: hash }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
+    accountRegister: function (un, hash, ageConfirmed) {
+      return sb.rpc('register_account', { un: un, pass: hash, age_confirmed: !!ageConfirmed }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
     },
     accountDelete: function (id, hash) {
       return sb.rpc('delete_account', { acct: id, pass: hash }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });

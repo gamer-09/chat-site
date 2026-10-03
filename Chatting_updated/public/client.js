@@ -365,6 +365,21 @@
       return { ok: true };
     },
 
+    validateAvatarValue: (avatar) => {
+      const v = String(avatar || '').trim();
+      if (!v) return { ok: true, value: '' };
+      if (/^data:image\/(png|jpeg|jpg|gif|webp);base64,[a-z0-9+/=\r\n]+$/i.test(v)) {
+        if (v.length > 1500000) return { ok: false, message: 'Avatar image is too large.' };
+        return { ok: true, value: v };
+      }
+      let url;
+      try { url = new URL(v); } catch { return { ok: false, message: 'Avatar URL is invalid.' }; }
+      if (url.protocol !== 'https:') return { ok: false, message: 'Avatar URL must use HTTPS.' };
+      const check = utils.validateLink(url.href);
+      if (!check.ok) return { ok: false, message: 'Avatar URL blocked: ' + check.reason + '.' };
+      return { ok: true, value: url.href };
+    },
+
     replaceOutsideTags: (html, regex, replacer) => String(html || '').split(/(<[^>]+>)/g)
       .map(part => part.startsWith('<') ? part : part.replace(regex, replacer)).join(''),
 
@@ -546,6 +561,12 @@
         showToast('"Anonymous" is reserved — please choose another name', 'error');
         return resolve(false);
       }
+      const avatarCheck = utils.validateAvatarValue(avatar);
+      if (!avatarCheck.ok) {
+        showToast(avatarCheck.message, 'error');
+        return resolve(false);
+      }
+      avatar = avatarCheck.value;
       socket.emit('check-username', { username: val }, (resp) => {
         const saved = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
         const isOwnSaved = String(saved.username || '').trim().toLowerCase() === val.toLowerCase();
@@ -994,7 +1015,7 @@
       const bodyHtml = (msg.type === 'image' || fileIsImage)
         ? `<img class="msg-image" src="${msg.dataUrl || msg.imageUrl || msg.fileUrl || ''}" alt="Shared image" loading="lazy">`
         : msg.type === 'file'
-          ? `<a class="file-attachment" href="${msg.fileUrl || '#'}" download="${utils.escapeHtml(msg.message || 'file')}" target="_blank" rel="noopener"><span>📎</span><span>${utils.escapeHtml(msg.message || 'File')}</span>${msg.fileSize ? `<span style="color:var(--text-dim);font-size:11px">${utils.formatFileSize(msg.fileSize)}</span>` : ''}</a>`
+          ? `<a class="file-attachment" href="${msg.fileUrl || '#'}" download="${utils.escapeHtml(msg.message || 'file')}" target="_blank" rel="noopener noreferrer"><span>📎</span><span>${utils.escapeHtml(msg.message || 'File')}</span>${msg.fileSize ? `<span style="color:var(--text-dim);font-size:11px">${utils.formatFileSize(msg.fileSize)}</span>` : ''}</a>`
           : `<span class="msg-content">${utils.renderMarkdown(msg.message || '')}</span>`;
 
       const reactionEntries = msg.reactions ? Object.entries(msg.reactions).filter(([,u]) => u.length > 0) : [];
@@ -3084,6 +3105,10 @@
         </div>
         <input id="ag-user" placeholder="Username" autocomplete="username">
         <input id="ag-pass" type="password" placeholder="Password" autocomplete="current-password">
+        <label id="ag-age-row" style="display:none;align-items:flex-start;gap:8px;font-size:12px;color:var(--text-muted);line-height:1.35;margin:-2px 0 10px">
+          <input id="ag-age" type="checkbox" style="margin-top:2px">
+          <span>I confirm I am at least 13 years old. Children under 13 may not create an account.</span>
+        </label>
         <div id="ag-err" class="ag-err"></div>
         <button id="ag-go" class="ag-go" type="button">Continue ➤</button>
         <div class="ag-foot">🔒 No plaintext passwords ever stored</div>
@@ -3094,8 +3119,10 @@
       mode = b.dataset.m;
       ov.querySelectorAll('.ag-tab').forEach(x => x.classList.toggle('active', x === b));
       const p = ov.querySelector('#ag-pass');
+      const ageRow = ov.querySelector('#ag-age-row');
       p.placeholder = mode === 'reg' ? 'Strong password (8+ chars, upper/lower/number/symbol)' : 'Password';
       p.setAttribute('autocomplete', mode === 'reg' ? 'new-password' : 'current-password');
+      if (ageRow) ageRow.style.display = mode === 'reg' ? 'flex' : 'none';
     }));
     ov.querySelector('#ag-go').addEventListener('click', async () => {
       const un = ov.querySelector('#ag-user').value.trim();
@@ -3107,6 +3134,7 @@
       if (mode === 'reg') {
         const pwCheck = utils.validatePassword(pw, un);
         if (!pwCheck.ok) { err.textContent = pwCheck.message; return; }
+        if (!ov.querySelector('#ag-age')?.checked) { err.textContent = 'Confirm you are at least 13 years old to create an account.'; return; }
       } else if (pw.length < 6) { err.textContent = 'Password too short.'; return; }
       const h = await sha256hex(pw + ':' + un.toLowerCase());
       if (!h) { err.textContent = 'Crypto unavailable in this browser.'; return; }
@@ -3114,7 +3142,7 @@
       btn.textContent = mode === 'reg' ? 'Creating account…' : 'Logging in…';
       const res = mode === 'login'
         ? await window.ChatAPI.accountLogin(un, h)
-        : await window.ChatAPI.accountRegister(un, h);
+        : await window.ChatAPI.accountRegister(un, h, true);
       btn.disabled = false;
       btn.textContent = 'Continue ➤';
       if (!res || !res.ok) {
@@ -3123,6 +3151,7 @@
           invalid_credentials: 'Wrong username or password.',
           locked: 'Too many failed attempts — locked for 15 minutes.',
           invalid_username: 'Invalid username.',
+          age_required: 'You must confirm you are at least 13 years old to create an account.',
         };
         err.textContent = (map[res && res.error]) || (res && res.error) || 'Failed.';
         return;
