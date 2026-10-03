@@ -2412,10 +2412,10 @@
       return ov;
     }
     function row(html) { const d = document.createElement('div'); d.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--panel2)'; d.innerHTML = html; return d; }
-    function render(tab) {
+    function render(tab, opts = {}) {
       activeTab = tab || activeTab || 'rec';
       const body = ov.querySelector('#ib-body');
-      body.innerHTML = '<p style="color:var(--text-dim)">Loading…</p>';
+      if (!opts.silent) body.innerHTML = '<p style="color:var(--text-dim)">Loading…</p>';
       window.ChatAPI.inbox().then(rows => {
         const me = inboxIdentity().toLowerCase();
         const list = rows.filter(r => activeTab === 'rec'
@@ -2466,7 +2466,7 @@
     function refresh() {
       if (!ov || !ov.classList.contains('open')) return;
       clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => render(activeTab || 'rec'), 120);
+      refreshTimer = setTimeout(() => render(activeTab || 'rec', { silent: true }), 120);
     }
     function open() { ensure(); ov.classList.add('open'); render('rec'); refreshInboxBadge({ notify: false }); }
     return { open, render, refresh };
@@ -2567,11 +2567,9 @@
     }).catch(() => setInboxBadgeCount(0));
   }
   setInboxBadgeCount(0);
-  setInterval(() => {
-    refreshInboxBadge({ notify: true });
-    inboxUI.refresh();
-    if (window.__ptrRefreshUserProfileIdSection) window.__ptrRefreshUserProfileIdSection();
-  }, 10000);
+  // Poll only the badge/notification state. Open panels update from realtime/local
+  // request events so they do not blink when nothing changed.
+  setInterval(() => refreshInboxBadge({ notify: true }), 10000);
   const inboxBtnEl = document.getElementById('inbox-btn');
   if (inboxBtnEl) inboxBtnEl.addEventListener('click', () => { inboxUI.open(); });
 
@@ -2597,13 +2595,22 @@
       return ov;
     }
 
-    function renderIdSection(box, username) {
+    function renderIdSection(box, username, opts = {}) {
+      if (!box) return;
       const me = state.myUsername || '';
+      const setHtml = (signature, html, attach) => {
+        if (!opts.force && box.dataset.idreqSig === signature) return;
+        box.dataset.idreqSig = signature;
+        box.innerHTML = html;
+        if (typeof attach === 'function') attach();
+      };
       if (!me || username.toLowerCase() === me.toLowerCase()) {
-        box.innerHTML = '<div style="font-size:11px;color:var(--text-dim);margin-top:10px">This is you — your Client ID lives in Edit Profile.</div>';
+        setHtml('self', '<div style="font-size:11px;color:var(--text-dim);margin-top:10px">This is you — your Client ID lives in Edit Profile.</div>');
         return;
       }
-      box.innerHTML = '<p style="color:var(--text-dim);font-size:12px;margin-top:10px">Loading…</p>';
+      if (!opts.silent && !box.dataset.idreqSig) {
+        box.innerHTML = '<p style="color:var(--text-dim);font-size:12px;margin-top:10px">Loading…</p>';
+      }
       window.ChatAPI.inbox().then(rows => {
         const meLc = String(me || '').trim().toLowerCase();
         const targetLc = String(username || '').trim().toLowerCase();
@@ -2612,38 +2619,53 @@
           String(r.target_username || '').trim().toLowerCase() === targetLc
         );
         if (rel && rel.status === 'pending') {
-          box.innerHTML = `<div style="margin-top:10px;font-size:12.5px;color:var(--warning)">⏳ Request pending — sent ${fmtDate(rel.created_at)}</div>`;
+          setHtml(
+            'pending:' + rel.id + ':' + String(rel.created_at || ''),
+            `<div style="margin-top:10px;font-size:12.5px;color:var(--warning)">⏳ Request pending — sent ${fmtDate(rel.created_at)}</div>`
+          );
         } else if (rel && rel.status === 'approved' && rel.disclosed_client_id) {
-          box.innerHTML = `<div style="margin-top:10px;font-size:12.5px;color:var(--success)">✅ ${utils.escapeHtml(username)} approved your request:</div>
-            <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
-              <code style="flex:1;font-size:11px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${utils.escapeHtml(rel.disclosed_client_id)}</code>
-              <button class="secondary" type="button" id="up-copy">Copy</button>
-            </div>`;
-          box.querySelector('#up-copy').addEventListener('click', () => copyText(rel.disclosed_client_id));
+          setHtml(
+            'approved:' + rel.id + ':' + String(rel.disclosed_client_id || ''),
+            `<div style="margin-top:10px;font-size:12.5px;color:var(--success)">✅ ${utils.escapeHtml(username)} approved your request:</div>
+              <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+                <code style="flex:1;font-size:11px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${utils.escapeHtml(rel.disclosed_client_id)}</code>
+                <button class="secondary" type="button" id="up-copy">Copy</button>
+              </div>`,
+            () => box.querySelector('#up-copy')?.addEventListener('click', () => copyText(rel.disclosed_client_id))
+          );
         } else {
-          const deniedNote = rel && rel.status === 'denied' ? '<div style="font-size:11.5px;color:var(--danger);margin-top:8px">❌ Your previous request was denied — you may ask again.</div>' : '';
-          box.innerHTML = deniedNote + `<button class="secondary" type="button" id="up-req" style="margin-top:10px">🔑 Request Client ID</button><div id="up-req-form"></div>`;
-          box.querySelector('#up-req').addEventListener('click', () => {
-            const form = box.querySelector('#up-req-form');
-            form.innerHTML = `
-              <textarea id="up-reason" rows="3" placeholder="State your reason (required)…" style="width:100%;margin-top:8px"></textarea>
-              <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-                <button class="secondary" type="button" id="up-cancel">Cancel</button>
-                <button type="button" id="up-send">Send request</button>
-              </div>`;
-            form.querySelector('#up-cancel').addEventListener('click', () => { form.innerHTML = ''; });
-            form.querySelector('#up-send').addEventListener('click', () => {
-              const why = form.querySelector('#up-reason').value.trim();
-              if (!why) { showToast('Please state a reason', 'error'); return; }
-              window.ChatAPI.sendIdRequest(username, why).then(r => {
-                if (r.ok) { showToast('Request sent to ' + username, 'success'); renderIdSection(box, username); }
-                else if (r.error === 'already_pending') showToast('A request is already pending', 'error');
-                else showToast(r.error || 'Failed to send', 'error');
+          const deniedNote = rel && rel.status === 'denied'
+            ? '<div style="font-size:11.5px;color:var(--danger);margin-top:8px">❌ Your previous request was denied — you may ask again.</div>'
+            : '';
+          setHtml(
+            (rel ? 'denied:' + rel.id + ':' + String(rel.resolved_at || '') : 'none') + ':' + targetLc,
+            deniedNote + `<button class="secondary" type="button" id="up-req" style="margin-top:10px">🔑 Request Client ID</button><div id="up-req-form"></div>`,
+            () => {
+              box.querySelector('#up-req')?.addEventListener('click', () => {
+                const form = box.querySelector('#up-req-form');
+                form.innerHTML = `
+                  <textarea id="up-reason" rows="3" placeholder="State your reason (required)…" style="width:100%;margin-top:8px"></textarea>
+                  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+                    <button class="secondary" type="button" id="up-cancel">Cancel</button>
+                    <button type="button" id="up-send">Send request</button>
+                  </div>`;
+                form.querySelector('#up-cancel').addEventListener('click', () => { form.innerHTML = ''; });
+                form.querySelector('#up-send').addEventListener('click', () => {
+                  const why = form.querySelector('#up-reason').value.trim();
+                  if (!why) { showToast('Please state a reason', 'error'); return; }
+                  window.ChatAPI.sendIdRequest(username, why).then(r => {
+                    if (r.ok) { showToast('Request sent to ' + username, 'success'); renderIdSection(box, username, { silent: true, force: true }); }
+                    else if (r.error === 'already_pending') showToast('A request is already pending', 'error');
+                    else showToast(r.error || 'Failed to send', 'error');
+                  });
+                });
               });
-            });
-          });
+            }
+          );
         }
-      }).catch(() => { box.innerHTML = ''; });
+      }).catch(() => {
+        if (!opts.silent) setHtml('error', '');
+      });
     }
 
     async function open(username, opts) {
@@ -2680,7 +2702,7 @@
     function refreshIdSection() {
       if (!ov || !ov.classList.contains('open') || !currentIdBox || !currentProfileUsername) return;
       clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => renderIdSection(currentIdBox, currentProfileUsername), 120);
+      refreshTimer = setTimeout(() => renderIdSection(currentIdBox, currentProfileUsername, { silent: true }), 120);
     }
     return { open, refreshIdSection };
   })();
