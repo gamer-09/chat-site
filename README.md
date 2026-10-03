@@ -112,7 +112,7 @@ For the GitHub Pages + Supabase deployment, run the SQL files in `supabase/` in 
 supabase/011_security_hardening.sql
 ```
 
-It enforces account-session binding, stricter RLS, upload type/size limits, and safer message payload checks on the server side. Then run `supabase/012_safe_links.sql` to enforce safe-link validation in Supabase too.
+It enforces account-session binding, stricter RLS, upload type/size limits, and safer message payload checks on the server side. Then run `supabase/012_safe_links.sql` to enforce safe-link validation in Supabase too. Run `supabase/013_inbox_badge_fix.sql` to enable realtime inbox badge updates.
 
 ---
 
@@ -298,3 +298,4 @@ Use Nginx or Caddy with a free Let's Encrypt certificate. Never run a public cha
 | `supabase/010_delete_account.sql` | `delete_account(acct, pass)` — password-verified SECURITY DEFINER full erase |
 | `supabase/011_security_hardening.sql` | Account-session binding, stricter RLS, upload type/size limits |
 | `supabase/012_safe_links.sql` | Safe-link validation for messages and edits |
+| `supabase/013_inbox_badge_fix.sql` | Realtime inbox badge updates + case-insensitive request matching |

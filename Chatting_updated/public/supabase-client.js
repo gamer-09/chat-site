@@ -822,7 +822,7 @@
       var why = String(reason || '').trim().slice(0, 500);
       if (!me || !tgt || !why) return Promise.resolve({ ok: false, error: 'missing' });
       if (me.toLowerCase() === tgt.toLowerCase()) return Promise.resolve({ ok: false, error: 'self' });
-      return sb.from('id_requests').select('id').eq('target_username', tgt).eq('requester_username', me).eq('status', 'pending').limit(1)
+      return sb.from('id_requests').select('id').ilike('target_username', tgt).ilike('requester_username', me).eq('status', 'pending').limit(1)
         .then(function (res) {
           if (res.data && res.data.length) return { ok: false, error: 'already_pending' };
           return sb.from('id_requests').insert({
@@ -833,7 +833,9 @@
             reason: why,
             status: 'pending'
           }).then(function (r2) {
-            return r2.error ? { ok: false, error: r2.error.message } : { ok: true };
+            if (r2.error) return { ok: false, error: r2.error.message };
+            dispatch('inbox-changed', { action: 'sent' });
+            return { ok: true };
           });
         });
     },
@@ -842,8 +844,8 @@
       var me = String(api._username || '');
       if (!me) return Promise.resolve([]);
       return Promise.all([
-        sb.from('id_requests').select('*').eq('requester_username', me).limit(200),
-        sb.from('id_requests').select('*').eq('target_username', me).limit(200)
+        sb.from('id_requests').select('*').ilike('requester_username', me).limit(200),
+        sb.from('id_requests').select('*').ilike('target_username', me).limit(200)
       ]).then(function (rs) {
         var map = {};
         (rs[0].data || []).concat(rs[1].data || []).forEach(function (r) { map[r.id] = r; });
@@ -856,8 +858,12 @@
         status: approve ? 'approved' : 'denied',
         resolved_at: new Date().toISOString(),
         disclosed_client_id: approve ? (api._clientId || api.uid) : null
-      }).eq('id', id).eq('target_username', String(api._username || ''))
-        .then(function (res) { return res.error ? { ok: false, error: res.error.message } : { ok: true }; });
+      }).eq('id', id).ilike('target_username', String(api._username || ''))
+        .then(function (res) {
+          if (res.error) return { ok: false, error: res.error.message };
+          dispatch('inbox-changed', { action: approve ? 'approved' : 'denied' });
+          return { ok: true };
+        });
     },
 
     accountLogin: function (un, hash) {
@@ -1090,6 +1096,10 @@
             if (meta) dispatch('room-meta', { room: api._currentRoom, meta: meta });
           });
         }
+      });
+
+      ch.on('postgres_changes', { event: '*', schema: 'public', table: 'id_requests' }, function () {
+        dispatch('inbox-changed', { action: 'realtime' });
       });
 
       ch.on('postgres_changes', { event: '*', schema: 'public', table: 'presence' }, function (p) {

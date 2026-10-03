@@ -1465,6 +1465,8 @@
 
     'presence-all': (data) => online.update(data.users),
 
+    'inbox-changed': () => refreshInboxBadge(),
+
     'typing': (data) => {
       if (!data.isTyping) { state.typers.delete(data.userId); }
       else { state.typers.set(data.userId, data.username); }
@@ -2097,6 +2099,7 @@
     profile.load();
     state.unreadCounts = utils.loadFromStorage(CONSTANTS.UNREAD_KEY, {});
     Object.entries(socketHandlers).forEach(([event, handler]) => socket.on(event, handler));
+    setTimeout(refreshInboxBadge, 800);
     bindEvents();
     const roomFromUrl = new URLSearchParams(window.location.search).get('room');
     if (roomFromUrl) state.currentRoom = roomFromUrl;
@@ -2421,7 +2424,7 @@
               const ap = document.createElement('button'); ap.textContent = '✅ Approve'; ap.type = 'button';
               const dn = document.createElement('button'); dn.textContent = '❌ Deny'; dn.className = 'secondary'; dn.type = 'button';
               ap.addEventListener('click', () => window.ChatAPI.resolveRequest(r.id, true).then(res => { if (res.ok) { showToast('Approved — your ID was shared with ' + r.requester_username, 'success'); render('rec'); refreshInboxBadge(); } else showToast(res.error || 'Failed', 'error'); }));
-              dn.addEventListener('click', () => window.ChatAPI.resolveRequest(r.id, false).then(res => { if (res.ok) { showToast('Denied', 'info'); render('rec'); } else showToast(res.error || 'Failed', 'error'); }));
+              dn.addEventListener('click', () => window.ChatAPI.resolveRequest(r.id, false).then(res => { if (res.ok) { showToast('Denied', 'info'); render('rec'); refreshInboxBadge(); } else showToast(res.error || 'Failed', 'error'); }));
               acts.append(ap, dn);
             } else {
               acts.innerHTML = `<span style="font-size:12px;color:${r.status === 'approved' ? 'var(--success)' : 'var(--danger)'}">${r.status === 'approved' ? '✅ Approved — ID shared' : '❌ Denied'} · ${fmtDate(r.resolved_at)}</span>`;
@@ -2449,20 +2452,42 @@
         });
       }).catch(e => { body.innerHTML = '<p style="color:var(--danger)">Could not load inbox — is the id_requests table created? (' + utils.escapeHtml(e.message || e) + ')</p>'; });
     }
-    function open() { ensure(); ov.classList.add('open'); render('rec'); }
+    function open() { ensure(); ov.classList.add('open'); render('rec'); refreshInboxBadge(); }
     return { open, render };
   })();
 
+  function inboxIdentity() {
+    const stored = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
+    return String(state.myUsername || stored.username || (window.ChatAPI && window.ChatAPI._username) || '').trim();
+  }
+
+  function setInboxBadgeCount(n) {
+    const badge = document.getElementById('inbox-badge');
+    if (!badge) return;
+    if (!n) {
+      badge.textContent = '';
+      badge.hidden = true;
+      return;
+    }
+    badge.hidden = false;
+    badge.textContent = n > 9 ? '9+' : String(n);
+  }
+
   function refreshInboxBadge() {
     const badge = document.getElementById('inbox-badge');
-    if (!badge || !state.myUsername) return;
+    if (!badge) return;
+    const me = inboxIdentity().toLowerCase();
+    if (!me) { setInboxBadgeCount(0); return; }
     window.ChatAPI.inbox().then(rows => {
-      const n = rows.filter(r => r.target_username === state.myUsername && r.status === 'pending').length;
-      badge.hidden = !n;
-      badge.textContent = n > 9 ? '9+' : String(n);
-    }).catch(() => {});
+      const n = (rows || []).filter(r =>
+        String(r.target_username || '').trim().toLowerCase() === me &&
+        String(r.status || '').toLowerCase() === 'pending'
+      ).length;
+      setInboxBadgeCount(n);
+    }).catch(() => setInboxBadgeCount(0));
   }
-  setInterval(refreshInboxBadge, 30000);
+  setInboxBadgeCount(0);
+  setInterval(refreshInboxBadge, 10000);
   const inboxBtnEl = document.getElementById('inbox-btn');
   if (inboxBtnEl) inboxBtnEl.addEventListener('click', () => { inboxUI.open(); });
 
