@@ -1446,6 +1446,9 @@
     #inbox-btn{position:relative}
     #inbox-badge{position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;border-radius:9px;background:var(--danger);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;padding:0 4px}
     #inbox-badge[hidden]{display:none!important}
+    .inbox-popup{position:fixed;right:16px;top:74px;z-index:10001;width:min(360px,calc(100vw - 32px));background:var(--panel2);border:1px solid var(--border-light);border-radius:14px;box-shadow:0 18px 44px rgba(0,0,0,.45);padding:14px;color:var(--text);animation:popIn .16s ease-out}
+    .inbox-popup-title{font-weight:800;font-size:14px;margin-bottom:4px}.inbox-popup-body{font-size:13px;color:var(--text-muted);line-height:1.45;overflow-wrap:anywhere}.inbox-popup-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}.inbox-popup-actions button{padding:8px 12px;font-size:12px}
+    @media (max-width:768px){.inbox-popup{left:12px;right:12px;top:calc(70px + env(safe-area-inset-top));width:auto}}
     #user-profile-modal .up-stat{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
     #user-profile-modal .up-stat b{display:block;font-size:18px;color:var(--text)}
     #user-profile-modal .up-stat span{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.6px}

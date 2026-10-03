@@ -1098,8 +1098,8 @@
         }
       });
 
-      ch.on('postgres_changes', { event: '*', schema: 'public', table: 'id_requests' }, function () {
-        dispatch('inbox-changed', { action: 'realtime' });
+      ch.on('postgres_changes', { event: '*', schema: 'public', table: 'id_requests' }, function (p) {
+        dispatch('inbox-changed', { action: 'realtime', eventType: p.eventType, row: p.new || p.old || null });
       });
 
       ch.on('postgres_changes', { event: '*', schema: 'public', table: 'presence' }, function (p) {

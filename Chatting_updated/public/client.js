@@ -130,6 +130,7 @@
     canDeleteRoom: false,
     unreadCounts: {},
     readSent: new Set(),
+    inboxNotifiedIds: new Set(),
     rooms: [],
     currentRoomPresence: [],
   };
@@ -142,6 +143,7 @@
     CLIENT_ID_ISSUED_KEY: 'ptr29_client_id_issued_v1',
     PASSKEYS_KEY:  'ptr29_room_keys_v2',
     UNREAD_KEY:    'ptr29_unread_v2',
+    INBOX_SEEN_KEY:'ptr29_inbox_seen_v1',
     DEFAULT_AVATAR:'https://api.dicebear.com/7.x/thumbs/svg?seed=',
     MAX_IMAGE_BYTES: 5 * 1024 * 1024,
     MAX_FILE_BYTES: 10 * 1024 * 1024,
@@ -2423,8 +2425,8 @@
             if (r.status === 'pending') {
               const ap = document.createElement('button'); ap.textContent = '✅ Approve'; ap.type = 'button';
               const dn = document.createElement('button'); dn.textContent = '❌ Deny'; dn.className = 'secondary'; dn.type = 'button';
-              ap.addEventListener('click', () => window.ChatAPI.resolveRequest(r.id, true).then(res => { if (res.ok) { showToast('Approved — your ID was shared with ' + r.requester_username, 'success'); render('rec'); refreshInboxBadge(); } else showToast(res.error || 'Failed', 'error'); }));
-              dn.addEventListener('click', () => window.ChatAPI.resolveRequest(r.id, false).then(res => { if (res.ok) { showToast('Denied', 'info'); render('rec'); refreshInboxBadge(); } else showToast(res.error || 'Failed', 'error'); }));
+              ap.addEventListener('click', () => window.ChatAPI.resolveRequest(r.id, true).then(res => { if (res.ok) { showToast('Approved — your ID was shared with ' + r.requester_username, 'success'); render('rec'); refreshInboxBadge({ notify: false }); } else showToast(res.error || 'Failed', 'error'); }));
+              dn.addEventListener('click', () => window.ChatAPI.resolveRequest(r.id, false).then(res => { if (res.ok) { showToast('Denied', 'info'); render('rec'); refreshInboxBadge({ notify: false }); } else showToast(res.error || 'Failed', 'error'); }));
               acts.append(ap, dn);
             } else {
               acts.innerHTML = `<span style="font-size:12px;color:${r.status === 'approved' ? 'var(--success)' : 'var(--danger)'}">${r.status === 'approved' ? '✅ Approved — ID shared' : '❌ Denied'} · ${fmtDate(r.resolved_at)}</span>`;
@@ -2452,7 +2454,7 @@
         });
       }).catch(e => { body.innerHTML = '<p style="color:var(--danger)">Could not load inbox — is the id_requests table created? (' + utils.escapeHtml(e.message || e) + ')</p>'; });
     }
-    function open() { ensure(); ov.classList.add('open'); render('rec'); refreshInboxBadge(); }
+    function open() { ensure(); ov.classList.add('open'); render('rec'); refreshInboxBadge({ notify: false }); }
     return { open, render };
   })();
 
@@ -2473,21 +2475,84 @@
     badge.textContent = n > 9 ? '9+' : String(n);
   }
 
-  function refreshInboxBadge() {
+  function notifyBrowser(title, body) {
+    if (!('Notification' in window)) return;
+    const fire = () => {
+      try {
+        const n = new Notification(title, { body, icon: 'icon-192.png' });
+        n.onclick = () => { try { window.focus(); inboxUI.open(); } catch {} n.close(); };
+        setTimeout(() => n.close(), 8000);
+      } catch {}
+    };
+    if (Notification.permission === 'granted') fire();
+    else if (Notification.permission === 'default') {
+      try { Notification.requestPermission().then(p => { if (p === 'granted') fire(); }); } catch {}
+    }
+  }
+
+  function showInboxPopup(row) {
+    const id = String(row && row.id || '');
+    const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (!id || document.querySelector(`[data-inbox-popup-id="${safeId}"]`)) return;
+    const from = String(row.requester_username || 'Someone');
+    const reason = String(row.reason || '').trim();
+    const pop = document.createElement('div');
+    pop.className = 'inbox-popup';
+    pop.dataset.inboxPopupId = safeId;
+    pop.innerHTML = `
+      <div class="inbox-popup-title">📥 New Inbox Request</div>
+      <div class="inbox-popup-body"><b>${utils.escapeHtml(from)}</b> is asking for your Client ID${reason ? `:<br>“${utils.escapeHtml(utils.truncate(reason, 140))}”` : '.'}</div>
+      <div class="inbox-popup-actions">
+        <button type="button" class="secondary inbox-dismiss">Dismiss</button>
+        <button type="button" class="inbox-open">Open Inbox</button>
+      </div>`;
+    const remove = () => pop.remove();
+    pop.querySelector('.inbox-dismiss')?.addEventListener('click', remove);
+    pop.querySelector('.inbox-open')?.addEventListener('click', () => { remove(); inboxUI.open(); });
+    document.body.appendChild(pop);
+    setTimeout(remove, 15000);
+  }
+
+  function notifyNewInboxRows(rows) {
+    const me = inboxIdentity().toLowerCase();
+    if (!me) return;
+    const seen = utils.loadFromStorage(CONSTANTS.INBOX_SEEN_KEY, {});
+    let changed = false;
+    (rows || []).forEach(row => {
+      const id = String(row && row.id || '');
+      if (!id || seen[id] || state.inboxNotifiedIds.has(id)) return;
+      const isForMe = String(row.target_username || '').trim().toLowerCase() === me;
+      const isPending = String(row.status || '').toLowerCase() === 'pending';
+      const isFromMe = String(row.requester_username || '').trim().toLowerCase() === me;
+      if (!isForMe || !isPending || isFromMe) return;
+      seen[id] = Date.now();
+      state.inboxNotifiedIds.add(id);
+      changed = true;
+      const from = String(row.requester_username || 'Someone');
+      showToast(`📥 New inbox request from ${from}`, 'info');
+      showInboxPopup(row);
+      notifyBrowser('ptr_29 Inbox', `${from} is asking for your Client ID.`);
+    });
+    if (changed) utils.saveToStorage(CONSTANTS.INBOX_SEEN_KEY, seen);
+  }
+
+  function refreshInboxBadge(options = {}) {
     const badge = document.getElementById('inbox-badge');
     if (!badge) return;
+    const notify = options.notify !== false;
     const me = inboxIdentity().toLowerCase();
     if (!me) { setInboxBadgeCount(0); return; }
     window.ChatAPI.inbox().then(rows => {
-      const n = (rows || []).filter(r =>
+      const pending = (rows || []).filter(r =>
         String(r.target_username || '').trim().toLowerCase() === me &&
         String(r.status || '').toLowerCase() === 'pending'
-      ).length;
-      setInboxBadgeCount(n);
+      );
+      setInboxBadgeCount(pending.length);
+      if (notify) notifyNewInboxRows(pending);
     }).catch(() => setInboxBadgeCount(0));
   }
   setInboxBadgeCount(0);
-  setInterval(refreshInboxBadge, 10000);
+  setInterval(() => refreshInboxBadge({ notify: true }), 10000);
   const inboxBtnEl = document.getElementById('inbox-btn');
   if (inboxBtnEl) inboxBtnEl.addEventListener('click', () => { inboxUI.open(); });
 
