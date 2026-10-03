@@ -1467,7 +1467,11 @@
 
     'presence-all': (data) => online.update(data.users),
 
-    'inbox-changed': () => refreshInboxBadge(),
+    'inbox-changed': () => {
+      refreshInboxBadge({ notify: true });
+      if (window.__ptrRefreshInboxUI) window.__ptrRefreshInboxUI();
+      if (window.__ptrRefreshUserProfileIdSection) window.__ptrRefreshUserProfileIdSection();
+    },
 
     'typing': (data) => {
       if (!data.isTyping) { state.typers.delete(data.userId); }
@@ -2385,6 +2389,8 @@
 
   const inboxUI = (() => {
     let ov = null;
+    let activeTab = 'rec';
+    let refreshTimer = null;
     const fmtDate = (t) => t ? new Date(t).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
     function ensure() {
       if (ov) return ov;
@@ -2407,15 +2413,18 @@
     }
     function row(html) { const d = document.createElement('div'); d.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--panel2)'; d.innerHTML = html; return d; }
     function render(tab) {
+      activeTab = tab || activeTab || 'rec';
       const body = ov.querySelector('#ib-body');
       body.innerHTML = '<p style="color:var(--text-dim)">Loading…</p>';
       window.ChatAPI.inbox().then(rows => {
-        const me = state.myUsername || '';
-        const list = rows.filter(r => tab === 'rec' ? r.target_username === me : r.requester_username === me);
+        const me = inboxIdentity().toLowerCase();
+        const list = rows.filter(r => activeTab === 'rec'
+          ? String(r.target_username || '').trim().toLowerCase() === me
+          : String(r.requester_username || '').trim().toLowerCase() === me);
         body.innerHTML = '';
-        if (!list.length) { body.innerHTML = '<p style="color:var(--text-dim);padding:8px 0">' + (tab === 'rec' ? 'No requests received.' : 'You haven\'t requested any Client IDs.') + '</p>'; return; }
+        if (!list.length) { body.innerHTML = '<p style="color:var(--text-dim);padding:8px 0">' + (activeTab === 'rec' ? 'No requests received.' : 'You haven\'t requested any Client IDs.') + '</p>'; return; }
         list.forEach(r => {
-          if (tab === 'rec') {
+          if (activeTab === 'rec') {
             const elr = row(`
               <div style="font-size:13.5px;color:var(--text)"><b>${utils.escapeHtml(r.requester_username)}</b> <span style="color:var(--text-dim)">asks for your Client ID</span></div>
               <div style="font-size:12.5px;color:var(--text-muted);margin:6px 0">“${utils.escapeHtml(r.reason)}”</div>
@@ -2454,9 +2463,15 @@
         });
       }).catch(e => { body.innerHTML = '<p style="color:var(--danger)">Could not load inbox — is the id_requests table created? (' + utils.escapeHtml(e.message || e) + ')</p>'; });
     }
+    function refresh() {
+      if (!ov || !ov.classList.contains('open')) return;
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => render(activeTab || 'rec'), 120);
+    }
     function open() { ensure(); ov.classList.add('open'); render('rec'); refreshInboxBadge({ notify: false }); }
-    return { open, render };
+    return { open, render, refresh };
   })();
+  window.__ptrRefreshInboxUI = () => inboxUI.refresh();
 
   function inboxIdentity() {
     const stored = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
@@ -2552,13 +2567,20 @@
     }).catch(() => setInboxBadgeCount(0));
   }
   setInboxBadgeCount(0);
-  setInterval(() => refreshInboxBadge({ notify: true }), 10000);
+  setInterval(() => {
+    refreshInboxBadge({ notify: true });
+    inboxUI.refresh();
+    if (window.__ptrRefreshUserProfileIdSection) window.__ptrRefreshUserProfileIdSection();
+  }, 10000);
   const inboxBtnEl = document.getElementById('inbox-btn');
   if (inboxBtnEl) inboxBtnEl.addEventListener('click', () => { inboxUI.open(); });
 
   // ── Member profiles (rebuilt: light data, no heavy fields) ─────────────────
   const userProfile = (() => {
     let ov = null;
+    let currentIdBox = null;
+    let currentProfileUsername = '';
+    let refreshTimer = null;
     const stat = (label, v) => `<div class="up-stat"><b>${v}</b><span>${label}</span></div>`;
     const fmtDate = (t) => t ? new Date(t).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
     function ensure() {
@@ -2583,7 +2605,12 @@
       }
       box.innerHTML = '<p style="color:var(--text-dim);font-size:12px;margin-top:10px">Loading…</p>';
       window.ChatAPI.inbox().then(rows => {
-        const rel = rows.find(r => r.requester_username === me && r.target_username === username);
+        const meLc = String(me || '').trim().toLowerCase();
+        const targetLc = String(username || '').trim().toLowerCase();
+        const rel = rows.find(r =>
+          String(r.requester_username || '').trim().toLowerCase() === meLc &&
+          String(r.target_username || '').trim().toLowerCase() === targetLc
+        );
         if (rel && rel.status === 'pending') {
           box.innerHTML = `<div style="margin-top:10px;font-size:12.5px;color:var(--warning)">⏳ Request pending — sent ${fmtDate(rel.created_at)}</div>`;
         } else if (rel && rel.status === 'approved' && rel.disclosed_client_id) {
@@ -2645,11 +2672,19 @@
         <div id="up-idreq"></div>
         ${err ? `<div style="color:var(--danger);font-size:11px;margin-top:8px">profile data error: ${utils.escapeHtml(err)}</div>` : ''}
         <div style="color:var(--text-dim);font-size:11px;margin-top:10px">Client IDs are private — shared only by explicit approval · build ${utils.escapeHtml(window.__BUILD || '?')}</div>`;
-      renderIdSection(body.querySelector('#up-idreq'), d.username);
+      currentProfileUsername = d.username;
+      currentIdBox = body.querySelector('#up-idreq');
+      renderIdSection(currentIdBox, d.username);
       if (opts && opts.focusRequest) setTimeout(() => { const r = body.querySelector('#up-req'); if (r) r.click(); }, 150);
     }
-    return { open };
+    function refreshIdSection() {
+      if (!ov || !ov.classList.contains('open') || !currentIdBox || !currentProfileUsername) return;
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => renderIdSection(currentIdBox, currentProfileUsername), 120);
+    }
+    return { open, refreshIdSection };
   })();
+  window.__ptrRefreshUserProfileIdSection = () => userProfile.refreshIdSection();
 
 
   // ── Online-list dropdown (the ONLY entry point to profiles) ────────────────
