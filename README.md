@@ -5,7 +5,7 @@
 # Chat Site
 
 
-A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supabase; the repo also includes the original Node.js/Express/Socket.io server for self-hosting. Access requires an account (login/register gate); your username, rooms and content follow the account across devices.
+A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supabase; the repo also includes the original Node.js/Express/Socket.io server for self-hosting. Access requires an account (login/register gate) and a 13+ age confirmation; existing accounts created before the age gate are prompted once to confirm. Your username, rooms and content follow the account across devices.
 
 ---
 
@@ -23,19 +23,17 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | User presence | Online = tab open, offline = tab closed; presence pruned when stale |
 | People panel | Online/Offline toggle with live counts, **search filter**, last-seen times |
 | Member profiles | Online-list ⋮ menu → personal card (avatar, status, activity stats); view-only entry point |
-| Client-ID requests | Consent-based: reasoned request → recipient approves/denies in the 📥 Inbox; approval shares a one-time snapshot |
-| Guided tour | 🎓 watch-only demo: fake volunteers Nova & Rex; guide performs rename/passkey/privacy/add/remove/clear for real; temp rooms auto-delete |
+| Client-ID requests | Consent-based: reasoned request → recipient approves/denies in the 📥 Inbox; approval shares a snapshot and can later be stopped/revoked |
+| Guided tour | 🎓 watch-only demo: fake volunteers Nova & Rex; guide demonstrates room controls, safe links, Client-ID Inbox basics, and temporary demo rooms auto-delete |
 | Username rules | "Anonymous" reserved; abandoned/orphan names auto-reclaimable; active names protected |
 | Full wipes | Rename fully erases the old name's messages/reactions/receipts; **Delete Account** (password-verified) erases account + user + all content + owned rooms; operator `purge_user()` for any name |
 | Reactions | Instant hover tooltip with names ("you" for self), correct own-detection, toggle semantics |
-| Accounts | 🔐 Login/register gate before app access; bcrypt+pepper hashed passwords (SHA-256 on-device first); hashes unreadable via API; 5-try rate limit; logout button; content follows the account across devices; Delete Account = full erase (account, user, messages, reactions, receipts, presence, owned rooms) |
+| Accounts | 🔐 Login/register gate before app access; 13+ age confirmation for new and legacy accounts; bcrypt+pepper hashed passwords (SHA-256 on-device first); hashes unreadable via API; 5-try rate limit; logout button; Delete Account = full erase |
 | Unique usernames | Server enforces no two users share the same name |
 | Auto avatars | DiceBear avatars generated from your username, or supply your own URL |
 | Admin tools | Rename, clear, delete, transfer ownership, manage admins and users |
-| Member profiles | Online-list ⋮ menu → personal profile card (avatar, status, public activity) |
-| Client-ID requests | Consent-based: reasoned request → recipient approves/denies in the 📥 Inbox |
-| Inbox | Received + sent ID requests, approvals share a one-time ID snapshot |
-| Guided tour | 🎓 12-step live walkthrough; auto-runs for first-time visitors |
+| Inbox | Received + sent Client-ID requests, realtime badge/popup notifications, approval/denial status, and Stop sharing controls |
+| Guided tour | 🎓 Live walkthrough; auto-runs for first-time visitors and is replayable from Help |
 | Themes | 🌙/☀️ dark-light toggle, remembered per browser |
 | Resilience | Self-hosted Supabase lib, versioned assets, network-first service worker |
 | Built-in help | Slide-by-slide help guide accessible from the toolbar |
@@ -106,13 +104,18 @@ npm run dev
 
 ### Supabase security migrations
 
-For the GitHub Pages + Supabase deployment, run the SQL files in `supabase/` in order. The latest hardening migration is:
+For the GitHub Pages + Supabase deployment, run the SQL files in `supabase/` in order. The current security/legal sequence is:
 
 ```text
-supabase/011_security_hardening.sql
+011_security_hardening.sql
+012_safe_links.sql
+013_inbox_badge_fix.sql
+014_stop_client_id_sharing.sql
+015_age_gate_signup.sql
+016_existing_account_age_verification.sql
 ```
 
-It enforces account-session binding, stricter RLS, upload type/size limits, and safer message payload checks on the server side. Then run `supabase/012_safe_links.sql` to enforce safe-link validation in Supabase too. Run `supabase/013_inbox_badge_fix.sql` to enable realtime inbox badge updates, `supabase/014_stop_client_id_sharing.sql` to allow approved Client-ID sharing to be stopped, then `supabase/015_age_gate_signup.sql` to enforce the 13+ signup gate server-side, then `supabase/016_existing_account_age_verification.sql` so existing accounts are prompted and can store their confirmation.
+`011_security_hardening.sql` enforces account-session binding, stricter RLS, upload type/size limits, and safer message payload checks on the server side. Then run `supabase/012_safe_links.sql` to enforce safe-link validation in Supabase too. Run `supabase/013_inbox_badge_fix.sql` to enable realtime inbox badge updates, `supabase/014_stop_client_id_sharing.sql` to allow approved Client-ID sharing to be stopped, then `supabase/015_age_gate_signup.sql` to enforce the 13+ signup gate server-side, then `supabase/016_existing_account_age_verification.sql` so existing accounts are prompted and can store their confirmation.
 
 ---
 
@@ -265,23 +268,17 @@ For high-traffic deployments, replace the read/write calls in `data/store.js` wi
 
 Running a public chat platform makes you the operator. These steps protect you:
 
-### 1. Add a Terms of Service
-State what users may and may not do, that you can remove content and ban users, and that you are not liable for user-generated content. Place a link to it in the site footer.
+### Included Terms and Privacy pages
 
-### 2. Add a Privacy Policy
-Required by law if any EU or California users can access the site (GDPR / CCPA). Explain what you store — usernames, messages, uploaded images, and server IP logs — and how users can request deletion.
+The app already includes `public/terms.html` (Terms of Service / Terms of Use) and `public/privacy.html`, linked from the header and Help guide. They now describe the 13+ age requirement, account gates, uploads, safe links, Client-ID requests/Stop sharing, account deletion, private-room limits, and operator contact.
 
-### 3. Add an abuse contact
-Add a visible `abuse@yourdomain.com` email address. This is evidence that you act responsibly if a legal complaint is ever made about content on your site.
+### Remaining operator responsibilities
 
-### 4. Enable server-side IP logging
-The server does not currently log IP addresses. Adding IP logging to `server.js` means you can cooperate with law enforcement if something illegal is reported, which reduces your own liability.
-
-### 5. Run behind HTTPS
-Use Nginx or Caddy with a free Let's Encrypt certificate. Never run a public chat site over plain HTTP — messages and uploads would be visible to anyone on the same network.
-
-### 6. Keep `.env` and `data/db.json` off GitHub
-`db.json` contains all usernames and messages. Never commit it to a public repository. The `.gitignore` already excludes `.env` — make sure `data/db.json` is also excluded if you fork or redeploy.
+- Keep an abuse/security contact visible and monitored.
+- Run the Supabase migrations in order, especially the age-gate and security migrations.
+- Use HTTPS in production; never expose the chat over plain HTTP.
+- Keep `.env`, `data/db.json`, runtime logs, and user uploads out of GitHub.
+- If you later add email marketing, payments/subscriptions, analytics, ads, Google Fonts, or session replay, update the Terms/Privacy before launch.
 
 ## Database migrations (Supabase SQL Editor)
 

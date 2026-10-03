@@ -81,7 +81,7 @@
     <header>
       <h1>Privacy Policy</h1>
       <p class="subtitle">How ptr_29 Chat handles data</p>
-      <p class="effective">Effective and last updated: August 25, 2026</p>
+      <p class="effective">Effective and last updated: October 3, 2026</p>
     </header>
 
     <div class="notice" role="note">
@@ -97,7 +97,7 @@
     <section class="section">
       <h2>2. Information processed</h2>
       <ul class="data-list">
-        <li><strong>Account data:</strong> access requires login or registration at the start gate. We store your username and a password hash — the password is SHA-256-salted on your device, then bcrypt-hashed server-side with a secret pepper — plus avatar and creation time. There is no password-recovery process, and hashes are not readable, listable, or modifiable through the API.</li>
+        <li><strong>Account data:</strong> access requires login or registration at the start gate. We store your username, password hash — the password is SHA-256-salted on your device, then bcrypt-hashed server-side with a secret pepper — avatar, creation time, account session records, and whether the account has confirmed the 13+ age requirement. There is no password-recovery process, and hashes are not readable, listable, or modifiable through the API.</li>
         <li><strong>Profile data:</strong> your chosen username, optional avatar URL, anonymous user/client ID, and last-seen time.</li>
         <li><strong>Room data:</strong> room name, public/private setting, owner, administrators, members, creation time, and any room passkey.</li>
         <li><strong>Content:</strong> messages, replies, edit state, timestamps, reactions, read receipts, files, images, original filenames, MIME type, and file size.</li>
@@ -181,7 +181,7 @@
 
     <section class="section">
       <h2>12. Client-ID requests (consent-based disclosure)</h2>
-      <p>The Service treats your Client ID as private by default: it is never displayed on profiles, member lists, or public pages. A user may request another user's Client ID from the Online Users list (⋮ menu → Request Client ID) by submitting a written reason. The recipient sees the requester's username and the full reason in their Inbox and may <strong>approve</strong> or <strong>deny</strong> the request. Approval discloses a snapshot of the approver's Client ID at that moment to the requester only; subsequent identity changes are not disclosed and require a new request. Request records (requester, target, reason, status, timestamp, and any disclosed snapshot) are readable only by the two participants and are retained to preserve a transparent history of disclosures. Do not include passwords, passkeys, or other sensitive information in request reasons. Abuse of the request feature (harassment, pressure, or misuse of disclosed IDs) may be reported via the contact below.</p>
+      <p>The Service treats your Client ID as private by default: it is never displayed on profiles, member lists, or public pages. A user may request another user's Client ID from the Online Users list (⋮ menu → Request Client ID) by submitting a written reason. The recipient sees the requester's username and the full reason in their Inbox and may <strong>approve</strong> or <strong>deny</strong> the request. Approval discloses a snapshot of the approver's Client ID at that moment to the requester only; subsequent identity changes are not disclosed and require a new request. The approver may later use <strong>Stop sharing</strong> to revoke the in-app disclosure; the requester must send a new request if needed. Request records (requester, target, reason, status, timestamp, and any disclosed snapshot/revocation state) are readable only by the two participants and are retained to preserve a transparent history of disclosures. Do not include passwords, passkeys, or other sensitive information in request reasons. Abuse of the request feature (harassment, pressure, or misuse of disclosed IDs) may be reported via the contact below.</p>
 
       <h2>13. Changes to this Policy</h2>
       <p>We may update this Policy when the Service, providers, or legal requirements change. The revised page will show a new effective date. Material changes apply prospectively.</p>
@@ -193,7 +193,7 @@
     </section>
 
     <footer class="last-updated">
-      <p>This Privacy Policy was last updated on August 25, 2026.</p>
+      <p>This Privacy Policy was last updated on October 3, 2026.</p>
     </footer>
   </main>
 <!-- © 2026 gamer-09. All rights reserved. Code is proprietary. -->

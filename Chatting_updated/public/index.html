@@ -1491,6 +1491,19 @@
     .ag-tab { border: 0; background: transparent; color: var(--text-muted); font-weight: 700; font-size: 11.5px; letter-spacing: .7px; text-transform: uppercase; padding: 9px 0; border-radius: 8px; cursor: pointer; transition: all .15s ease; }
     .ag-tab.active { background: linear-gradient(90deg,#2563eb,#7c3aed); color: #fff; box-shadow: 0 4px 14px rgba(37,99,235,.35); }
     .ag-card input { width: 100%; margin-bottom: 10px; }
+    .ag-card input[type="checkbox"] { width: auto; min-width: 18px; height: 18px; margin: 1px 0 0; flex: 0 0 auto; accent-color: var(--accent); }
+    .ag-card label input[type="checkbox"] + span { flex: 1; min-width: 0; }
+    @media (max-width: 768px) {
+      .ag-overlay { align-items: flex-start; padding: calc(14px + env(safe-area-inset-top, 0px)) 12px calc(14px + env(safe-area-inset-bottom, 0px)); }
+      .ag-card { width: min(100%, 440px); max-height: calc(100dvh - 28px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto; border-radius: 16px; padding: 20px 18px 18px; }
+      .ag-title { font-size: 19px; }
+      .ag-sub { font-size: 12px; line-height: 1.5; }
+      .ag-tab { min-height: 42px; }
+      .ag-go { min-height: 46px; }
+    }
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .ag-card { width: min(460px, 88vw); max-height: 88dvh; overflow-y: auto; }
+    }
     .ag-err { color: var(--danger); font-size: 12px; min-height: 18px; margin: 2px 0 10px; word-break: break-word; }
     .ag-go { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(90deg,#2563eb,#7c3aed); border: none; color: #fff; font-weight: 700; font-size: 14px; padding: 12px 0; border-radius: 10px; cursor: pointer; box-shadow: 0 6px 18px rgba(37,99,235,.35); transition: filter .15s ease, transform .05s ease; }
     .ag-go:hover { filter: brightness(1.1); }
@@ -1875,7 +1888,7 @@
             <h3>👋 Welcome to ptr_29 Chat</h3>
             <p>A real-time group chat with public and access-controlled private rooms, replies, reactions, files, images, and room-scoped management.</p>
             <ul class="help-tips">
-              <li>🔐 <strong>Log in or create your account</strong> at the start gate — your username, rooms and content follow the account across devices</li>
+              <li>🔐 <strong>Log in or create your account</strong> at the start gate — signup requires 13+ confirmation, and older accounts are prompted once to verify</li>
               <li>🏠 <strong>Choose a room</strong> from the sidebar; #general is the shared starting room</li>
               <li>✉️ <strong>Type and press Enter</strong> (or Send) to post a message</li>
               <li><span class="show-mobile-only">📱 Use the <strong>Rooms</strong>, <strong>Chat</strong>, and <strong>Online</strong> tabs at the bottom</span><span class="show-tablet-only">👥 Tap the <strong>People button</strong> in the room bar to open the People panel</span><span class="show-desktop-only">👤 The <strong>People panel</strong> on the right shows who is online</span></li>
@@ -1907,8 +1920,8 @@
             <p>Your <strong>account</strong> (created at the start gate) sets your initial username; <strong>Edit Profile</strong> lets you change it (the old name's content is wiped) and set an optional avatar.</p>
             <ul class="help-tips">
               <li>✏️ <strong>Username</strong> is checked live and must currently be available</li>
-              <li>🖼️ <strong>Avatar</strong> — paste an image URL or tap <strong>📷 Upload picture</strong> (works on phones); leave blank for a DiceBear avatar</li>
-              <li>🪪 <strong>Client ID</strong> identifies this browser; it stays private unless you explicitly approve sharing it; clearing site data may change it</li>
+              <li>🖼️ <strong>Avatar</strong> — paste a safe HTTPS image URL or tap <strong>📷 Upload picture</strong> (works on phones); leave blank for a DiceBear avatar</li>
+              <li>🪪 <strong>Client ID</strong> follows your account; it stays private unless you explicitly approve sharing it. Changing your username creates a new Client ID and warns before saving</li>
               <li>🗑️ <strong>Delete Account</strong> asks for your password, then permanently erases the account, the chat user, every message/reaction/receipt under the name, presence, and owned rooms. Renaming still wipes the old name's content.</li>
               <li>♻️ <strong>Abandoned names</strong> (holder offline, or orphaned rows) can be reclaimed by anyone; active names are protected</li>
             </ul>
@@ -1948,7 +1961,7 @@
               <li>🔑 <strong>Join by passkey</strong> by entering the code in the sidebar; the browser may save it for reconnecting</li>
               <li>👥 <strong>Membership persists</strong> for the same anonymous browser identity after a successful private-room join</li>
               <li>↻ <strong>Refresh</strong> manually reloads the room list</li>
-              <li>🎓 <strong>The guided tour</strong> creates two temporary rooms (public + private), lets you browse them as a guest — sending unlocks after registration — and deletes them when it ends</li>
+              <li>🎓 <strong>The guided tour</strong> creates two temporary rooms (public + private), lets you browse them during the demo — sending still requires a verified account — and deletes them when it ends</li>
             </ul>
           </div>
         </div>
@@ -1987,7 +2000,8 @@
               <li>↩️ <strong>Reply</strong>, 📋 <strong>copy</strong>, 😊 <strong>react</strong>, ✏️ <strong>edit</strong>, or 🗑️ <strong>delete</strong> from the message actions</li>
               <li>⏱️ <strong>Edit</strong> is shown for your own messages during the first 5 minutes</li>
               <li>👆 <strong>Tap a message on mobile</strong> or right-click it on desktop to reveal actions</li>
-              <li>📎 <strong>Files</strong> can be up to 25 MB; 📷 <strong>images</strong> can be up to 10 MB</li>
+              <li>📎 <strong>Files</strong> are allow-listed up to 10 MB; 📷 <strong>images</strong> are JPG/PNG/GIF/WebP up to 5 MB</li>
+              <li>🔗 <strong>Links</strong> are allowed only after safety checks; private/local, credential-hidden, punycode, risky download, and unsafe-protocol links are blocked</li>
               <li>✓ <strong>Read receipts</strong> and typing status are visible to room participants</li>
               <li>⚠️ Deleting a message removes it from chat, but an associated uploaded storage object may remain</li>
             </ul>
@@ -2117,15 +2131,15 @@
           </div>
           <div class="help-text">
             <h3>🔐 Privacy, Data &amp; Current Limits</h3>
-            <p>The production site uses GitHub Pages and Supabase. Understand what the current application does before sharing content.</p>
+            <p>The production site uses GitHub Pages and Supabase with account gates, database policies, upload limits, CSP headers, and safe-link checks. Understand the limits before sharing content.</p>
             <ul class="help-tips">
-              <li>🆔 <strong>Your identity follows your account</strong> — log in on any device and your content is there; passwords are SHA-256-salted on-device, then bcrypt + pepper server-side; the name “Anonymous” is reserved</li>
+              <li>🆔 <strong>Your identity follows your account</strong> — log in on any device and your content is there; signup and existing-account access require 13+ confirmation; passwords are SHA-256-salted on-device, then bcrypt + pepper server-side</li>
               <li>🌙 <strong>Theme</strong> — switch dark/light with the 🌙/☀️ toolbar button; your choice is remembered</li>
               <li>🔒 <strong>Private rooms are not end-to-end encrypted</strong>; authorized participants and infrastructure providers may technically access content</li>
               <li>🗑️ <strong>Delete Account</strong> (password-verified) erases account + user + every message/reaction/receipt + presence + owned rooms; renames wipe the old name; the operator can purge any username</li>
               <li>⚪ <strong>Presence &amp; last-seen</strong> are visible to other users while your tab is open and as a “seen …” time after you leave</li>
               <li>🛡️ <strong>Admin rights are room-scoped</strong>; there is no global ban, account termination, or username-revocation control</li>
-              <li>📄 Read the <a href="terms.html" target="_blank" rel="noopener noreferrer">Terms of Use</a> and <a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacy Policy</a> for full details</li>
+              <li>📄 Read the <a href="terms.html" target="_blank" rel="noopener noreferrer">Terms of Use</a> and <a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacy Policy</a>; they cover the 13+ rule, uploads, safe links, Client-ID requests, and account deletion</li>
             </ul>
           </div>
         </div>
@@ -2151,9 +2165,10 @@
             <p>In <strong>Online Users</strong>, tap the <strong>⋮</strong> button next to a person and choose <strong>View profile</strong> or <strong>Request Client ID</strong>. Profiles show their avatar, live status and public activity — never their Client ID.</p>
             <ul class="help-tips">
               <li>📊 Profiles show <strong>public activity only</strong>: presence, message/room/image/reaction stats, first &amp; last active</li>
-              <li> <strong>Client IDs are never shown</strong> on profiles — they stay private by default</li>
+              <li>🪪 <strong>Client IDs are never shown</strong> on profiles — they stay private by default</li>
               <li>🔑 You may <strong>request someone's Client ID</strong> with a written reason; they see who asked and why</li>
               <li>✅ Only an <strong>explicit approval</strong> shares the ID (a snapshot at that moment — later changes need a new request)</li>
+              <li>🔒 <strong>Stop sharing</strong> lets the approver revoke an approved Client-ID disclosure so the requester must ask again</li>
               <li>❌ Denials are final for that request; you may ask again later, but never pressure anyone</li>
             </ul>
           </div>
@@ -2166,7 +2181,8 @@
               <div class="demo-settings-row"><span>“May I have your ID? It's me, from school.”</span><div class="demo-chip">pending</div></div>
               <div class="demo-settings-row"><span>Approve</span><div class="demo-toggle on-toggle">shares YOUR id once</div></div>
               <div class="demo-settings-row"><span>Deny</span><div class="demo-chip">nothing is shared</div></div>
-              <div class="demo-share-hint" style="margin-top:12px">The 📥 badge shows pending requests for you. Approvals are logged with date &amp; reason.</div>
+              <div class="demo-settings-row"><span>Stop sharing</span><div class="demo-chip">revokes access</div></div>
+              <div class="demo-share-hint" style="margin-top:12px">The 📥 badge shows pending requests. Approvals, denials and revocations update live.</div>
             </div>
           </div>
           <div class="help-text">
@@ -2174,9 +2190,10 @@
             <p>The 📥 button (top bar) is your inbox for Client-ID requests — both directions.</p>
             <ul class="help-tips">
               <li>📨 <strong>Requests for you</strong>: see the requester, their reason, and Approve or Deny</li>
-              <li>📤 <strong>Your requests</strong>: track pending / approved / denied, and copy approved IDs</li>
+              <li>📤 <strong>Your requests</strong>: track pending / approved / denied / sharing-stopped status, and copy currently approved IDs</li>
               <li>🔒 Only the two people involved can ever see a request (enforced at database level)</li>
               <li>🧾 Approving shares <strong>your current ID snapshot</strong> with that one person only</li>
+              <li>🔒 <strong>Stop sharing</strong>: review everyone you shared your ID with and revoke any approved share</li>
             </ul>
           </div>
         </div>
