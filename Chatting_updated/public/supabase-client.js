@@ -899,6 +899,12 @@
     accountRegister: function (un, hash, ageConfirmed) {
       return sb.rpc('register_account', { un: un, pass: hash, age_confirmed: !!ageConfirmed }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
     },
+    accountAgeStatus: function (id) {
+      return sb.rpc('account_age_status', { acct: id }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
+    },
+    accountConfirmAge: function (id) {
+      return sb.rpc('confirm_account_age', { acct: id }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
+    },
     accountDelete: function (id, hash) {
       return sb.rpc('delete_account', { acct: id, pass: hash }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
     },

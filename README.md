@@ -112,7 +112,7 @@ For the GitHub Pages + Supabase deployment, run the SQL files in `supabase/` in 
 supabase/011_security_hardening.sql
 ```
 
-It enforces account-session binding, stricter RLS, upload type/size limits, and safer message payload checks on the server side. Then run `supabase/012_safe_links.sql` to enforce safe-link validation in Supabase too. Run `supabase/013_inbox_badge_fix.sql` to enable realtime inbox badge updates, `supabase/014_stop_client_id_sharing.sql` to allow approved Client-ID sharing to be stopped, then `supabase/015_age_gate_signup.sql` to enforce the 13+ signup gate server-side.
+It enforces account-session binding, stricter RLS, upload type/size limits, and safer message payload checks on the server side. Then run `supabase/012_safe_links.sql` to enforce safe-link validation in Supabase too. Run `supabase/013_inbox_badge_fix.sql` to enable realtime inbox badge updates, `supabase/014_stop_client_id_sharing.sql` to allow approved Client-ID sharing to be stopped, then `supabase/015_age_gate_signup.sql` to enforce the 13+ signup gate server-side, then `supabase/016_existing_account_age_verification.sql` so existing accounts are prompted and can store their confirmation.
 
 ---
 
@@ -301,3 +301,4 @@ Use Nginx or Caddy with a free Let's Encrypt certificate. Never run a public cha
 | `supabase/013_inbox_badge_fix.sql` | Realtime inbox badge updates + case-insensitive request matching |
 | `supabase/014_stop_client_id_sharing.sql` | Allows approved Client-ID sharing to be revoked/stopped |
 | `supabase/015_age_gate_signup.sql` | Requires explicit 13+ age confirmation for account registration |
+| `supabase/016_existing_account_age_verification.sql` | Prompts/stores 13+ confirmation for existing accounts |

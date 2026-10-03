@@ -3157,7 +3157,7 @@
         return;
       }
       try {
-        localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ id: res.id, username: res.username }));
+        localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ id: res.id, username: res.username, ageConfirmed: mode === 'reg' ? true : !!res.age_confirmed }));
         localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, res.id);
       } catch {}
       location.reload();
@@ -3165,6 +3165,66 @@
     const u = ov.querySelector('#ag-user');
     if (u) u.focus();
   }
+
+  function waitForChatAPIReady(timeoutMs = 5000) {
+    return new Promise(resolve => {
+      const started = Date.now();
+      const tick = () => {
+        if (!window.ChatAPI || window.ChatAPI.ready || window.ChatAPI._offline || Date.now() - started > timeoutMs) return resolve();
+        setTimeout(tick, 80);
+      };
+      tick();
+    });
+  }
+
+  function showAgeVerifyGate(sess) {
+    return new Promise(resolve => {
+      const ov = el('div', { class: 'ag-overlay', id: 'ag-age-overlay' });
+      ov.innerHTML = `
+        <div class="ag-card" role="dialog" aria-modal="true" aria-label="Age verification">
+          <div class="ag-brand">${BRAND_SVG}<div class="ag-title">Age verification</div></div>
+          <p class="ag-sub">Before continuing, this existing account must confirm the age requirement.</p>
+          <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text);line-height:1.4;margin:8px 0 12px">
+            <input id="ag-existing-age" type="checkbox" style="margin-top:2px">
+            <span>I confirm I am at least 13 years old. Children under 13 may not create an account or use this service.</span>
+          </label>
+          <div id="ag-age-err" class="ag-err"></div>
+          <button id="ag-age-go" class="ag-go" type="button">Confirm and continue ➤</button>
+          <button id="ag-age-logout" class="secondary" type="button" style="width:100%;margin-top:8px">Log out instead</button>
+        </div>`;
+      document.body.append(ov);
+      try { document.body.style.overflow = 'hidden'; } catch {}
+      ov.querySelector('#ag-age-logout').addEventListener('click', async () => { ov.remove(); await logout(); });
+      ov.querySelector('#ag-age-go').addEventListener('click', async () => {
+        const err = ov.querySelector('#ag-age-err');
+        const btn = ov.querySelector('#ag-age-go');
+        err.textContent = '';
+        if (!ov.querySelector('#ag-existing-age')?.checked) { err.textContent = 'Confirm you are at least 13 years old to continue.'; return; }
+        btn.disabled = true; btn.textContent = 'Saving…';
+        const res = await window.ChatAPI.accountConfirmAge(sess.id);
+        btn.disabled = false; btn.textContent = 'Confirm and continue ➤';
+        if (!res || !res.ok) { err.textContent = (res && res.error) || 'Failed to save age confirmation.'; return; }
+        try { localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ ...sess, ageConfirmed: true })); } catch {}
+        ov.remove();
+        try { document.body.style.overflow = ''; } catch {}
+        resolve(true);
+      });
+    });
+  }
+
+  async function ensureExistingAccountAgeVerified(sess) {
+    if (sess && sess.ageConfirmed) return true;
+    if (!window.ChatAPI || !window.ChatAPI.accountAgeStatus) return true;
+    await waitForChatAPIReady();
+    const status = await window.ChatAPI.accountAgeStatus(sess.id).catch(() => ({ ok: true, age_confirmed: true }));
+    if (!status || status.ok === false) return true;
+    if (status.age_confirmed) {
+      try { localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ ...sess, ageConfirmed: true })); } catch {}
+      return true;
+    }
+    return showAgeVerifyGate(sess);
+  }
+
   async function logout() {
     const sess = getAccountSession();
     try {
@@ -3178,6 +3238,8 @@
   (async () => {
     const sess = getAccountSession();
     if (!sess) { showAuthGate(); return; }
+    const ageOk = await ensureExistingAccountAgeVerified(sess);
+    if (!ageOk) return;
     try { localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, sess.id); } catch {}
     // fresh world: adopt account identity as local profile if none exists yet
     try {
