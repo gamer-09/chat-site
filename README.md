@@ -16,7 +16,7 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | Real-time messaging | Instant delivery via WebSocket (Socket.io) |
 | Multiple rooms | Join existing rooms or create your own |
 | Private rooms | Lock any room with a passkey |
-| Image sharing | Upload and send images up to 10 MB |
+| Image sharing | Upload and send allow-listed images up to 5 MB; other safe document types up to 10 MB |
 | Typing indicators | See when others are typing |
 | Edit & delete | Edit or delete your own messages within the time window |
 | Read receipts | See who has read each message |
@@ -95,8 +95,23 @@ npm run dev
 |---|---|---|
 | `PORT` | `3000` | Port the server listens on |
 | `HOST` | `127.0.0.1` | Interface to bind to |
+| `ADMIN_TOKEN` | unset | Required token for destructive server admin endpoints (`/api/clear-all`, `/api/admins/prune`, `/admin/shutdown`). If unset, those endpoints are disabled. |
+| `ALLOWED_ORIGINS` | same-origin only | Comma-separated extra origins/hosts allowed to call the API/socket server. |
+| `UPLOAD_SECRET` | random per boot | Secret used to sign self-hosted upload URLs; set a fixed strong value in production. |
+| `MAX_IMAGE_BYTES` | `5242880` | Self-hosted image upload limit. |
+| `MAX_FILE_BYTES` | `10485760` | Self-hosted non-image file upload limit. |
 
 > Set `HOST=0.0.0.0` when running on a VPS or inside Docker so the server is reachable from outside.
+
+### Supabase security migrations
+
+For the GitHub Pages + Supabase deployment, run the SQL files in `supabase/` in order. The latest hardening migration is:
+
+```text
+supabase/011_security_hardening.sql
+```
+
+It enforces account-session binding, stricter RLS, upload type/size limits, and safer message payload checks on the server side.
 
 ---
 
@@ -176,7 +191,8 @@ Set `HOST=0.0.0.0` in your hosting dashboard's environment variables. `PORT` is 
 ### Sending a message
 
 - Type in the message box and press **Enter** or click **Send**.
-- Click the image icon to attach and send a photo (max 10 MB).
+- Click the image icon to attach and send a JPG/PNG/GIF/WebP photo (max 5 MB).
+- Click the file icon to attach an allow-listed file (PDF, TXT, CSV, JSON, DOCX, XLSX, PPTX; max 10 MB).
 
 ### Creating a room
 

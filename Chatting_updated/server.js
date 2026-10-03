@@ -2,7 +2,6 @@ const path = require('path');
 const fs = require('fs');
 const express = require('express');
 const http = require('http');
-const cors = require('cors');
 const crypto = require('crypto');
 const { Server } = require('socket.io');
 const {
@@ -46,13 +45,167 @@ const DEFAULT_ROOM = 'general';
 ensureRoom(DEFAULT_ROOM, {});
 try { pruneAdminsToUsernames(['gg_games']); } catch {}
 
+const MAX_IMAGE_BYTES = parseInt(process.env.MAX_IMAGE_BYTES || String(5 * 1024 * 1024), 10);
+const MAX_FILE_BYTES = parseInt(process.env.MAX_FILE_BYTES || String(10 * 1024 * 1024), 10);
+const MAX_JSON_BYTES = parseInt(process.env.MAX_JSON_BYTES || String(16 * 1024 * 1024), 10);
+const ADMIN_TOKEN = String(process.env.ADMIN_TOKEN || '').trim();
+const ALLOWED_ORIGINS = String(process.env.ALLOWED_ORIGINS || '')
+  .split(',').map(s => s.trim()).filter(Boolean);
+const ALLOWED_IMAGE_MIME = new Map([
+  ['image/jpeg', { ext: 'jpg', magic: b => b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff }],
+  ['image/png',  { ext: 'png', magic: b => b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 }],
+  ['image/gif',  { ext: 'gif', magic: b => b.length > 6 && b.toString('ascii', 0, 6).startsWith('GIF') }],
+  ['image/webp', { ext: 'webp', magic: b => b.length > 12 && b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP' }],
+]);
+const ALLOWED_FILE_MIME = new Map([
+  ['application/pdf', ['pdf']],
+  ['text/plain', ['txt', 'text', 'log']],
+  ['text/csv', ['csv']],
+  ['application/json', ['json']],
+  ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', ['docx']],
+  ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ['xlsx']],
+  ['application/vnd.openxmlformats-officedocument.presentationml.presentation', ['pptx']],
+]);
+const BLOCKED_FILE_EXT = new Set(['html', 'htm', 'svg', 'js', 'mjs', 'exe', 'dll', 'bat', 'cmd', 'sh', 'php', 'py', 'jar', 'apk', 'ipa', 'dmg', 'msi', 'wasm']);
+const apiLimiter = createRateLimiter({ windowMs: 60 * 1000, limit: 180 });
+const uploadLimiter = createRateLimiter({ windowMs: 60 * 1000, limit: 20 });
+
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: '12mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.disable('x-powered-by');
+app.use(securityHeaders);
+app.use(corsGuard);
+app.use(express.json({ limit: MAX_JSON_BYTES }));
+app.use('/api/', apiLimiter);
+app.use(express.static(path.join(__dirname, 'public'), { fallthrough: true, setHeaders: securityStaticHeaders }));
 
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+function securityHeaders(req, res, next) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  next();
+}
+function securityStaticHeaders(res) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+}
+function createRateLimiter({ windowMs, limit }) {
+  const hits = new Map();
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, bucket] of hits.entries()) if (bucket.reset <= now) hits.delete(key);
+  }, Math.min(windowMs, 60 * 1000)).unref?.();
+  return (req, res, next) => {
+    const ip = req.headers['x-forwarded-for'] ? String(req.headers['x-forwarded-for']).split(',')[0].trim() : req.socket.remoteAddress;
+    const key = `${ip}:${req.method}:${req.path}`;
+    const now = Date.now();
+    const bucket = hits.get(key) || { count: 0, reset: now + windowMs };
+    if (bucket.reset <= now) { bucket.count = 0; bucket.reset = now + windowMs; }
+    bucket.count += 1;
+    hits.set(key, bucket);
+    res.setHeader('RateLimit-Limit', String(limit));
+    res.setHeader('RateLimit-Remaining', String(Math.max(0, limit - bucket.count)));
+    res.setHeader('RateLimit-Reset', String(Math.ceil(bucket.reset / 1000)));
+    if (bucket.count > limit) return res.status(429).json({ error: 'rate_limited' });
+    next();
+  };
+}
+function isOriginAllowed(origin, host) {
+  if (!origin) return true;
+  try {
+    const u = new URL(origin);
+    if (host && u.host === host) return true;
+    if (ALLOWED_ORIGINS.includes(origin) || ALLOWED_ORIGINS.includes(u.host)) return true;
+    return false;
+  } catch { return false; }
+}
+function corsGuard(req, res, next) {
+  const origin = req.get('Origin');
+  const host = req.get('Host');
+  if (!isOriginAllowed(origin, host)) {
+    if (req.method === 'OPTIONS') return res.sendStatus(403);
+    return res.status(403).json({ error: 'cors_denied' });
+  }
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Admin-Token');
+  res.setHeader('Access-Control-Max-Age', '600');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+}
+function requireAdminToken(req, res, next) {
+  if (!ADMIN_TOKEN) return res.status(404).json({ error: 'not_found' });
+  const auth = String(req.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  const header = String(req.get('X-Admin-Token') || '').trim();
+  const candidate = auth || header;
+  const a = Buffer.from(candidate);
+  const b = Buffer.from(ADMIN_TOKEN);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return res.status(403).json({ error: 'forbidden' });
+  next();
+}
+function cleanFileBase(name, fallback) {
+  return String(name || fallback || 'file').toLowerCase().replace(/\.[^/.]+$/, '').replace(/[^a-z0-9_-]/g, '').slice(0, 30) || fallback || 'file';
+}
+function displayFileName(name) {
+  return String(name || 'file').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 80) || 'file';
+}
+function fileExt(name) {
+  const m = String(name || '').toLowerCase().match(/\.([a-z0-9]+)(?:[?#]|$)/);
+  return m ? m[1] : '';
+}
+function parseBase64DataUrl(dataUrl) {
+  if (typeof dataUrl !== 'string' || dataUrl.length > Math.ceil(MAX_JSON_BYTES * 1.05)) return null;
+  const m = dataUrl.match(/^data:([^;,]+);base64,([A-Za-z0-9+/=\r\n]+)$/);
+  if (!m) return null;
+  const b64 = m[2].replace(/[\r\n]/g, '');
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(b64)) return null;
+  return { mime: m[1].toLowerCase(), buf: Buffer.from(b64, 'base64') };
+}
+function validateImageUpload(dataUrl) {
+  const parsed = parseBase64DataUrl(dataUrl);
+  if (!parsed) return { ok: false, error: 'invalid_image' };
+  const allowed = ALLOWED_IMAGE_MIME.get(parsed.mime);
+  if (!allowed) return { ok: false, error: 'unsupported_type' };
+  if (!parsed.buf.length) return { ok: false, error: 'empty_image' };
+  if (parsed.buf.length > MAX_IMAGE_BYTES) return { ok: false, error: 'too_large' };
+  if (!allowed.magic(parsed.buf)) return { ok: false, error: 'invalid_image_bytes' };
+  return { ok: true, mime: parsed.mime, ext: allowed.ext, buf: parsed.buf };
+}
+function validateFileUpload(dataUrl, originalName) {
+  const parsed = parseBase64DataUrl(dataUrl);
+  if (!parsed) return { ok: false, error: 'invalid_file' };
+  const ext = fileExt(originalName);
+  if (BLOCKED_FILE_EXT.has(ext)) return { ok: false, error: 'blocked_file_type' };
+  if (!parsed.buf.length) return { ok: false, error: 'empty_file' };
+  if (parsed.buf.length > MAX_FILE_BYTES) return { ok: false, error: 'too_large' };
+  if (ALLOWED_IMAGE_MIME.has(parsed.mime)) {
+    const img = validateImageUpload(dataUrl);
+    return img.ok ? { ...img, kind: 'image' } : img;
+  }
+  const allowedExts = ALLOWED_FILE_MIME.get(parsed.mime) || [];
+  if (!allowedExts.includes(ext)) return { ok: false, error: 'unsupported_type' };
+  if (parsed.mime === 'application/pdf' && parsed.buf.toString('ascii', 0, 4) !== '%PDF') return { ok: false, error: 'invalid_file_bytes' };
+  return { ok: true, mime: parsed.mime, ext, buf: parsed.buf, kind: 'file' };
+}
+function socketRateOk(socket, key, limit, windowMs) {
+  const now = Date.now();
+  socket.data.rate = socket.data.rate || {};
+  const bucket = socket.data.rate[key] || { count: 0, reset: now + windowMs };
+  if (bucket.reset <= now) { bucket.count = 0; bucket.reset = now + windowMs; }
+  bucket.count += 1;
+  socket.data.rate[key] = bucket;
+  if (bucket.count > limit) {
+    socket.emit('system', { type: 'error', message: 'Slow down — too many requests.' });
+    return false;
+  }
+  return true;
+}
 
 // ── Signed upload URLs ─────────────────────────────────────────────────────
 // Uploaded images/files can only be opened through a signed ?sig= link that
@@ -111,7 +264,7 @@ app.get('/api/rooms/:room/messages', (req, res) => {
 });
 
 // ── REST: file/image upload ───────────────────────────────────────────────────────
-app.post('/api/rooms/:room/images', async (req, res) => {
+app.post('/api/rooms/:room/images', uploadLimiter, async (req, res) => {
   try {
     const room = sanitizeRoomName(req.params.room) || DEFAULT_ROOM;
     ensureRoom(room);
@@ -120,19 +273,11 @@ app.post('/api/rooms/:room/images', async (req, res) => {
     if (!canAccessRoom(room, cid) && !hasEphemeralAccess(room, cid)) {
       return res.status(403).json({ error: 'forbidden' });
     }
-    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
-      return res.status(400).json({ error: 'invalid_image' });
-    }
-    const m = dataUrl.match(/^data:(image\/(png|jpeg|jpg|gif|webp));base64,(.+)$/i);
-    if (!m) return res.status(400).json({ error: 'unsupported_type' });
-    let ext = m[2].toLowerCase();
-    if (ext === 'jpeg') ext = 'jpg';
-    const buf = Buffer.from(m[3], 'base64');
-    if (!Number.isFinite(buf.length) || buf.length <= 0) return res.status(400).json({ error: 'empty_image' });
-    if (buf.length > 10 * 1024 * 1024) return res.status(413).json({ error: 'too_large' });
-    const safeBase = String(filename || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 24) || 'img';
-    const fileName = `${safeBase}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    fs.writeFileSync(path.join(UPLOAD_DIR, fileName), buf);
+    const checked = validateImageUpload(dataUrl);
+    if (!checked.ok) return res.status(checked.error === 'too_large' ? 413 : 400).json({ error: checked.error });
+    const safeBase = cleanFileBase(filename, 'img').slice(0, 24) || 'img';
+    const fileName = `${safeBase}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${checked.ext}`;
+    fs.writeFileSync(path.join(UPLOAD_DIR, fileName), checked.buf, { flag: 'wx' });
     const imageUrl = `/uploads/${fileName}?sig=${signUpload(fileName)}`;
 
     let username = 'Anonymous', avatar = '';
@@ -156,7 +301,7 @@ app.post('/api/rooms/:room/images', async (req, res) => {
   }
 });
 
-app.post('/api/rooms/:room/files', async (req, res) => {
+app.post('/api/rooms/:room/files', uploadLimiter, async (req, res) => {
   try {
     const room = sanitizeRoomName(req.params.room) || DEFAULT_ROOM;
     ensureRoom(room);
@@ -165,32 +310,15 @@ app.post('/api/rooms/:room/files', async (req, res) => {
     if (!canAccessRoom(room, cid) && !hasEphemeralAccess(room, cid)) {
       return res.status(403).json({ error: 'forbidden' });
     }
-    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
-      return res.status(400).json({ error: 'invalid_file' });
-    }
-    
-    // Parse the data URL
-    const commaIdx = dataUrl.indexOf(',');
-    if (commaIdx === -1) return res.status(400).json({ error: 'invalid_data_url' });
-    const header = dataUrl.slice(0, commaIdx);
-    const base64Data = dataUrl.slice(commaIdx + 1);
-    
-    // Default to binary if mime is missing, we extract whatever is before ;base64
-    const mimeMatch = header.match(/^data:([^;]+);base64$/);
-    const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+    const originalName = displayFileName(filename);
+    const checked = validateFileUpload(dataUrl, originalName);
+    if (!checked.ok) return res.status(checked.error === 'too_large' ? 413 : 400).json({ error: checked.error });
 
-    const buf = Buffer.from(base64Data, 'base64');
-    if (!Number.isFinite(buf.length) || buf.length <= 0) return res.status(400).json({ error: 'empty_file' });
-    if (buf.length > 25 * 1024 * 1024) return res.status(413).json({ error: 'too_large' }); // 25MB max for files
-
-    // Sanitize and keep the original filename for the actual user facing display, but create a unique safe server filename
-    const originalName = String(filename || 'file').trim();
-    const extMatch = originalName.match(/\.([0-9a-z]+)(?:[\?#]|$)/i);
-    const ext = extMatch ? extMatch[1].toLowerCase() : 'bin';
-    const safeBase = originalName.replace(/\.[^/.]+$/, '').replace(/[^a-z0-9_-]/gi, '').slice(0, 30) || 'file';
-    
-    const serverFileName = `${safeBase}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    fs.writeFileSync(path.join(UPLOAD_DIR, serverFileName), buf);
+    // Sanitize and keep the original filename for the user-facing display, but create a unique safe server filename.
+    const safeBase = cleanFileBase(originalName, 'file');
+    const serverFileName = `${safeBase}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${checked.ext}`;
+    fs.writeFileSync(path.join(UPLOAD_DIR, serverFileName), checked.buf, { flag: 'wx' });
+    const mime = checked.mime;
     const fileUrl = `/uploads/${serverFileName}?sig=${signUpload(serverFileName)}`;
 
     let username = 'Anonymous', avatar = '';
@@ -203,7 +331,7 @@ app.post('/api/rooms/:room/files', async (req, res) => {
     const payload = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       room, userId: null, clientId: cid || null, username, avatar,
-      message: originalName, type: 'file', fileUrl, fileSize: buf.length, mimeType: mime, timestamp: Date.now(), readBy: [], reactions: {}
+      message: originalName, type: checked.kind === 'image' ? 'image' : 'file', fileUrl, imageUrl: checked.kind === 'image' ? fileUrl : undefined, fileSize: checked.buf.length, mimeType: mime, timestamp: Date.now(), readBy: [], reactions: {}
     };
     addMessage(room, payload);
     io.to(room).emit('chat-message', payload);
@@ -252,7 +380,7 @@ app.post('/api/rooms/:room/clear', (req, res) => {
   return res.json({ ok: true, room });
 });
 
-app.post('/api/clear-all', (req, res) => {
+app.post('/api/clear-all', requireAdminToken, (req, res) => {
   clearAll();
   broadcastRooms();
   return res.json({ ok: true });
@@ -313,7 +441,7 @@ app.get('/api/users/check-username', (req, res) => {
   return res.json({ available: !taken, username: raw });
 });
 
-app.post('/api/admins/prune', (req, res) => {
+app.post('/api/admins/prune', requireAdminToken, (req, res) => {
   const names = Array.isArray((req.body || {}).usernames) ? req.body.usernames : ['gg_games'];
   const result = pruneAdminsToUsernames(names);
   broadcastRooms();
@@ -341,9 +469,15 @@ app.get('/api/rooms/:room/search', (req, res) => {
 
 // ── Server & Socket.IO ───────────────────────────────────────────────────────
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*', methods: ['GET', 'POST'] } });
+const io = new Server(server, {
+  cors: {
+    origin: true,
+    methods: ['GET', 'POST']
+  },
+  allowRequest: (req, cb) => cb(null, isOriginAllowed(req.headers.origin, req.headers.host))
+});
 
-app.post('/admin/shutdown', (req, res) => {
+app.post('/admin/shutdown', requireAdminToken, (req, res) => {
   res.json({ ok: true });
   setTimeout(() => { try { server.close(() => process.exit(0)); } catch { process.exit(0); } }, 50);
 });
@@ -484,6 +618,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('join', (payload) => {
+    if (!socketRateOk(socket, 'join', 60, 60 * 1000)) return;
     let p = payload;
     if (typeof p === 'string') p = { username: p, room: DEFAULT_ROOM };
     const username = (typeof p.username === 'string' && p.username.trim()) ? p.username.trim().slice(0, 50) : 'Anonymous';
@@ -549,6 +684,7 @@ io.on('connection', (socket) => {
   socket.on('list-rooms', () => socket.emit('rooms', getVisibleRoomsForClient(socket)));
 
   socket.on('create-room', (payload) => {
+    if (!socketRateOk(socket, 'create-room', 10, 10 * 60 * 1000)) return;
     let name = '', isPrivate = false, admins = [], members = [];
     if (typeof payload === 'string') { name = sanitizeRoomName(payload); }
     else if (payload && typeof payload === 'object') {
@@ -565,6 +701,7 @@ io.on('connection', (socket) => {
 
   // chat-message ──────────────────────────────────────────────────────────────
   socket.on('chat-message', (text) => {
+    if (!socketRateOk(socket, 'chat-message', 40, 60 * 1000)) return;
     let msg = '', replyToId = '';
     if (typeof text === 'string') { msg = text.trim(); }
     else if (text && typeof text === 'object') {
@@ -611,6 +748,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('typing', ({ isTyping } = {}) => {
+    if (!socketRateOk(socket, 'typing', 120, 60 * 1000)) return;
     const room = socket.data.currentRoom;
     if (!room) return;
     socket.to(room).emit('typing', { userId: socket.data.userId, username: socket.data.username || 'Anonymous', isTyping: !!isTyping });
@@ -817,6 +955,7 @@ io.on('connection', (socket) => {
 
   // Passkey ───────────────────────────────────────────────────────────────────
   socket.on('find-room-by-passkey', (payload = {}, ack) => {
+    if (!socketRateOk(socket, 'find-room-by-passkey', 20, 60 * 1000)) { if (typeof ack === 'function') ack({ ok: false, error: 'rate_limited' }); return; }
     const passkey = (payload && typeof payload.passkey === 'string') ? payload.passkey.trim() : '';
     const room = passkey ? findRoomByPasskey(passkey) : null;
     const resp = room ? { ok: true, room } : { ok: false, error: 'not_found' };
@@ -825,6 +964,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('enter-passkey', ({ room, passkey } = {}, ack) => {
+    if (!socketRateOk(socket, 'enter-passkey', 20, 60 * 1000)) { if (typeof ack === 'function') ack({ ok: false, message: 'Too many attempts' }); return; }
     const r = sanitizeRoomName(room);
     const key = String(passkey || '').trim();
     if (verifyRoomPasskey(r, key)) {
@@ -951,7 +1091,7 @@ server.listen(PORT, HOST, async () => {
       tunnel.on('error', err => console.error('Tunnel error:', err.message));
     } catch (err) {
       console.error('Could not open tunnel:', err.message);
-      console.error('Run  npm install  inside Chatting_updated/ first.');
+      console.error('localtunnel is no longer a production dependency; run  npm install localtunnel  only on trusted dev machines, or use a reverse proxy.');
     }
   }
 });

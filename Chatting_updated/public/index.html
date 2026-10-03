@@ -1737,8 +1737,8 @@
           <button type="button" id="file-btn" class="secondary" title="Send file">📎</button>
           <button type="button" id="image-btn" class="secondary" title="Send image">📷</button>
           <button type="submit" id="send-btn" title="Send message"><span class="send-label">Send</span><span class="send-icon" aria-hidden="true">➤</span></button>
-          <input type="file" id="image-file" accept="image/*" style="display:none">
-          <input type="file" id="general-file" accept="*/*" style="display:none">
+          <input type="file" id="image-file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none">
+          <input type="file" id="general-file" accept=".pdf,.txt,.text,.log,.csv,.json,.docx,.xlsx,.pptx,image/jpeg,image/png,image/gif,image/webp" style="display:none">
         </form>
       </div>
     </section>
@@ -2205,7 +2205,7 @@
             <button type="button" id="avatar-upload-btn" class="secondary">📷 Upload picture</button>
             <span style="font-size:12px; color:var(--text-dim)">mobile & desktop — cropped to a square automatically</span>
           </div>
-          <input type="file" id="avatar-file" accept="image/*" style="display:none">
+          <input type="file" id="avatar-file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none">
         </div>
         <div style="margin-bottom:16px">
           <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size: 13px;">

@@ -142,6 +142,20 @@
     PASSKEYS_KEY:  'ptr29_room_keys_v2',
     UNREAD_KEY:    'ptr29_unread_v2',
     DEFAULT_AVATAR:'https://api.dicebear.com/7.x/thumbs/svg?seed=',
+    MAX_IMAGE_BYTES: 5 * 1024 * 1024,
+    MAX_FILE_BYTES: 10 * 1024 * 1024,
+    MAX_AVATAR_BYTES: 1 * 1024 * 1024,
+    ALLOWED_IMAGE_MIME: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+    ALLOWED_FILE_MIME: {
+      'application/pdf': ['pdf'],
+      'text/plain': ['txt', 'text', 'log'],
+      'text/csv': ['csv'],
+      'application/json': ['json'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['docx'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['xlsx'],
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['pptx'],
+    },
+    BLOCKED_UPLOAD_EXT: ['html', 'htm', 'svg', 'js', 'mjs', 'exe', 'dll', 'bat', 'cmd', 'sh', 'php', 'py', 'jar', 'apk', 'ipa', 'dmg', 'msi', 'wasm'],
   };
 
   // ── Utilities ──────────────────────────────────────────────────────────────
@@ -161,6 +175,51 @@
         return id;
       } catch { return utils.generateId(); }
     },
+
+    fileExt: (name) => {
+      const m = String(name || '').toLowerCase().match(/\.([a-z0-9]+)(?:[?#]|$)/);
+      return m ? m[1] : '';
+    },
+
+    isBlockedUploadExt: (name) => CONSTANTS.BLOCKED_UPLOAD_EXT.includes(utils.fileExt(name)),
+
+    validateImageFile: (file, label = 'Image', maxBytes = CONSTANTS.MAX_IMAGE_BYTES) => {
+      if (!file) return { ok: false, message: 'Choose a file first.' };
+      if (!CONSTANTS.ALLOWED_IMAGE_MIME.includes(file.type)) {
+        return { ok: false, message: `${label} type not allowed. Use JPG, PNG, GIF, or WebP.` };
+      }
+      if (file.size <= 0) return { ok: false, message: `${label} is empty.` };
+      if (file.size > maxBytes) return { ok: false, message: `${label} too large (max ${utils.formatFileSize(maxBytes)}).` };
+      return { ok: true };
+    },
+
+    validateGeneralUpload: (file) => {
+      if (!file) return { ok: false, message: 'Choose a file first.' };
+      if (file.size <= 0) return { ok: false, message: 'File is empty.' };
+      if (file.size > CONSTANTS.MAX_FILE_BYTES) return { ok: false, message: `File too large (max ${utils.formatFileSize(CONSTANTS.MAX_FILE_BYTES)}).` };
+      if (utils.isBlockedUploadExt(file.name)) return { ok: false, message: 'That file type is blocked for security.' };
+      if (CONSTANTS.ALLOWED_IMAGE_MIME.includes(file.type)) return utils.validateImageFile(file);
+      const ext = utils.fileExt(file.name);
+      const allowedExts = CONSTANTS.ALLOWED_FILE_MIME[file.type] || [];
+      if (!allowedExts.includes(ext)) {
+        return { ok: false, message: 'File type not allowed. Use PDF, TXT, CSV, JSON, DOCX, XLSX, PPTX, JPG, PNG, GIF, or WebP.' };
+      }
+      return { ok: true };
+    },
+
+    validatePassword: (password, username) => {
+      const pw = String(password || '');
+      const un = String(username || '').toLowerCase();
+      const missing = [];
+      if (pw.length < 8) missing.push('8+ characters');
+      if (!/[a-z]/.test(pw)) missing.push('lowercase');
+      if (!/[A-Z]/.test(pw)) missing.push('uppercase');
+      if (!/\d/.test(pw)) missing.push('number');
+      if (!/[^A-Za-z0-9]/.test(pw)) missing.push('symbol');
+      if (un && pw.toLowerCase().includes(un)) missing.push('not your username');
+      return missing.length ? { ok: false, message: 'Password needs: ' + missing.join(', ') + '.' } : { ok: true };
+    },
+
     fileToImageDataUrl: (file, cb) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -1525,8 +1584,8 @@
       elements.imageFile.addEventListener('change', async () => {
         const file = elements.imageFile.files?.[0];
         if (!file) return;
-        if (!file.type?.startsWith('image/')) { showToast('Please select an image file', 'error'); return; }
-        if (file.size > 10 * 1024 * 1024) { showToast('Image too large (max 10MB)', 'error'); return; }
+        const check = utils.validateImageFile(file);
+        if (!check.ok) { showToast(check.message, 'error'); elements.imageFile.value = ''; return; }
         utils.fileToImageDataUrl(file, (dataUrl) => { messages.sendImage(dataUrl, file.name); elements.imageFile.value = ''; });
       });
     }
@@ -1682,7 +1741,8 @@
       elements.avatarFile.addEventListener('change', () => {
         const f = elements.avatarFile.files && elements.avatarFile.files[0];
         if (!f) return;
-        if (!f.type || !f.type.startsWith('image/')) { showToast('Please choose an image', 'error'); return; }
+        const check = utils.validateImageFile(f, 'Avatar', CONSTANTS.MAX_AVATAR_BYTES);
+        if (!check.ok) { showToast(check.message, 'error'); elements.avatarFile.value = ''; return; }
         utils.fileToAvatarDataUrl(f, (dataUrl) => {
           if (elements.editAvatar) elements.editAvatar.value = dataUrl;
           if (elements.userAvatarPreview) elements.userAvatarPreview.src = dataUrl;
@@ -1835,8 +1895,9 @@
       generalFile.addEventListener('change', async () => {
         const file = generalFile.files[0];
         if (!file) return;
-        if (file.size > 25 * 1024 * 1024) { showToast('File too large (max 25 MB)', 'error'); generalFile.value = ''; return; }
-        if (file.type && file.type.startsWith('image/')) {
+        const check = utils.validateGeneralUpload(file);
+        if (!check.ok) { showToast(check.message, 'error'); generalFile.value = ''; return; }
+        if (CONSTANTS.ALLOWED_IMAGE_MIME.includes(file.type)) {
           // images always render inline, never as a download chip
           utils.fileToImageDataUrl(file, (dataUrl) => messages.sendImage(dataUrl, file.name));
           generalFile.value = '';
@@ -2704,7 +2765,7 @@
       mode = b.dataset.m;
       ov.querySelectorAll('.ag-tab').forEach(x => x.classList.toggle('active', x === b));
       const p = ov.querySelector('#ag-pass');
-      p.placeholder = mode === 'reg' ? 'Choose a password (min 6 characters)' : 'Password';
+      p.placeholder = mode === 'reg' ? 'Strong password (8+ chars, upper/lower/number/symbol)' : 'Password';
       p.setAttribute('autocomplete', mode === 'reg' ? 'new-password' : 'current-password');
     }));
     ov.querySelector('#ag-go').addEventListener('click', async () => {
@@ -2714,7 +2775,10 @@
       const btn = ov.querySelector('#ag-go');
       err.textContent = '';
       if (!un || !pw) { err.textContent = 'Enter username and password.'; return; }
-      if (pw.length < 6) { err.textContent = 'Password too short (min 6 characters).'; return; }
+      if (mode === 'reg') {
+        const pwCheck = utils.validatePassword(pw, un);
+        if (!pwCheck.ok) { err.textContent = pwCheck.message; return; }
+      } else if (pw.length < 6) { err.textContent = 'Password too short.'; return; }
       const h = await sha256hex(pw + ':' + un.toLowerCase());
       if (!h) { err.textContent = 'Crypto unavailable in this browser.'; return; }
       btn.disabled = true;
@@ -2743,7 +2807,11 @@
     const u = ov.querySelector('#ag-user');
     if (u) u.focus();
   }
-  function logout() {
+  async function logout() {
+    const sess = getAccountSession();
+    try {
+      if (window.ChatAPI && window.ChatAPI.accountLogout) await window.ChatAPI.accountLogout(sess && sess.id);
+    } catch {}
     try { localStorage.removeItem(ACCOUNT_KEY); localStorage.removeItem(CONSTANTS.CLIENT_ID_KEY); } catch {}
     location.reload();
   }

@@ -29,6 +29,19 @@
 
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var DEFAULT_AVATAR = 'https://api.dicebear.com/7.x/thumbs/svg?seed=';
+  var MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+  var MAX_FILE_BYTES = 10 * 1024 * 1024;
+  var ALLOWED_IMAGE_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  var ALLOWED_FILE_MIME = {
+    'application/pdf': ['pdf'],
+    'text/plain': ['txt', 'text', 'log'],
+    'text/csv': ['csv'],
+    'application/json': ['json'],
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['docx'],
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['xlsx'],
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['pptx']
+  };
+  var BLOCKED_UPLOAD_EXT = ['html', 'htm', 'svg', 'js', 'mjs', 'exe', 'dll', 'bat', 'cmd', 'sh', 'php', 'py', 'jar', 'apk', 'ipa', 'dmg', 'msi', 'wasm'];
 
   // ── Event dispatch ─────────────────────────────────────────────────────────
   var handlers = {};
@@ -53,6 +66,40 @@
     return DEFAULT_AVATAR + encodeURIComponent(String(name || 'Anonymous'));
   }
   function uni(arr) { return Array.from(new Set((arr || []).filter(Boolean))); }
+  function extOf(name) {
+    var m = String(name || '').toLowerCase().match(/\.([a-z0-9]+)(?:[?#]|$)/);
+    return m ? m[1] : '';
+  }
+  function safeDisplayName(name) {
+    return String(name || 'file').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 80) || 'file';
+  }
+  function extForMime(mime, fallback) {
+    if (mime === 'image/jpeg') return 'jpg';
+    if (mime === 'image/png') return 'png';
+    if (mime === 'image/gif') return 'gif';
+    if (mime === 'image/webp') return 'webp';
+    var list = ALLOWED_FILE_MIME[mime] || [];
+    return list[0] || fallback || 'bin';
+  }
+  function validateUpload(kind, originalName, blob) {
+    var mime = String(blob && blob.type || '').toLowerCase();
+    var ext = extOf(originalName);
+    if (!blob || !blob.size) return { ok: false, error: 'empty_file' };
+    if (BLOCKED_UPLOAD_EXT.indexOf(ext) !== -1) return { ok: false, error: 'blocked_file_type' };
+    if (kind === 'image') {
+      if (ALLOWED_IMAGE_MIME.indexOf(mime) === -1) return { ok: false, error: 'unsupported_image_type' };
+      if (blob.size > MAX_IMAGE_BYTES) return { ok: false, error: 'image_too_large' };
+      return { ok: true, mime: mime, ext: extForMime(mime, ext), max: MAX_IMAGE_BYTES };
+    }
+    if (ALLOWED_IMAGE_MIME.indexOf(mime) !== -1) {
+      if (blob.size > MAX_IMAGE_BYTES) return { ok: false, error: 'image_too_large' };
+      return { ok: true, mime: mime, ext: extForMime(mime, ext), max: MAX_IMAGE_BYTES, kind: 'image' };
+    }
+    if (blob.size > MAX_FILE_BYTES) return { ok: false, error: 'file_too_large' };
+    var allowedExts = ALLOWED_FILE_MIME[mime] || [];
+    if (allowedExts.indexOf(ext) === -1) return { ok: false, error: 'unsupported_file_type' };
+    return { ok: true, mime: mime, ext: ext, max: MAX_FILE_BYTES };
+  }
 
   // ── API object ─────────────────────────────────────────────────────────────
   var api = {
@@ -665,19 +712,18 @@
       if (!api.uid || !api._joined) return Promise.resolve({ ok: false, error: 'Join a room first' });
 
       return fetch(dataUrl).then(function (resp) { return resp.blob(); }).then(function (blob) {
-        var mime = blob.type || (kind === 'image' ? 'image/png' : 'application/octet-stream');
-        var extMatch = originalName.match(/\.([0-9a-z]+)(?:[?#]|$)/i);
-        var ext = extMatch ? extMatch[1].toLowerCase() : (kind === 'image' ? 'png' : 'bin');
-        var safeBase = originalName.replace(/\.[^/.]+$/, '').replace(/[^a-z0-9_-]/gi, '').slice(0, 30) || 'file';
+        var check = validateUpload(kind, originalName, blob);
+        if (!check.ok) return { ok: false, error: check.error };
+        if (check.kind === 'image') kind = 'image';
+        var mime = check.mime;
+        var ext = check.ext;
+        var displayName = safeDisplayName(originalName);
+        var safeBase = displayName.replace(/\.[^/.]+$/, '').replace(/[^a-z0-9_-]/gi, '').slice(0, 30) || 'file';
         var path = r + '/' + safeBase + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
 
         return sb.storage.from('chat-uploads').upload(path, blob, { contentType: mime, upsert: false })
           .then(function (up) {
-            var storageOk = !up.error;
-            // Bucket missing/broken? Embed the (downscaled) image right in
-            // the payload so media always renders and opens.
-            var embed = (kind === 'image' && dataUrl.length <= 700000) ? dataUrl : '';
-            if (!storageOk && !embed) return { ok: false, error: (up.error && up.error.message) || 'Upload failed' };
+            if (up.error) return { ok: false, error: up.error.message || 'Upload failed' };
             var payload = {
               id: genId(),
               room: r,
@@ -685,10 +731,9 @@
               clientId: api._clientId || api.uid,
               username: api._username || 'Anonymous',
               avatar: api._avatar || defaultAvatar(api._username),
-              message: kind === 'file' ? originalName : '',
+              message: kind === 'file' ? displayName : '',
               type: kind,
-              storagePath: storageOk ? path : null,
-              dataUrl: embed || undefined,
+              storagePath: path,
               fileSize: blob.size,
               mimeType: mime,
               timestamp: Date.now(),
@@ -758,6 +803,9 @@
     },
     accountDelete: function (id, hash) {
       return sb.rpc('delete_account', { acct: id, pass: hash }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
+    },
+    accountLogout: function (id) {
+      return sb.rpc('logout_account', { acct: id || null }).then(function (r) { return r.data || { ok: !r.error }; }).catch(function () { return { ok: true }; });
     },
 
     tourRooms: function () {
