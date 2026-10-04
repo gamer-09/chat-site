@@ -1387,6 +1387,23 @@
     if (off) offline.refresh();
   }
 
+  // Permanent delegated People toggle: works even if the Supabase connect
+  // event fired before socketHandlers were attached (common on mobile reloads).
+  let lastPeopleToggleAt = 0;
+  function handlePeopleToggleEvent(e) {
+    const offlineBtn = e.target.closest && e.target.closest('#show-offline-btn');
+    const onlineBtn = e.target.closest && e.target.closest('#show-online-btn');
+    if (!offlineBtn && !onlineBtn) return;
+    const now = Date.now();
+    if (now - lastPeopleToggleAt < 120) return;
+    lastPeopleToggleAt = now;
+    e.preventDefault();
+    e.stopPropagation();
+    setPeopleView(!!offlineBtn);
+  }
+  document.addEventListener('pointerup', handlePeopleToggleEvent, true);
+  document.addEventListener('click', handlePeopleToggleEvent, true);
+
   // ── Online users ───────────────────────────────────────────────────────────
   const online = {
     update: (users) => {
