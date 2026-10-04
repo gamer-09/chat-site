@@ -3150,7 +3150,7 @@
   }
   const BRAND_SVG = '<svg viewBox="0 0 48 48" width="34" height="34" aria-hidden="true"><defs><linearGradient id="ptr29g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".55" stop-color="#3b82f6"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs><path d="M24 5C13 5 4 12.8 4 22.4c0 5.4 2.9 10.2 7.5 13.4-.2 2.9-1.4 5.5-3.4 7.5 4.4-.4 8.2-1.8 10.9-3.7 1.6.3 3.3.5 5 .5 11 0 20-7.8 20-17.4S35 5 24 5z" fill="none" stroke="url(#ptr29g2)" stroke-width="3.2" stroke-linejoin="round"/><path d="M26.8 13.5 18.6 25h5.6l-2.3 9.5L30.4 22h-5.6l2-8.5z" fill="url(#ptr29g2)"/></svg>';
 
-  function showAuthGate() {
+  function showAuthGate(message = '') {
     let mode = 'login';
     const ov = el('div', { class: 'ag-overlay', id: 'ag-overlay' });
     ov.innerHTML = `
@@ -3172,6 +3172,10 @@
         <div class="ag-foot">🔒 No plaintext passwords ever stored</div>
       </div>`;
     document.body.append(ov);
+    if (message) {
+      const err = ov.querySelector('#ag-err');
+      if (err) err.textContent = message;
+    }
     try { document.body.style.overflow = 'hidden'; } catch {}
     ov.querySelectorAll('.ag-tab').forEach(b => b.addEventListener('click', () => {
       mode = b.dataset.m;
@@ -3261,7 +3265,17 @@
         btn.disabled = true; btn.textContent = 'Saving…';
         const res = await window.ChatAPI.accountConfirmAge(sess.id);
         btn.disabled = false; btn.textContent = 'Confirm and continue ➤';
-        if (!res || !res.ok) { err.textContent = (res && res.error) || 'Failed to save age confirmation.'; return; }
+        if (!res || !res.ok) {
+          const code = res && res.error;
+          if (code === 'forbidden' || code === 'not_authenticated') {
+            err.textContent = 'Please log in again to verify this older account securely.';
+            try { localStorage.removeItem(ACCOUNT_KEY); localStorage.removeItem(CONSTANTS.CLIENT_ID_KEY); } catch {}
+            setTimeout(() => location.reload(), 1200);
+            return;
+          }
+          err.textContent = code || 'Failed to save age confirmation.';
+          return;
+        }
         try { localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ ...sess, ageConfirmed: true })); } catch {}
         ov.remove();
         try { document.body.style.overflow = ''; } catch {}
@@ -3271,14 +3285,26 @@
   }
 
   async function ensureExistingAccountAgeVerified(sess) {
-    if (sess && sess.ageConfirmed) return true;
-    if (!window.ChatAPI || !window.ChatAPI.accountAgeStatus) return true;
+    if (!sess || !sess.id) return true;
+    if (sess.ageConfirmed) return true;
+    if (!window.ChatAPI || !window.ChatAPI.accountAgeStatus) return showAgeVerifyGate(sess);
     await waitForChatAPIReady();
-    const status = await window.ChatAPI.accountAgeStatus(sess.id).catch(() => ({ ok: true, age_confirmed: true }));
-    if (!status || status.ok === false) return true;
-    if (status.age_confirmed) {
+    const status = await window.ChatAPI.accountAgeStatus(sess.id).catch(e => ({ ok: false, error: String(e && e.message || e || 'age_status_failed') }));
+    if (status && status.ok && status.age_confirmed) {
       try { localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ ...sess, ageConfirmed: true })); } catch {}
       return true;
+    }
+    if (status && status.ok === false) {
+      const code = String(status.error || '');
+      if (code === 'forbidden' || code === 'not_authenticated') {
+        try { localStorage.removeItem(ACCOUNT_KEY); localStorage.removeItem(CONSTANTS.CLIENT_ID_KEY); } catch {}
+        showAuthGate('For security, this older account must log in again before age verification can be saved.');
+        return false;
+      }
+      if (/function|schema|rpc|not found|PGRST/i.test(code)) {
+        showAuthGate('Age verification needs the latest Supabase SQL migration. Please run 017, then log in again.');
+        return false;
+      }
     }
     return showAgeVerifyGate(sess);
   }
