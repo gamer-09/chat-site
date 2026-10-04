@@ -1367,6 +1367,26 @@
     },
   };
 
+  function setPeopleView(off) {
+    const ol = document.getElementById('online-list');
+    const of = document.getElementById('offline-list');
+    const b1 = document.getElementById('show-online-btn');
+    const b2 = document.getElementById('show-offline-btn');
+    if (ol) {
+      ol.hidden = !!off;
+      ol.style.display = off ? 'none' : '';
+    }
+    if (of) {
+      of.hidden = !off;
+      of.style.display = off ? 'block' : 'none';
+      of.setAttribute('aria-hidden', off ? 'false' : 'true');
+    }
+    if (b1) b1.classList.toggle('active', !off);
+    if (b2) b2.classList.toggle('active', !!off);
+    state.peopleView = off ? 'offline' : 'online';
+    if (off) offline.refresh();
+  }
+
   // ── Online users ───────────────────────────────────────────────────────────
   const online = {
     update: (users) => {
@@ -1418,15 +1438,6 @@
       window.addEventListener('pagehide', () => { if (window.ChatAPI.goOffline) window.ChatAPI.goOffline(); });
       window.addEventListener('beforeunload', () => { if (window.ChatAPI.goOffline) window.ChatAPI.goOffline(); });
       setInterval(() => offline.refresh(), 60000);
-      const setPeopleView = (off) => {
-        const ol = document.getElementById('online-list'), of = document.getElementById('offline-list');
-        if (ol) ol.hidden = !!off;
-        if (of) of.hidden = !off;
-        const b1 = document.getElementById('show-online-btn'), b2 = document.getElementById('show-offline-btn');
-        if (b1) b1.classList.toggle('active', !off);
-        if (b2) b2.classList.toggle('active', !!off);
-        if (off) offline.refresh();
-      };
       const psBox = document.getElementById('people-search');
       if (psBox) psBox.addEventListener('input', () => {
         state.peopleQuery = psBox.value.trim();
@@ -1435,6 +1446,7 @@
       });
       document.getElementById('show-online-btn')?.addEventListener('click', () => setPeopleView(false));
       document.getElementById('show-offline-btn')?.addEventListener('click', () => setPeopleView(true));
+      setPeopleView(state.peopleView === 'offline');
       // silently remove leftover tour rooms from crashed tours
       if (window.ChatAPI.tourRooms) window.ChatAPI.tourRooms().then(l => (l || []).forEach(n => window.ChatAPI.deleteRoom(n).catch(() => {}))).catch(() => {});
 
@@ -2201,6 +2213,10 @@
     document.body.classList.add(`ptr29-view-${view}`);
     document.querySelectorAll('.mobile-nav-btn').forEach(btn =>
       btn.classList.toggle('active', btn.dataset.view === view));
+    if (view === 'online') {
+      online.update(state.lastPresenceUsers || []);
+      setPeopleView(state.peopleView === 'offline');
+    }
   };
 
   const loadMobileStyles = () => new Promise((resolve) => {

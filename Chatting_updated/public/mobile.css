@@ -971,3 +971,55 @@ body.ptr29-mobile {
   width: auto !important;
   max-width: calc(100vw - 16px) !important;
 }
+
+/* ── Mobile People panel: make Online/Offline toggle reliable ─────────── */
+.ptr29-mobile #online-panel {
+  min-height: 0;
+  overflow: hidden;
+}
+.ptr29-mobile #online-header {
+  flex-shrink: 0;
+  padding: 10px 12px;
+}
+.ptr29-mobile .people-toggle {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+}
+.ptr29-mobile .pt-btn {
+  min-height: 38px;
+  padding: 8px 10px;
+  font-size: 11px;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.ptr29-mobile #people-search {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-top: 8px !important;
+  box-sizing: border-box;
+}
+.ptr29-mobile #online-list,
+.ptr29-mobile #offline-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px 8px !important;
+  display: block;
+}
+.ptr29-mobile #online-list[hidden],
+.ptr29-mobile #offline-list[hidden] {
+  display: none !important;
+}
+.ptr29-mobile #offline-list .online-item,
+.ptr29-mobile #online-list .online-item {
+  min-width: 0;
+}
+.ptr29-mobile #offline-list .online-item > div,
+.ptr29-mobile #online-list .online-item > .info {
+  min-width: 0;
+  flex: 1;
+}
