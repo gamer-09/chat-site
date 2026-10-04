@@ -804,3 +804,55 @@
 .ptr29-mobile .show-desktop-only { display: none !important; }
 .ptr29-mobile .show-tablet-only { display: none !important; }
 .ptr29-mobile .show-mobile-only { display: inline !important; }
+
+/* ── Recent feature polish: contacts, inbox, profile, auth gates ───────── */
+.ptr29-mobile header .header-actions { gap: 4px; }
+.ptr29-mobile header .header-actions button {
+  width: 32px;
+  min-width: 32px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ptr29-mobile #contact-modal .modal,
+.ptr29-mobile #inbox-modal .modal,
+.ptr29-mobile #user-profile-modal .modal,
+.ptr29-mobile #ag-overlay .ag-card,
+.ptr29-mobile #ag-age-overlay .ag-card {
+  width: calc(100vw - 24px) !important;
+  max-width: calc(100vw - 24px) !important;
+  box-sizing: border-box;
+}
+.ptr29-mobile #contact-modal a.secondary,
+.ptr29-mobile #inbox-modal a.secondary,
+.ptr29-mobile #user-profile-modal a.secondary {
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  box-sizing: border-box;
+}
+.ptr29-mobile #inbox-modal .modal [style*="display:flex"],
+.ptr29-mobile #contact-modal .modal [style*="display:flex"] {
+  min-width: 0;
+}
+.ptr29-mobile .inbox-popup-actions {
+  flex-wrap: wrap;
+}
+.ptr29-mobile .inbox-popup-actions button {
+  flex: 1 1 120px;
+  min-height: 40px;
+}
+.ptr29-mobile #tour-card {
+  max-width: calc(100vw - 24px) !important;
+  box-sizing: border-box;
+}
+.ptr29-mobile #tour-card .tour-nav {
+  flex-wrap: wrap;
+}
+.ptr29-mobile #tour-card .tour-step-count {
+  flex: 1 0 100%;
+  margin-bottom: 4px;
+}
