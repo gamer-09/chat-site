@@ -1632,6 +1632,34 @@
       #tour-card { max-width: calc(100vw - 24px) !important; }
     }
 
+    /* ── Tablet panel reliability patch ── */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .modal-overlay.open { z-index: 100000 !important; pointer-events: auto !important; }
+      #contact-modal .modal,
+      #inbox-modal .modal,
+      #user-profile-modal .modal,
+      #edit-profile-modal .modal,
+      #create-room-modal .modal,
+      #delete-user-modal .modal,
+      #delete-room-modal .modal {
+        width: min(620px, calc(100vw - 36px)) !important;
+        max-width: calc(100vw - 36px) !important;
+        max-height: 88dvh !important;
+        overflow-y: auto !important;
+        box-sizing: border-box !important;
+      }
+      #room-settings-panel {
+        max-width: calc(100vw - 280px) !important;
+        min-width: 0 !important;
+        overflow-x: hidden !important;
+      }
+      #room-settings-panel .settings-row,
+      #room-settings-panel input,
+      #room-settings-panel button { min-width: 0 !important; }
+      .online-menu { max-width: calc(100vw - 20px) !important; z-index: 95000 !important; }
+      .inbox-popup { max-width: calc(100vw - 24px) !important; z-index: 95000 !important; }
+    }
+
   </style>
 </head>
 <body>
