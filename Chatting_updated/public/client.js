@@ -2044,10 +2044,22 @@
       btn.onmouseleave = () => btn.style.background = 'none';
       btn.addEventListener('click', () => {
         const inp = elements.text;
-        const pos = inp.selectionStart != null ? inp.selectionStart : inp.value.length;
-        inp.value = inp.value.slice(0, pos) + em + inp.value.slice(pos);
-        inp.selectionStart = inp.selectionEnd = pos + [...em].length;
-        inp.focus();
+        if (!inp) return;
+        try { inp.focus({ preventScroll: true }); } catch { inp.focus(); }
+        const start = inp.selectionStart != null ? inp.selectionStart : inp.value.length;
+        const end = inp.selectionEnd != null ? inp.selectionEnd : start;
+        // Use setRangeText so the browser moves the caret after the complete
+        // UTF-16 emoji sequence. The old [...emoji].length cursor math could
+        // place the caret inside surrogate pairs/ZWJ sequences, causing � chars
+        // after repeated emoji insertions.
+        if (typeof inp.setRangeText === 'function') {
+          inp.setRangeText(em, start, end, 'end');
+        } else {
+          inp.value = inp.value.slice(0, start) + em + inp.value.slice(end);
+          const next = start + em.length;
+          inp.selectionStart = inp.selectionEnd = next;
+        }
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
       });
       emojiPopup.appendChild(btn);
     });
