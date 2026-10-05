@@ -896,8 +896,8 @@
     accountLogin: function (un, hash) {
       return sb.rpc('login_account', { un: un, pass: hash }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
     },
-    accountRegister: function (un, hash, ageConfirmed) {
-      return sb.rpc('register_account', { un: un, pass: hash, age_confirmed: !!ageConfirmed }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
+    accountRegister: function (un, hash, ageConfirmed, termsAccepted) {
+      return sb.rpc('register_account', { un: un, pass: hash, age_confirmed: !!ageConfirmed, terms_accepted: !!termsAccepted }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
     },
     accountAgeStatus: function (id) {
       return sb.rpc('account_age_status', { acct: id }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });

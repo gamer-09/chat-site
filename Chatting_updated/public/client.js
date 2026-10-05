@@ -452,7 +452,7 @@
       return data;
     },
 
-    save: (username, avatar, termsAgreed = true) => {
+    save: (username, avatar, termsAgreed = false) => {
       const prev = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
       const oldUsername = String(prev.username || '').trim();
       const oldClientId = state.myClientId;
@@ -554,7 +554,7 @@
     },
 
     // Validate then save; returns a Promise<boolean>
-    validateAndSave: (username, avatar, termsAgreed = true) => new Promise((resolve) => {
+    validateAndSave: (username, avatar, termsAgreed = false) => new Promise((resolve) => {
       const val = String(username || '').trim();
       if (!val || val.length < 2) {
         showToast('Username must be at least 2 characters', 'error');
@@ -3184,6 +3184,10 @@
           <input id="ag-age" type="checkbox" style="margin-top:2px">
           <span>I confirm I am at least 13 years old. Children under 13 may not create an account.</span>
         </label>
+        <label id="ag-terms-row" style="display:none;align-items:flex-start;gap:8px;font-size:12px;color:var(--text-muted);line-height:1.35;margin:-2px 0 10px">
+          <input id="ag-terms" type="checkbox" style="margin-top:2px">
+          <span>I agree to the <a href="terms.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none">Terms and Conditions</a> and <a href="privacy.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none">Privacy Policy</a>.</span>
+        </label>
         <div id="ag-err" class="ag-err"></div>
         <button id="ag-go" class="ag-go" type="button">Continue ➤</button>
         <div class="ag-foot">🔒 No plaintext passwords ever stored</div>
@@ -3199,9 +3203,11 @@
       ov.querySelectorAll('.ag-tab').forEach(x => x.classList.toggle('active', x === b));
       const p = ov.querySelector('#ag-pass');
       const ageRow = ov.querySelector('#ag-age-row');
+      const termsRow = ov.querySelector('#ag-terms-row');
       p.placeholder = mode === 'reg' ? 'Strong password (8+ chars, upper/lower/number/symbol)' : 'Password';
       p.setAttribute('autocomplete', mode === 'reg' ? 'new-password' : 'current-password');
       if (ageRow) ageRow.style.display = mode === 'reg' ? 'flex' : 'none';
+      if (termsRow) termsRow.style.display = mode === 'reg' ? 'flex' : 'none';
     }));
     ov.querySelector('#ag-go').addEventListener('click', async () => {
       const un = ov.querySelector('#ag-user').value.trim();
@@ -3214,6 +3220,7 @@
         const pwCheck = utils.validatePassword(pw, un);
         if (!pwCheck.ok) { err.textContent = pwCheck.message; return; }
         if (!ov.querySelector('#ag-age')?.checked) { err.textContent = 'Confirm you are at least 13 years old to create an account.'; return; }
+        if (!ov.querySelector('#ag-terms')?.checked) { err.textContent = 'You must agree to the Terms and Conditions to create an account.'; return; }
       } else if (pw.length < 6) { err.textContent = 'Password too short.'; return; }
       const h = await sha256hex(pw + ':' + un.toLowerCase());
       if (!h) { err.textContent = 'Crypto unavailable in this browser.'; return; }
@@ -3221,7 +3228,7 @@
       btn.textContent = mode === 'reg' ? 'Creating account…' : 'Logging in…';
       const res = mode === 'login'
         ? await window.ChatAPI.accountLogin(un, h)
-        : await window.ChatAPI.accountRegister(un, h, true);
+        : await window.ChatAPI.accountRegister(un, h, true, true);
       btn.disabled = false;
       btn.textContent = 'Continue ➤';
       if (!res || !res.ok) {
@@ -3231,12 +3238,13 @@
           locked: 'Too many failed attempts — locked for 15 minutes.',
           invalid_username: 'Invalid username.',
           age_required: 'You must confirm you are at least 13 years old to create an account.',
+          terms_required: 'You must agree to the Terms and Conditions to create an account.',
         };
         err.textContent = (map[res && res.error]) || (res && res.error) || 'Failed.';
         return;
       }
       try {
-        localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ id: res.id, username: res.username, ageConfirmed: mode === 'reg' ? true : !!res.age_confirmed }));
+        localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ id: res.id, username: res.username, ageConfirmed: mode === 'reg' ? true : !!res.age_confirmed, termsAccepted: mode === 'reg' ? true : !!res.terms_accepted }));
         localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, res.id);
       } catch {}
       location.reload();
@@ -3346,7 +3354,7 @@
     try {
       const prof = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
       if (!prof.username && sess.username) {
-        utils.saveToStorage(CONSTANTS.STORAGE_KEY, { username: sess.username, avatar: '', termsAgreed: true });
+        utils.saveToStorage(CONSTANTS.STORAGE_KEY, { username: sess.username, avatar: '', termsAgreed: !!sess.termsAccepted });
       }
     } catch {}
     if (window.ChatAPI && window.ChatAPI.setClientId) window.ChatAPI.setClientId(sess.id);

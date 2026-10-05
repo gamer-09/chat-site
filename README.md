@@ -114,9 +114,10 @@ For the GitHub Pages + Supabase deployment, run the SQL files in `supabase/` in 
 015_age_gate_signup.sql
 016_existing_account_age_verification.sql
 017_legacy_age_login_fix.sql
+018_terms_acceptance_signup.sql
 ```
 
-`011_security_hardening.sql` enforces account-session binding, stricter RLS, upload type/size limits, and safer message payload checks on the server side. Then run `supabase/012_safe_links.sql` to enforce safe-link validation in Supabase too. Run `supabase/013_inbox_badge_fix.sql` to enable realtime inbox badge updates, `supabase/014_stop_client_id_sharing.sql` to allow approved Client-ID sharing to be stopped, then `supabase/015_age_gate_signup.sql` to enforce the 13+ signup gate server-side, then `supabase/016_existing_account_age_verification.sql` so existing accounts are prompted and can store their confirmation, then `supabase/017_legacy_age_login_fix.sql` so legacy sessions that predate account sessions are forced through fresh login/verification instead of being skipped.
+`011_security_hardening.sql` enforces account-session binding, stricter RLS, upload type/size limits, and safer message payload checks on the server side. Then run `supabase/012_safe_links.sql` to enforce safe-link validation in Supabase too. Run `supabase/013_inbox_badge_fix.sql` to enable realtime inbox badge updates, `supabase/014_stop_client_id_sharing.sql` to allow approved Client-ID sharing to be stopped, then `supabase/015_age_gate_signup.sql` to enforce the 13+ signup gate server-side, then `supabase/016_existing_account_age_verification.sql` so existing accounts are prompted and can store their confirmation, then `supabase/017_legacy_age_login_fix.sql` so legacy sessions that predate account sessions are forced through fresh login/verification instead of being skipped, then `supabase/018_terms_acceptance_signup.sql` so Terms acceptance is stored and enforced server-side at signup.
 
 ---
 
@@ -314,3 +315,4 @@ The app already includes `public/terms.html` (Terms of Service / Terms of Use) a
 | `supabase/015_age_gate_signup.sql` | Requires explicit 13+ age confirmation for account registration |
 | `supabase/016_existing_account_age_verification.sql` | Prompts/stores 13+ confirmation for existing accounts |
 | `supabase/017_legacy_age_login_fix.sql` | Fixes legacy account sessions so age verification cannot be skipped |
+| `supabase/018_terms_acceptance_signup.sql` | Requires explicit Terms/Privacy acceptance for account registration |
