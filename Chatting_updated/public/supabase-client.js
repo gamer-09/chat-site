@@ -666,7 +666,9 @@
         sb.from('messages').insert({ id: payload.id, room: room, payload: payload })
           .then(function (res) {
             if (res.error) {
-              dispatch('error', { action: 'chat-message', error: res.error.message });
+              var errMsg = res.error.message || '';
+              if (/row-level security/i.test(errMsg) && extractLinks(text).length) errMsg = 'safe_link_policy_rejected';
+              dispatch('error', { action: 'chat-message', error: errMsg });
               return;
             }
             dispatch('chat-message', api.mergeMeta(room, payload));

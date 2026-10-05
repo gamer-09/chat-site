@@ -1585,6 +1585,7 @@
         edit_window_expired: 'Edit window has expired (5 min limit)',
         forbidden:           'You can only edit/delete your own messages',
         not_found:           'Message not found',
+        safe_link_policy_rejected: 'The database link policy rejected this link. Run the latest safe-link SQL migration (020), then try again.',
       };
       showToast(map[data?.error] || data?.error || 'Action failed', 'error');
     },

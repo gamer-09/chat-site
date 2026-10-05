@@ -1,10 +1,9 @@
 -- ═══════════════════════════════════════════════════════════════════
--- REPLICA chat · Markdown/bare URL safe-link parser fix
--- Run AFTER 018_terms_acceptance_signup.sql in Supabase SQL Editor.
+-- REPLICA chat · safe-link PostgreSQL regex fix
+-- Run AFTER 019_markdown_safe_links.sql in Supabase SQL Editor.
 --
--- Fixes pasted Markdown links like [text](https://example.com). The old
--- database regex could consume `](https://...)` as part of the URL and
--- reject an otherwise safe link before the normal safety checks ran.
+-- Fixes Supabase RLS rejecting normal safe links such as YouTube,
+-- GitHub Pages, Instagram, and Markdown-style pasted links.
 -- ═══════════════════════════════════════════════════════════════════
 
 create or replace function public.ptr29_message_links_allowed(msg text)
