@@ -110,7 +110,7 @@
   }
   function extractLinks(text) {
     var out = [];
-    String(text || '').replace(/\b((?:https?:\/\/|www\.)[^\s<>"']+)/gi, function (m) { var u = trimLinkToken(m); if (u) out.push(u); return m; });
+    String(text || '').replace(/\b((?:https?:\/\/|www\.)[^\s<>"'()\[\]]+)/gi, function (m) { var u = trimLinkToken(m); if (u) out.push(u); return m; });
     return out;
   }
   function isPrivateIpv4Host(host) {

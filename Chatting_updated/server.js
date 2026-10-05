@@ -186,7 +186,7 @@ function trimLinkToken(raw) {
 }
 function extractLinks(text) {
   const out = [];
-  String(text || '').replace(/\b((?:https?:\/\/|www\.)[^\s<>"']+)/gi, (m) => { const u = trimLinkToken(m); if (u) out.push(u); return m; });
+  String(text || '').replace(/\b((?:https?:\/\/|www\.)[^\s<>"'()\[\]]+)/gi, (m) => { const u = trimLinkToken(m); if (u) out.push(u); return m; });
   return out;
 }
 function isPrivateIpv4Host(host) {

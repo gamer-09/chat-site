@@ -315,7 +315,7 @@
 
     extractLinks: (text) => {
       const out = [];
-      const re = /\b((?:https?:\/\/|www\.)[^\s<>"']+)/gi;
+      const re = /\b((?:https?:\/\/|www\.)[^\s<>"'()\[\]]+)/gi;
       String(text || '').replace(re, (m) => { const u = utils.trimLinkToken(m); if (u) out.push(u); return m; });
       return out;
     },
@@ -386,7 +386,7 @@
     replaceOutsideTags: (html, regex, replacer) => String(html || '').split(/(<[^>]+>)/g)
       .map(part => part.startsWith('<') ? part : part.replace(regex, replacer)).join(''),
 
-    linkifySafeHtml: (html) => utils.replaceOutsideTags(html, /\b((?:https?:\/\/|www\.)[^\s<>"']+)/gi, (match) => {
+    linkifySafeHtml: (html) => utils.replaceOutsideTags(html, /\b((?:https?:\/\/|www\.)[^\s<>"'()\[\]]+)/gi, (match) => {
       const trailing = match.slice(utils.trimLinkToken(match).length);
       const clean = utils.trimLinkToken(match);
       const check = utils.validateLink(clean);
