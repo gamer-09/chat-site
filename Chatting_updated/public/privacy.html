@@ -101,6 +101,7 @@
         <li><strong>Profile data:</strong> your chosen username, optional avatar URL, anonymous user/client ID, and last-seen time.</li>
         <li><strong>Room data:</strong> room name, public/private setting, owner, administrators, members, creation time, and any room passkey.</li>
         <li><strong>Content:</strong> messages, replies, edit state, timestamps, reactions, read receipts, files, images, original filenames, MIME type, and file size.</li>
+        <li><strong>Link processing:</strong> messages are checked for ordinary and Markdown-style links so unsafe protocols, private/local destinations, credential-obfuscated URLs, punycode look-alikes, risky downloads, and link spam can be blocked before storage. The app does not perform a full third-party malware or phishing reputation scan of destination sites.</li>
         <li><strong>Presence and activity:</strong> current room, online status, typing signals, unread counts, and notification events. Stale presence records are designed to be pruned after a short period.</li>
         <li><strong>Browser data:</strong> profile preferences, terms acceptance, generated client identifiers, saved room passkeys, unread counts, theme, Supabase authentication session, and service-worker cache.</li>
         <li><strong>Technical request data:</strong> hosting and infrastructure providers may process IP address, user agent, request time, referrer, and diagnostic/security logs when your browser connects.</li>

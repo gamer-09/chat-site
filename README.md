@@ -39,7 +39,7 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | Built-in help | Slide-by-slide help guide accessible from the toolbar |
 | Mobile layout | Responsive design with a dedicated mobile sidebar |
 | PWA | Service worker included for offline caching |
-| Safe links | http/https links are clickable after validation; unsafe protocols, private/local links, credential-obfuscated links, punycode look-alikes, risky downloads, and link spam are blocked |
+| Safe links | Plain and Markdown-style http/https links are clickable after validation; unsafe protocols, private/local links, credential-obfuscated links, punycode look-alikes, risky downloads, and link spam are blocked. This is allow-list validation, not a full malware scan of the remote site. |
 | Docker ready | `Dockerfile` included for container deployments |
 
 ---
@@ -201,6 +201,18 @@ Set `HOST=0.0.0.0` in your hosting dashboard's environment variables. `PORT` is 
 - Type in the message box and press **Enter** or click **Send**.
 - Click the image icon to attach and send a JPG/PNG/GIF/WebP photo (max 5 MB).
 - Click the file icon to attach an allow-listed file (PDF, TXT, CSV, JSON, DOCX, XLSX, PPTX; max 10 MB).
+
+### Sending links
+
+The chat accepts normal links and Markdown-style pasted links, for example:
+
+```text
+https://www.youtube.com/@WhiteWanderer-j4w
+[https://gamer-09.github.io/Note_vault/](https://gamer-09.github.io/Note_vault/)
+[My site](https://gamer-09.github.io/Note_vault/)
+```
+
+Before a message is saved, the browser and Supabase RLS check the link. The app allows only regular `http://` and `https://` links, then blocks unsafe protocols, localhost/private-network targets, links with embedded usernames/passwords, punycode look-alike domains, risky executable/script downloads, and messages with too many links. This is a validation/allow-list check; it does **not** guarantee the destination site is malware-free.
 
 ### Creating a room
 
