@@ -4,6 +4,10 @@
 --
 -- Fixes Supabase RLS rejecting normal safe links such as YouTube,
 -- GitHub Pages, Instagram, and Markdown-style pasted links.
+--
+-- This version intentionally avoids dollar-quoted regex strings like
+-- $rx$...$rx$ because Supabase SQL Editor can misparse regexes that
+-- contain a trailing dollar anchor near the delimiter.
 -- ═══════════════════════════════════════════════════════════════════
 
 create or replace function public.ptr29_message_links_allowed(msg text)
@@ -25,14 +29,14 @@ begin
   end if;
 
   -- Dangerous browser/local protocols must not be sent as link-like text.
-  if msg ~* $rx$\m(javascript|data|file|vbscript)[[:space:]]*:$rx$ then
+  if msg ~* '\m(javascript|data|file|vbscript)[[:space:]]*:' then
     return false;
   end if;
 
   -- Stop at Markdown delimiters ()[] as well as whitespace/quotes.
   for raw in
     select (m)[1]
-      from regexp_matches(msg, $rx$((https?://|www\.)[^[:space:]<>"'()\[\]]+)$rx$, 'gi') as m
+      from regexp_matches(msg, '((https?://|www\.)[^[:space:]<>"''()\[\]]+)', 'gi') as m
   loop
     link_count := link_count + 1;
     if link_count > 5 then
@@ -40,33 +44,33 @@ begin
     end if;
 
     -- Remove common punctuation copied at the end of a sentence.
-    clean := regexp_replace(raw, $rx$[),.!?;:'"\]]+$rx$, '');
+    clean := regexp_replace(raw, '[),.!?;:''"\]]+$', '');
     if clean = '' or char_length(clean) > 2048 then
       return false;
     end if;
 
     link := clean;
-    if link ~* $rx$^www\.$rx$ then
+    if link ~* '^www\.' then
       link := 'https://' || link;
     end if;
 
-    if link !~* $rx$^https?://$rx$ then
+    if link !~* '^https?://' then
       return false;
     end if;
 
     -- Block credential-obfuscated URLs such as https://user:pass@example.com
-    if link ~* $rx$^https?://[^/[:space:]?#]*@$rx$ then
+    if link ~* '^https?://[^/[[:space:]]?#]*@' then
       return false;
     end if;
 
     -- Block risky executable/script download targets.
-    if lower(link) ~ $rx$\.(exe|msi|apk|ipa|dmg|pkg|bat|cmd|sh|ps1|vbs|scr|jar|js|mjs|wasm)([?#]|$)$rx$ then
+    if lower(link) ~ '\.(exe|msi|apk|ipa|dmg|pkg|bat|cmd|sh|ps1|vbs|scr|jar|js|mjs|wasm)([?#]|$)' then
       return false;
     end if;
 
-    without_scheme := regexp_replace(link, $rx$^https?://$rx$, '', 'i');
+    without_scheme := regexp_replace(link, '^https?://', '', 'i');
     hostport := split_part(split_part(split_part(without_scheme, '/', 1), '?', 1), '#', 1);
-    hostport := regexp_replace(lower(hostport), $rx$\.$rx$, '');
+    hostport := regexp_replace(lower(hostport), '\.$', '');
 
     if hostport = '' or position('@' in hostport) > 0 then
       return false;
@@ -76,8 +80,9 @@ begin
     if hostport like '[%' or hostport like '%]' then
       return false;
     end if;
+
     if position(':' in hostport) > 0 then
-      if hostport ~ $rx$^[^:]+:[0-9]{1,5}$$rx$ then
+      if hostport ~ '^[^:]+:[0-9]{1,5}$' then
         host := split_part(hostport, ':', 1);
       else
         return false;
@@ -99,12 +104,12 @@ begin
     end if;
 
     -- Block local/private IPv4, link-local, carrier-grade NAT, multicast/reserved.
-    if host ~ $rx$^(0|10|127)\.$rx$
-       or host ~ $rx$^169\.254\.$rx$
-       or host ~ $rx$^192\.168\.$rx$
-       or host ~ $rx$^172\.(1[6-9]|2[0-9]|3[0-1])\.$rx$
-       or host ~ $rx$^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.$rx$
-       or host ~ $rx$^(22[4-9]|23[0-9]|24[0-9]|25[0-5])\.$rx$ then
+    if host ~ '^(0|10|127)\.'
+       or host ~ '^169\.254\.'
+       or host ~ '^192\.168\.'
+       or host ~ '^172\.(1[6-9]|2[0-9]|3[0-1])\.'
+       or host ~ '^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.'
+       or host ~ '^(22[4-9]|23[0-9]|24[0-9]|25[0-5])\.' then
       return false;
     end if;
   end loop;
