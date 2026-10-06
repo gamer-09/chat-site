@@ -895,6 +895,24 @@
         });
     },
 
+    accountProfile: function (id, username) {
+      var acct = String(id || '').trim();
+      var un = String(username || '').trim();
+      var byId = acct
+        ? sb.from('users').select('username,avatar,last_seen').eq('client_id', acct).limit(1)
+        : Promise.resolve({ data: [] });
+      return byId.then(function (r1) {
+        var row = r1.data && r1.data[0];
+        if (row && row.avatar) return { ok: true, username: row.username || un, avatar: row.avatar || '' };
+        if (!un) return { ok: true, username: un, avatar: '' };
+        return sb.from('users').select('username,avatar,last_seen').ilike('username', un).order('last_seen', { ascending: false }).limit(1)
+          .then(function (r2) {
+            var row2 = r2.data && r2.data[0];
+            return { ok: true, username: (row2 && row2.username) || un, avatar: (row2 && row2.avatar) || '' };
+          });
+      }).catch(function () { return { ok: false, avatar: '' }; });
+    },
+
     accountLogin: function (un, hash) {
       return sb.rpc('login_account', { un: un, pass: hash }).then(function (r) {
         var out = r.data || { ok: false, error: (r.error && r.error.message) || 'failed' };

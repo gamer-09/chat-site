@@ -3363,6 +3363,26 @@
     return showAgeVerifyGate(sess);
   }
 
+  async function hydrateAccountSessionProfile(sess) {
+    const out = { ...(sess || {}) };
+    if (!out || !out.id) return out;
+    let avatar = String(out.avatar || '').trim();
+    try {
+      const currentProfile = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
+      const sameUser = String(currentProfile.username || '').trim().toLowerCase() === String(out.username || '').trim().toLowerCase();
+      if (!avatar && sameUser && currentProfile.avatar) avatar = String(currentProfile.avatar || '').trim();
+    } catch {}
+    if (!avatar && window.ChatAPI && window.ChatAPI.accountProfile) {
+      try {
+        const prof = await window.ChatAPI.accountProfile(out.id, out.username);
+        if (prof && prof.ok && prof.avatar) avatar = String(prof.avatar || '').trim();
+      } catch {}
+    }
+    out.avatar = avatar || '';
+    try { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(out)); } catch {}
+    return out;
+  }
+
   async function logout() {
     const sess = getAccountSession();
     try {
@@ -3384,8 +3404,9 @@
 
   // Gated startup: no account session → auth gate blocks the whole app
   (async () => {
-    const sess = getAccountSession();
+    let sess = getAccountSession();
     if (!sess) { showAuthGate(); return; }
+    sess = await hydrateAccountSessionProfile(sess);
     const ageOk = await ensureExistingAccountAgeVerified(sess);
     if (!ageOk) return;
     try { localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, sess.id); } catch {}
