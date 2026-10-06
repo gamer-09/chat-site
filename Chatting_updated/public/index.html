@@ -1975,6 +1975,8 @@
     /* ── Optional Wenny-only glass UI test mode ─────────────────────── */
     body.ptr29-glass-ui {
       background:
+        linear-gradient(180deg, rgba(5,12,24,.38), rgba(5,12,24,.60)),
+        url('glass-backdrop-dark.jpg') center center / cover no-repeat,
         radial-gradient(circle at 12% 8%, rgba(96,165,250,.22), transparent 30%),
         radial-gradient(circle at 84% 18%, rgba(168,85,247,.20), transparent 34%),
         radial-gradient(circle at 50% 105%, rgba(45,212,191,.12), transparent 38%),
@@ -1992,14 +1994,14 @@
     body.ptr29-glass-ui .context-menu,
     body.ptr29-glass-ui .online-menu,
     body.ptr29-glass-ui .inbox-popup {
-      background: rgba(15, 23, 42, .58) !important;
+      background: rgba(15, 23, 42, .52) !important;
       border-color: rgba(148, 163, 184, .28) !important;
       box-shadow: 0 18px 54px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.08) !important;
       backdrop-filter: blur(18px) saturate(1.18);
       -webkit-backdrop-filter: blur(18px) saturate(1.18);
     }
     body.ptr29-glass-ui #messages {
-      background: linear-gradient(180deg, rgba(15,23,42,.12), rgba(15,23,42,.04));
+      background: linear-gradient(180deg, rgba(9,16,30,.42), rgba(9,16,30,.24));
     }
     body.ptr29-glass-ui .msg,
     body.ptr29-glass-ui .room,
@@ -2086,6 +2088,8 @@
     /* Light + glass mode needs light glass, not the dark glass overlay. */
     html.ptr29-light-theme body.ptr29-glass-ui {
       background:
+        linear-gradient(180deg, rgba(228,239,252,.30), rgba(196,217,244,.48)),
+        url('glass-backdrop-light.jpg') center center / cover no-repeat,
         radial-gradient(circle at 12% 8%, rgba(59,130,246,.18), transparent 30%),
         radial-gradient(circle at 84% 18%, rgba(168,85,247,.14), transparent 34%),
         radial-gradient(circle at 50% 105%, rgba(45,212,191,.12), transparent 38%),
@@ -2104,14 +2108,14 @@
     html.ptr29-light-theme body.ptr29-glass-ui .context-menu,
     html.ptr29-light-theme body.ptr29-glass-ui .online-menu,
     html.ptr29-light-theme body.ptr29-glass-ui .inbox-popup {
-      background: rgba(255,255,255,.68) !important;
+      background: rgba(255,255,255,.62) !important;
       border-color: rgba(148,163,184,.36) !important;
       box-shadow: 0 18px 42px rgba(15,23,42,.14), inset 0 1px 0 rgba(255,255,255,.72) !important;
       backdrop-filter: blur(18px) saturate(1.12) !important;
       -webkit-backdrop-filter: blur(18px) saturate(1.12) !important;
     }
     html.ptr29-light-theme body.ptr29-glass-ui #messages {
-      background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.10)) !important;
+      background: linear-gradient(180deg, rgba(255,255,255,.34), rgba(255,255,255,.20)) !important;
     }
     html.ptr29-light-theme body.ptr29-glass-ui .msg,
     html.ptr29-light-theme body.ptr29-glass-ui .room,
@@ -2758,6 +2762,7 @@
             <ul class="help-tips">
               <li>🆔 <strong>Your identity follows your account</strong> — log in on any device and your content is there; signup and existing-account access require 13+ confirmation plus Terms/Privacy acceptance; passwords are SHA-256-salted on-device, then bcrypt + pepper server-side</li>
               <li>🌙 <strong>Theme</strong> — switch dark/light with the 🌙/☀️ toolbar button; your choice is remembered</li>
+              <li>🫧 <strong>Glass UI test (Wenny only)</strong> — the 🫧 Glass UI button swaps the flat panels for frosted glass floating over a photo backdrop; it ships dark and light backdrop variants, is remembered per browser, and leaves the normal UI untouched for everyone else</li>
               <li>🔒 <strong>Private rooms are not end-to-end encrypted</strong>; authorized participants and infrastructure providers may technically access content</li>
               <li>🗑️ <strong>Delete Account</strong> (password-verified) erases account + user + every message/reaction/receipt + presence + owned rooms; renames wipe the old name; the operator can purge any username</li>
               <li>⚪ <strong>Presence &amp; last-seen</strong> are visible to other users while your tab is open and as a “seen …” time after you leave</li>

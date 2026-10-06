@@ -34,6 +34,7 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | Inbox | Received + sent Client-ID requests, realtime badge/popup notifications, approval/denial status, and Stop sharing controls |
 | Guided tour | 🎓 Launches once after a brand-new account is created, and can be replayed manually from the 🎓 button or Help. It creates temporary demo rooms only when started and deletes them when finished |
 | Themes | 🌙/☀️ dark-light toggle, remembered per browser |
+| Glass UI test | Wenny-only 🫧 toggle: frosted-glass panels + composer over a shipped photo backdrop (`glass-backdrop-dark.jpg` / `glass-backdrop-light.jpg`, light variant auto-selected with the light theme), remembered per browser; normal UI is untouched for every other account |
 | Resilience | Self-hosted Supabase lib, versioned assets, network-first service worker |
 | Built-in help | Slide-by-slide help guide accessible from the toolbar |
 | Mobile layout | Responsive design with a dedicated mobile sidebar |

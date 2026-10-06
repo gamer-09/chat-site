@@ -1231,6 +1231,13 @@ html.ptr29-light-theme.ptr29-mobile #image-btn {
 
 
 /* ── Wenny glass UI mode mobile safety ───────────────────────────────── */
+/* The glass backdrop photo is painted on <body>; keep it viewport-anchored
+   (never `fixed`, which iOS mishandles around the dynamic address bar). */
+body.ptr29-mobile.ptr29-glass-ui {
+  background-attachment: scroll;
+  background-position: center center;
+  background-size: cover;
+}
 .ptr29-mobile.ptr29-glass-ui #sidebar,
 .ptr29-mobile.ptr29-glass-ui #chat,
 .ptr29-mobile.ptr29-glass-ui #online-panel,
