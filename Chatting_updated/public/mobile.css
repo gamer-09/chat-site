@@ -1179,3 +1179,27 @@ html.ptr29-light-theme.ptr29-mobile #image-btn {
     bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px) + var(--ptr29-keyboard-offset, 0px));
   }
 }
+
+
+/* ── Image messages hug image width on mobile/tablet ─────────────────── */
+.ptr29-mobile .msg.image-msg {
+  width: fit-content !important;
+  min-width: 0 !important;
+  max-width: min(94vw, 520px) !important;
+  padding: 8px !important;
+}
+.ptr29-mobile .msg.image-msg .body {
+  display: inline-block;
+  line-height: 0;
+  max-width: 100%;
+}
+.ptr29-mobile .msg.image-msg img.msg-image {
+  margin-top: 0 !important;
+  max-width: min(88vw, 420px) !important;
+  width: auto !important;
+  height: auto !important;
+}
+.ptr29-mobile .msg.image-msg .meta {
+  margin-bottom: 7px;
+  line-height: 1.3;
+}

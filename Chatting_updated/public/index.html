@@ -1901,6 +1901,29 @@
       #messages { padding-bottom: 12px; }
     }
 
+
+    /* ── Image messages hug the image instead of stretching wide ─────── */
+    .msg.image-msg {
+      width: fit-content;
+      min-width: 0;
+      max-width: min(92%, 520px);
+      padding: 10px;
+    }
+    .msg.image-msg .body {
+      display: inline-block;
+      line-height: 0;
+      max-width: 100%;
+    }
+    .msg.image-msg img.msg-image {
+      margin-top: 0;
+      max-width: min(480px, 78vw);
+      display: block;
+    }
+    .msg.image-msg .meta {
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
   </style>
 </head>
 <body>

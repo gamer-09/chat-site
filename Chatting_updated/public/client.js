@@ -1047,6 +1047,7 @@
         String(msg.mimeType || '').startsWith('image/') ||
         /\.(png|jpe?g|gif|webp|avif|bmp)(\?|#|$)/i.test(msg.fileUrl || '') ||
         /\.(png|jpe?g|gif|webp|avif|bmp)$/i.test(msg.message || ''));
+      if (msg.type === 'image' || fileIsImage) el.classList.add('image-msg');
       const bodyHtml = (msg.type === 'image' || fileIsImage)
         ? `<img class="msg-image" src="${msg.dataUrl || msg.imageUrl || msg.fileUrl || ''}" alt="Shared image" loading="lazy">`
         : msg.type === 'file'
