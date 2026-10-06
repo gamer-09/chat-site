@@ -1024,7 +1024,9 @@ body.ptr29-mobile {
   flex: 1;
 }
 
-/* ── 3D motion mobile safety overrides ──────────────────────────────── */
+
+
+/* ── Safe motion mobile overrides ───────────────────────────────────── */
 .ptr29-mobile .msg,
 .ptr29-mobile .room,
 .ptr29-mobile button,
@@ -1034,32 +1036,17 @@ body.ptr29-mobile {
 }
 .ptr29-mobile .msg:hover,
 .ptr29-mobile .room:hover,
-.ptr29-mobile .online-item:hover {
+.ptr29-mobile .online-item:hover,
+.ptr29-mobile button:hover,
+.ptr29-mobile .secondary:hover {
   transform: none !important;
 }
 .ptr29-mobile .msg.actions-visible {
-  transform: translateY(-1px) !important;
+  transform: none !important;
 }
 @media (prefers-reduced-motion: reduce) {
   .ptr29-mobile *, .ptr29-mobile *::before, .ptr29-mobile *::after {
     animation: none !important;
     transition: none !important;
   }
-}
-
-
-/* ── Light theme composer polish on mobile ───────────────────────────── */
-html.ptr29-light-theme.ptr29-mobile #chat-form {
-  background: var(--composer-bg, #f8fafc) !important;
-  box-shadow: 0 -8px 22px rgba(15,23,42,.08) !important;
-}
-html.ptr29-light-theme.ptr29-mobile #text {
-  background: var(--composer-surface, #fff) !important;
-  border-color: var(--border-light) !important;
-}
-html.ptr29-light-theme.ptr29-mobile #emoji-btn,
-html.ptr29-light-theme.ptr29-mobile #file-btn,
-html.ptr29-light-theme.ptr29-mobile #image-btn {
-  background: #e9eff6 !important;
-  color: var(--text) !important;
 }

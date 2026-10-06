@@ -1661,68 +1661,27 @@
     }
 
 
+
     /* ═══════════════════════════════════════════════════════════════════
-       3D Motion / Clay-depth interaction layer
-       - CSS-only progressive enhancement
-       - Keeps layout unchanged, adds depth, lift, and smooth state changes
-       - Respects prefers-reduced-motion
+       Safe motion interaction layer
+       Subtle transitions only: no global perspective/3D transforms because
+       those distort menus, popups, sticky panels and mobile overlays.
        ═══════════════════════════════════════════════════════════════════ */
     :root {
-      --motion-fast: 140ms;
-      --motion-med: 240ms;
-      --motion-slow: 420ms;
-      --ease-out-3d: cubic-bezier(.2,.85,.25,1);
-      --clay-shadow-sm: 0 7px 16px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.035);
-      --clay-shadow-md: 0 16px 34px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.045);
-      --clay-shadow-lg: 0 28px 70px rgba(0,0,0,.44), inset 0 1px 0 rgba(255,255,255,.055);
-      --clay-highlight: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,0) 48%);
+      --motion-fast: 130ms;
+      --motion-med: 220ms;
+      --ease-soft: cubic-bezier(.2,.8,.2,1);
+      --soft-shadow-sm: 0 6px 14px rgba(0,0,0,.18);
+      --soft-shadow-md: 0 12px 28px rgba(0,0,0,.24);
     }
 
-    @keyframes ptr29AppSettle {
-      from { opacity: .001; transform: translateY(8px) scale(.992); filter: blur(3px); }
-      to   { opacity: 1; transform: none; filter: none; }
-    }
-    @keyframes ptr29FloatIn {
-      from { opacity: 0; transform: translateY(14px) rotateX(-7deg) scale(.985); }
-      to   { opacity: 1; transform: translateY(0) rotateX(0) scale(1); }
-    }
-    @keyframes ptr29SoftPulse {
-      0%, 100% { box-shadow: var(--clay-shadow-sm); }
-      50% { box-shadow: 0 10px 26px rgba(37,99,235,.20), var(--clay-shadow-sm); }
+    @keyframes ptr29SoftIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
-    body {
-      background:
-        radial-gradient(circle at 18% 0%, rgba(37,99,235,.14), transparent 32%),
-        radial-gradient(circle at 78% 18%, rgba(124,58,237,.12), transparent 34%),
-        var(--bg);
-      perspective: 1200px;
-    }
-    header,
-    #sidebar,
-    #chat,
-    #online-panel,
-    .modal,
-    .ag-card,
-    .help-modal-inner,
-    #tour-card,
-    .context-menu,
-    .online-menu,
-    .inbox-popup {
-      transform-style: preserve-3d;
-      backface-visibility: hidden;
-    }
     header {
-      box-shadow: var(--clay-shadow-md);
-      animation: ptr29AppSettle var(--motion-slow) var(--ease-out-3d) both;
-    }
-    #sidebar,
-    #online-panel {
-      box-shadow: var(--clay-shadow-sm);
-      transition: transform var(--motion-med) var(--ease-out-3d), box-shadow var(--motion-med) var(--ease-out-3d), border-color var(--motion-med) ease;
-    }
-    #chat {
-      transition: transform var(--motion-med) var(--ease-out-3d), background var(--motion-med) ease;
+      box-shadow: 0 8px 24px rgba(0,0,0,.22);
     }
 
     button,
@@ -1736,104 +1695,60 @@
     .pt-btn,
     .chip,
     .room-tag {
-      will-change: transform;
       transition:
-        transform var(--motion-fast) var(--ease-out-3d),
-        box-shadow var(--motion-fast) var(--ease-out-3d),
+        transform var(--motion-fast) var(--ease-soft),
+        box-shadow var(--motion-fast) var(--ease-soft),
         background var(--motion-fast) ease,
         border-color var(--motion-fast) ease,
         color var(--motion-fast) ease,
         opacity var(--motion-fast) ease;
     }
-    button,
-    .secondary,
-    .pt-btn {
-      box-shadow: var(--clay-shadow-sm);
-      background-image: var(--clay-highlight);
-    }
+
     button:hover:not(:disabled),
     .secondary:hover:not(:disabled),
     .pt-btn:hover:not(:disabled) {
-      transform: translateY(-2px) translateZ(10px);
-      box-shadow: var(--clay-shadow-md);
+      transform: translateY(-1px);
+      box-shadow: var(--soft-shadow-sm);
     }
     button:active:not(:disabled),
     .secondary:active:not(:disabled),
     .pt-btn:active:not(:disabled) {
-      transform: translateY(1px) translateZ(0) scale(.985);
-      box-shadow: 0 4px 10px rgba(0,0,0,.24), inset 0 2px 8px rgba(0,0,0,.22);
+      transform: translateY(1px);
+      box-shadow: inset 0 2px 8px rgba(0,0,0,.18);
     }
 
-    .room {
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
-    }
     .room:hover {
-      transform: translateX(4px) translateZ(6px);
-      box-shadow: var(--clay-shadow-sm);
+      transform: translateX(2px);
+      box-shadow: var(--soft-shadow-sm);
     }
-    .room.active {
-      box-shadow: 0 14px 30px rgba(37,99,235,.22), inset 0 1px 0 rgba(255,255,255,.08);
-      animation: ptr29SoftPulse 3.4s ease-in-out infinite;
-    }
-
     .msg {
-      animation: ptr29FloatIn var(--motion-med) var(--ease-out-3d) both;
-      box-shadow: var(--clay-shadow-sm);
-      background-image: var(--clay-highlight);
-      transform-origin: left bottom;
+      animation: ptr29SoftIn var(--motion-med) var(--ease-soft) both;
     }
-    .msg.me { transform-origin: right bottom; }
     .msg:hover,
     .msg.actions-visible {
-      transform: translateY(-2px) translateZ(8px);
-      box-shadow: var(--clay-shadow-md);
-    }
-    .msg.me:hover,
-    .msg.me.actions-visible {
-      box-shadow: 0 16px 34px rgba(37,99,235,.18), var(--clay-shadow-md);
-    }
-
-    #chat-form,
-    #text,
-    #search-messages-input,
-    #people-search,
-    input,
-    textarea {
-      transition: box-shadow var(--motion-fast) ease, border-color var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out-3d), background var(--motion-fast) ease;
+      box-shadow: var(--soft-shadow-sm);
     }
     #text:focus,
     #search-messages-input:focus,
     #people-search:focus,
     input:focus,
     textarea:focus {
-      transform: translateY(-1px);
       box-shadow: 0 0 0 3px rgba(37,99,235,.18), inset 0 1px 0 rgba(255,255,255,.04);
     }
-    #chat-form {
-      box-shadow: 0 -12px 36px rgba(0,0,0,.20);
-    }
 
-    .modal.open .modal,
-    .modal-overlay.open .modal,
-    .modal-overlay.open .help-modal-inner,
-    .ag-overlay .ag-card,
-    .inbox-popup {
-      animation: ptr29FloatIn var(--motion-med) var(--ease-out-3d) both;
-    }
+    /* Menus/popups/modals stay geometrically stable. */
+    .context-menu,
+    .online-menu,
+    .emoji-picker-popup,
+    #emoji-input-popup,
+    #react-picker-popup,
     .modal,
     .help-modal-inner,
     .ag-card,
-    #tour-card {
-      box-shadow: var(--clay-shadow-lg);
-    }
-    .online-item:hover {
-      transform: translateX(-3px) translateZ(6px);
-      box-shadow: var(--clay-shadow-sm);
-      background: rgba(255,255,255,.055);
-    }
-    .mobile-nav-btn.active {
-      transform: translateY(-2px) translateZ(8px);
-      text-shadow: 0 0 18px rgba(37,99,235,.35);
+    #tour-card,
+    .inbox-popup {
+      transform: none;
+      transform-style: flat;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -1854,7 +1769,6 @@
     }
 
     @media (max-width: 768px) {
-      body { perspective: 800px; }
       button:hover:not(:disabled),
       .secondary:hover:not(:disabled),
       .pt-btn:hover:not(:disabled),
@@ -1863,8 +1777,7 @@
       .online-item:hover {
         transform: none;
       }
-      .msg.actions-visible { transform: translateY(-1px); }
-      header, #sidebar, #chat, #online-panel { box-shadow: 0 8px 20px rgba(0,0,0,.20); }
+      .msg.actions-visible { transform: none; }
     }
 
 
