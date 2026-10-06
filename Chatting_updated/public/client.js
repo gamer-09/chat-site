@@ -111,6 +111,7 @@
     glassMotionToggle:document.getElementById('glass-motion-toggle'),
     glassStrength:    document.getElementById('glass-strength'),
     glassStrengthWrap:document.getElementById('glass-strength-wrap'),
+    glassStrengthVal: document.getElementById('glass-strength-val'),
     cancelEditProfileBtn:document.getElementById('cancel-edit-profile'),
     imageBtn:         document.getElementById('image-btn'),
     imageFile:        document.getElementById('image-file'),
@@ -589,6 +590,16 @@
     r.setProperty('--gb-scrim-b', a(base.scrimB  * k));
     r.setProperty('--gb-blur',    (4 + (p / 100) * 16).toFixed(1) + 'px');
     r.setProperty('--gb-blur-sm', (3 + (p / 100) * 12).toFixed(1) + 'px');
+    // show the exact level on the control so it can be quoted back to the operator
+    const pctLabel = Math.round(p) + '%';
+    if (elements.glassStrengthVal) elements.glassStrengthVal.textContent = pctLabel;
+    if (elements.glassStrengthWrap) {
+      const panelPct = Math.round(Number(r.getPropertyValue('--gb-panel')) * 100);
+      const blurPx = Number(r.getPropertyValue('--gb-blur').replace('px', ''));
+      elements.glassStrengthWrap.title =
+        'Glass thickness ' + pctLabel + ' — panels ' + panelPct + '% opaque, blur ' +
+        blurPx.toFixed(1) + 'px. All the way left is nearly bare glass, right is a solid panel.';
+    }
   }
   function glassBackdropMotion() {
     const gb = window.PTR29GlassBackdrop;

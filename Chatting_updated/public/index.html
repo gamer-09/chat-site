@@ -267,6 +267,14 @@
       line-height: 1;
     }
     .glass-strength input[type="range"] { width: 86px; height: 16px; accent-color: var(--accent); }
+    .glass-strength-val {
+      min-width: 38px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      font-size: 13px;
+      opacity: .95;
+    }
     
     /* Chat area */
     #chat {
@@ -2438,6 +2446,7 @@
           <label id="glass-strength-wrap" class="glass-strength" style="display:none" title="Glass thickness — all the way left is nearly bare glass (backdrop fully visible), right is a solid panel">
             <span aria-hidden="true">◐</span>
             <input type="range" id="glass-strength" min="0" max="100" step="5" value="35" aria-label="Glass see-through amount">
+            <b id="glass-strength-val" class="glass-strength-val">35%</b>
           </label>
           <button id="delete-user-btn" class="danger">Delete Account</button>
           <button id="logout-btn" class="secondary">Logout</button>
