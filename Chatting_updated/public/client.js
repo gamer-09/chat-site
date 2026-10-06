@@ -1647,7 +1647,14 @@
   const socketHandlers = {
     connect: () => {
       const idIssued = localStorage.getItem(CONSTANTS.CLIENT_ID_ISSUED_KEY);
-      if (idIssued === 'rename') {
+      // A signed-in account always owns the identity. The browser's anonymous
+      // auth uid must never replace it: doing so made new rooms/rows belong to
+      // whoever had last used this browser (e.g. a previous account).
+      const acct = getAccountSession();
+      if (acct && acct.id) {
+        state.myClientId = acct.id;
+        try { localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, acct.id); } catch {}
+      } else if (idIssued === 'rename') {
         state.myClientId = utils.getOrCreateClientId();
       } else if (window.ChatAPI && window.ChatAPI.uid) {
         state.myClientId = window.ChatAPI.uid;
@@ -3433,6 +3440,27 @@
   const ACCOUNT_KEY = 'ptr29_account_session';
   const TOUR_PENDING_KEY = 'ptr29_tour_pending_after_signup_v1';
   const getAccountSession = () => { try { return JSON.parse(localStorage.getItem(ACCOUNT_KEY) || 'null'); } catch { return null; } };
+
+  // One-time repair: rooms created on this browser before the identity fix were
+  // stored with owner_id = the browser's anonymous auth uid, so they showed a
+  // previous account as owner. The server only lets an account claim rooms whose
+  // owner_id is that browser's own uid, so this cannot take someone else's room.
+  const ROOMS_CLAIMED_KEY = 'ptr29_rooms_claimed_v1_';
+  async function claimRoomsFor(sess) {
+    if (!sess || !sess.id || !window.ChatAPI || !window.ChatAPI.claimRooms) return;
+    const flag = ROOMS_CLAIMED_KEY + sess.id;
+    try { if (localStorage.getItem(flag) === '1') return; } catch {}
+    const res = await window.ChatAPI.claimRooms(sess.id).catch(() => null);
+    if (res && res.ok) {
+      try { localStorage.setItem(flag, '1'); } catch {}
+      if (res.rooms) {
+        showToast('Re-assigned ' + res.rooms + ' room' + (res.rooms === 1 ? '' : 's') +
+          ' you created under an older login to ' + (sess.username || 'this account') + '.', 'success');
+        if (window.ChatAPI.refreshRooms) window.ChatAPI.refreshRooms();
+        if (typeof rooms !== 'undefined' && rooms.refreshRoomMeta) { try { rooms.refreshRoomMeta(); } catch {} }
+      }
+    }
+  }
   async function sha256hex(str) {
     try {
       const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
@@ -3795,6 +3823,7 @@
       localStorage.removeItem(CONSTANTS.CLIENT_ID_ISSUED_KEY);
     } catch {}
     if (window.ChatAPI && window.ChatAPI.setClientId) window.ChatAPI.setClientId(sess.id);
+    claimRoomsFor(sess);
     document.getElementById('logout-btn')?.addEventListener('click', logout);
     init();
     initMobile();  // Run after init

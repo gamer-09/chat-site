@@ -414,7 +414,9 @@
         .then(function (res) {
           if (res.error || !res.data) return null;
           var d = res.data;
-          var isManager = d.owner_id === api.uid || (d.admins || []).indexOf(api.uid) !== -1;
+          var me = api._clientId || api.uid;
+          var isManager = d.owner_id === me || (d.admins || []).indexOf(me) !== -1
+            || (api.uid && (d.owner_id === api.uid || (d.admins || []).indexOf(api.uid) !== -1));
           var ids = uni([].concat(d.owner_id || [], d.admins || [], d.members || []));
           return sb.from('users').select('client_id, username, avatar').in('client_id', ids.length ? ids : ['__none__'])
             .then(function (ures) {
@@ -441,6 +443,19 @@
         });
     },
 
+    // Re-assign rooms this browser created before the identity fix. Server-side
+    // the function only touches rows whose owner_id is this browser's own auth
+    // uid and only for an account this browser is signed in as.
+    claimRooms: function (acct) {
+      if (!acct) return Promise.resolve({ ok: false, error: 'no_account' });
+      return sb.rpc('claim_browser_rooms', { p_acct: String(acct) })
+        .then(function (r) {
+          if (r.error) return { ok: false, error: r.error.message || 'claim_failed' };
+          return r.data || { ok: false, error: 'claim_failed' };
+        })
+        .catch(function (e) { return { ok: false, error: String(e && e.message || e) }; });
+    },
+
     createRoom: function (name, isPrivate) {
       var clean = sanitizeRoom(name);
       if (!clean) return Promise.resolve({ ok: false, error: 'Invalid room name' });
@@ -448,11 +463,12 @@
       return sb.from('rooms').select('name').eq('name', clean).maybeSingle()
         .then(function (chk) {
           if (chk.data) return { ok: false, error: 'Room already exists' };
+          var me = api._clientId || api.uid;   // account id when signed in, never the browser uid
           return sb.from('rooms').insert({
             name: clean,
             is_private: !!isPrivate,
-            owner_id: api.uid,
-            admins: [api.uid],
+            owner_id: me,
+            admins: [me],
             members: [],
             passkey: '',
             created_at: Date.now()
