@@ -6,7 +6,7 @@
 // ── Network-first shell: always serve fresh same-origin assets ─────────────
 // GitHub Pages sends max-age=600; this SW bypasses the HTTP cache so deploys
 // reach users instantly, with cache fallback only when the network is dead.
-const CACHE = 'ptr29-shell-v2';
+const CACHE = 'ptr29-shell-v3';
 
 // Take over immediately the moment a newer sw.js arrives — no user is ever
 // stranded on a stale build behind an old worker.

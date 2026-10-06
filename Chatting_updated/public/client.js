@@ -2454,7 +2454,31 @@
   }
 
   // ── Init ───────────────────────────────────────────────────────────────────
+  // ── Stale-shell guard ──────────────────────────────────────────────────────
+  // GitHub Pages caches HTML for up to 10 minutes and the service worker only
+  // takes over AFTER it activates, so a fresh deploy can sit behind an old
+  // document (which is why fixes sometimes "don't appear"). Each deploy stamps
+  // the commit id into index.html and writes public/version.json; if this
+  // document is older than the deployed build, reload exactly once.
+  function checkBuildFreshness() {
+    const meta = document.querySelector('meta[name="ptr29-build"]');
+    const mine = meta && meta.content;
+    if (!mine || mine === '__BUILD__' || mine === 'dev') return;   // local/dev builds
+    fetch('version.json?t=' + Date.now(), { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data || !data.build || data.build === mine) return;
+        try {
+          if (sessionStorage.getItem('ptr29_reloaded_for') === data.build) return;  // never loop
+          sessionStorage.setItem('ptr29_reloaded_for', data.build);
+        } catch {}
+        location.reload();
+      })
+      .catch(() => {});
+  }
+
   const init = () => {
+    checkBuildFreshness();
     if (window.ChatAPI._offline) setTimeout(() => showToast('Backend unreachable — offline mode. Check your connection and reload.', 'error'), 600);
     profile.load();
     state.unreadCounts = utils.loadFromStorage(CONSTANTS.UNREAD_KEY, {});

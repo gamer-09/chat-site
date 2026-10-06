@@ -37,6 +37,15 @@ jobs:
           test -f Chatting_updated/public/mobile.css
           ls -la Chatting_updated/public
 
+      - name: Stamp build id
+        run: |
+          BUILD="${GITHUB_SHA::12}"
+          echo "stamping build $BUILD"
+          sed -i "s/__BUILD__/$BUILD/g" Chatting_updated/public/index.html
+          printf '{"build":"%s"}\n' "$BUILD" > Chatting_updated/public/version.json
+          grep -o 'name="ptr29-build" content="[^"]*"' Chatting_updated/public/index.html
+          cat Chatting_updated/public/version.json
+
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
