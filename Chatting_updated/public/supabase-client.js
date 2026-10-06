@@ -896,7 +896,23 @@
     },
 
     accountLogin: function (un, hash) {
-      return sb.rpc('login_account', { un: un, pass: hash }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
+      return sb.rpc('login_account', { un: un, pass: hash }).then(function (r) {
+        var out = r.data || { ok: false, error: (r.error && r.error.message) || 'failed' };
+        if (!out || !out.ok || out.avatar) return out;
+        // Older accounts often stored avatars in public.users, not accounts.avatar.
+        // Hydrate from the Supabase profile row so switching/login restores the image.
+        return sb.from('users').select('avatar').eq('client_id', String(out.id || '')).limit(1)
+          .then(function (u1) {
+            var row = u1.data && u1.data[0];
+            if (row && row.avatar) { out.avatar = row.avatar; return out; }
+            return sb.from('users').select('avatar').ilike('username', String(out.username || '')).limit(1)
+              .then(function (u2) {
+                var row2 = u2.data && u2.data[0];
+                if (row2 && row2.avatar) out.avatar = row2.avatar;
+                return out;
+              });
+          }).catch(function () { return out; });
+      });
     },
     accountRegister: function (un, hash, ageConfirmed, termsAccepted) {
       return sb.rpc('register_account', { un: un, pass: hash, age_confirmed: !!ageConfirmed, terms_accepted: !!termsAccepted }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
