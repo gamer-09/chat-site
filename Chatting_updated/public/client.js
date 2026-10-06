@@ -156,6 +156,7 @@
     GLASS_UI_KEY:  'ptr29_wenny_glass_ui_v1',
     GLASS_MOTION_KEY: 'ptr29_glass_motion_v1',
     GLASS_STRENGTH_KEY: 'ptr29_glass_strength_v1',
+    GLASS_STRENGTH_MAX: 15,   // final, operator-set cap: glass never goes more solid than this
     DEFAULT_AVATAR:'https://api.dicebear.com/7.x/thumbs/svg?seed=',
     MAX_IMAGE_BYTES: 5 * 1024 * 1024,
     MAX_FILE_BYTES: 10 * 1024 * 1024,
@@ -567,18 +568,21 @@
     light: { panel: .40,  item: .52,  strip: .36, msgsA: .22, msgsB: .10, scrimA: .02, scrimB: .10 },
   };
   function glassStrength() {
-    let v = 35;
+    const max = CONSTANTS.GLASS_STRENGTH_MAX;
+    let v = max;
     try { const raw = localStorage.getItem(CONSTANTS.GLASS_STRENGTH_KEY); if (raw !== null) v = Number(raw); } catch {}
-    if (!Number.isFinite(v)) v = 35;
-    return Math.min(100, Math.max(0, v));
+    if (!Number.isFinite(v)) v = max;
+    return Math.min(max, Math.max(0, v));
   }
   function applyGlassStrength(pct) {
-    const p = Number.isFinite(Number(pct)) ? Math.min(100, Math.max(0, Number(pct))) : glassStrength();
+    const max = CONSTANTS.GLASS_STRENGTH_MAX;
+    const p = Number.isFinite(Number(pct)) ? Math.min(max, Math.max(0, Number(pct))) : glassStrength();
     const light = document.documentElement.classList.contains('ptr29-light-theme');
     const base = light ? GLASS_ALPHA_BASE.light : GLASS_ALPHA_BASE.dark;
-    // 0 = almost bare glass, 100 = solid panel (alpha as well as blur, so the
-    // waves keep their shape instead of dissolving into a flat wash)
-    const k = 0.14 + (p / 100) * 1.48;
+    // 0 = bare glass, 15 (the cap) = the final shipped level: panels sit at ~15%
+    // opacity with a light blur, so the waves always stay clearly visible.
+    const n = p / max;
+    const k = 0.14 + n * 0.222;
     const a = (x) => Math.min(0.96, Math.max(0.015, x)).toFixed(3);
     const r = document.documentElement.style;
     r.setProperty('--gb-panel',   a(base.panel   * k));
@@ -588,8 +592,8 @@
     r.setProperty('--gb-msgs-b',  a(base.msgsB   * k));
     r.setProperty('--gb-scrim-a', a(base.scrimA  * k));
     r.setProperty('--gb-scrim-b', a(base.scrimB  * k));
-    r.setProperty('--gb-blur',    (4 + (p / 100) * 16).toFixed(1) + 'px');
-    r.setProperty('--gb-blur-sm', (3 + (p / 100) * 12).toFixed(1) + 'px');
+    r.setProperty('--gb-blur',    (4 + n * 2.4).toFixed(1) + 'px');
+    r.setProperty('--gb-blur-sm', (3 + n * 1.8).toFixed(1) + 'px');
     // show the exact level on the control so it can be quoted back to the operator
     const pctLabel = Math.round(p) + '%';
     if (elements.glassStrengthVal) elements.glassStrengthVal.textContent = pctLabel;
@@ -597,8 +601,8 @@
       const panelPct = Math.round(Number(r.getPropertyValue('--gb-panel')) * 100);
       const blurPx = Number(r.getPropertyValue('--gb-blur').replace('px', ''));
       elements.glassStrengthWrap.title =
-        'Glass thickness ' + pctLabel + ' — panels ' + panelPct + '% opaque, blur ' +
-        blurPx.toFixed(1) + 'px. All the way left is nearly bare glass, right is a solid panel.';
+        'Glass thickness ' + pctLabel + ' of ' + max + '% (capped) — panels ' + panelPct +
+        '% opaque, blur ' + blurPx.toFixed(1) + 'px.';
     }
   }
   function glassBackdropMotion() {
@@ -2124,7 +2128,10 @@
       });
     }
     if (elements.glassStrength) {
-      elements.glassStrength.value = String(glassStrength());
+      const capped = glassStrength();
+      elements.glassStrength.max = String(CONSTANTS.GLASS_STRENGTH_MAX);
+      elements.glassStrength.value = String(capped);
+      try { localStorage.setItem(CONSTANTS.GLASS_STRENGTH_KEY, String(capped)); } catch {}
       elements.glassStrength.addEventListener('input', () => {
         applyGlassStrength(elements.glassStrength.value);
         try { localStorage.setItem(CONSTANTS.GLASS_STRENGTH_KEY, String(elements.glassStrength.value)); } catch {}
