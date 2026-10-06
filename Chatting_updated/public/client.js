@@ -3214,6 +3214,9 @@
           <button type="button" class="ag-tab" data-m="reg">Create account</button>
         </div>
         <input id="ag-user" placeholder="Username" autocomplete="username">
+        <div id="ag-user-note" style="display:none;font-size:11.5px;color:var(--text-dim);line-height:1.35;margin:-4px 0 10px">
+          Email-style usernames such as <b>name@gmail.com</b> are allowed, but they are treated only as usernames — no email verification, email login, or password recovery is provided. Names containing “anonymous” are not allowed.
+        </div>
         <input id="ag-pass" type="password" placeholder="Password" autocomplete="current-password">
         <label id="ag-age-row" style="display:none;align-items:flex-start;gap:8px;font-size:12px;color:var(--text-muted);line-height:1.35;margin:-2px 0 10px">
           <input id="ag-age" type="checkbox" style="margin-top:2px">
@@ -3239,10 +3242,12 @@
       const p = ov.querySelector('#ag-pass');
       const ageRow = ov.querySelector('#ag-age-row');
       const termsRow = ov.querySelector('#ag-terms-row');
+      const userNote = ov.querySelector('#ag-user-note');
       p.placeholder = mode === 'reg' ? 'Strong password (8+ chars, upper/lower/number/symbol)' : 'Password';
       p.setAttribute('autocomplete', mode === 'reg' ? 'new-password' : 'current-password');
       if (ageRow) ageRow.style.display = mode === 'reg' ? 'flex' : 'none';
       if (termsRow) termsRow.style.display = mode === 'reg' ? 'flex' : 'none';
+      if (userNote) userNote.style.display = mode === 'reg' ? 'block' : 'none';
     }));
     ov.querySelector('#ag-go').addEventListener('click', async () => {
       const un = ov.querySelector('#ag-user').value.trim();
