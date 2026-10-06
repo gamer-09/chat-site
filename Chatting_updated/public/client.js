@@ -413,6 +413,81 @@
       return `<a class="safe-link" href="${href}" data-url="${href}" target="_blank" rel="noopener noreferrer nofollow ugc">${label}</a>${utils.escapeHtml(trailing)}`;
     }),
 
+    uniqueSafeLinks: (text, max = 2) => {
+      const seen = new Set();
+      const out = [];
+      for (const raw of utils.extractLinks(text)) {
+        const check = utils.validateLink(raw);
+        if (!check.ok) continue;
+        if (seen.has(check.url)) continue;
+        seen.add(check.url);
+        out.push(check.url);
+        if (out.length >= max) break;
+      }
+      return out;
+    },
+
+    linkPreviewData: (href) => {
+      const url = new URL(href);
+      const host = url.hostname.replace(/^www\./, '');
+      const path = url.pathname.replace(/\/$/, '');
+      const labelPath = path && path !== '' ? path.split('/').filter(Boolean).slice(-2).join(' / ') : '';
+      const known = {
+        'gamer-09.github.io/wippyio': {
+          title: 'wippy — Every project I have ever built',
+          desc: 'Project/service site by gamer-09.'
+        },
+        'gamer-09.github.io/note_vault': {
+          title: 'Note Vault',
+          desc: 'A notes project hosted on GitHub Pages.'
+        },
+        'www.youtube.com/@whitewanderer-j4w': {
+          title: 'childerviews2025',
+          desc: 'YouTube channel link.'
+        },
+        'youtube.com/@whitewanderer-j4w': {
+          title: 'childerviews2025',
+          desc: 'YouTube channel link.'
+        },
+        'www.instagram.com/not_udo2025': {
+          title: 'not_udo2025',
+          desc: 'Instagram profile link.'
+        },
+        'instagram.com/not_udo2025': {
+          title: 'not_udo2025',
+          desc: 'Instagram profile link.'
+        }
+      };
+      const key = (host + path).toLowerCase();
+      const meta = known[key] || {};
+      const title = meta.title || (labelPath ? `${host} — ${labelPath}` : host);
+      const desc = meta.desc || `Preview for ${host}${labelPath ? ' · ' + labelPath : ''}`;
+      const favicon = `${url.origin}/favicon.ico`;
+      return { href: url.href, host, title, desc, favicon };
+    },
+
+    renderLinkPreviews: (text) => {
+      const links = utils.uniqueSafeLinks(text, 2);
+      if (!links.length) return '';
+      return `<div class="link-previews">${links.map(href => {
+        let p;
+        try { p = utils.linkPreviewData(href); } catch { return ''; }
+        return `<a class="link-preview-card safe-link" href="${utils.escapeHtml(p.href)}" data-url="${utils.escapeHtml(p.href)}" target="_blank" rel="noopener noreferrer nofollow ugc">
+          <div class="link-preview-top">${utils.escapeHtml(p.href)}</div>
+          <div class="link-preview-main">
+            <div class="link-preview-thumb"><img src="${utils.escapeHtml(p.favicon)}" alt="" loading="lazy" onerror="this.style.display='none'"></div>
+            <div class="link-preview-copy">
+              <div class="link-preview-title">${utils.escapeHtml(p.title)}</div>
+              <div class="link-preview-desc">${utils.escapeHtml(p.desc)}</div>
+              <div class="link-preview-host">${utils.escapeHtml(p.host)}</div>
+            </div>
+          </div>
+        </a>`;
+      }).join('')}</div>`;
+    },
+
+    renderTextBody: (text) => `<span class="msg-content">${utils.renderMarkdown(text || '')}</span>${utils.renderLinkPreviews(text || '')}`,
+
     renderMarkdown: (text) => {
       try {
         let safe = utils.escapeHtml(text);
@@ -1052,7 +1127,7 @@
         ? `<img class="msg-image" src="${msg.dataUrl || msg.imageUrl || msg.fileUrl || ''}" alt="Shared image" loading="lazy">`
         : msg.type === 'file'
           ? `<a class="file-attachment" href="${msg.fileUrl || '#'}" download="${utils.escapeHtml(msg.message || 'file')}" target="_blank" rel="noopener noreferrer"><span>📎</span><span>${utils.escapeHtml(msg.message || 'File')}</span>${msg.fileSize ? `<span style="color:var(--text-dim);font-size:11px">${utils.formatFileSize(msg.fileSize)}</span>` : ''}</a>`
-          : `<span class="msg-content">${utils.renderMarkdown(msg.message || '')}</span>`;
+          : utils.renderTextBody(msg.message || '');
 
       const reactionEntries = msg.reactions ? Object.entries(msg.reactions).filter(([,u]) => u.length > 0) : [];
       const reactionsHtml = reactionEntries.length > 0
@@ -1535,7 +1610,7 @@
       const msgEl = document.querySelector(`[data-id="${data.id}"]`);
       if (!msgEl) return;
       const bodyEl = msgEl.querySelector('.body');
-      if (bodyEl) bodyEl.innerHTML = utils.renderMarkdown(data.message || '');
+      if (bodyEl) bodyEl.innerHTML = utils.renderTextBody(data.message || '');
       if (!msgEl.querySelector('.edited')) {
         msgEl.querySelector('.time')?.insertAdjacentHTML('afterend', '<span class="edited">(edited)</span>');
       }
