@@ -1427,7 +1427,12 @@
       if (!elements.onlineList) return;
       setTimeout(() => offline.refresh(), 250);
       elements.onlineList.innerHTML = '';
-      const listAll = (users || []).concat(state.tourMode ? (state.tourFakes || []) : []);
+      const listAll = (users || [])
+        .filter(u => {
+          const n = String(u && u.username || '').trim();
+          return n && !utils.isReservedUsername(n) && n !== 'Anonymous';
+        })
+        .concat(state.tourMode ? (state.tourFakes || []) : []);
       state.lastPresenceUsers = listAll;
       const pq = (state.peopleQuery || '').toLowerCase();
       const shown = pq ? listAll.filter(u => (u.username || '').toLowerCase().includes(pq)) : listAll;

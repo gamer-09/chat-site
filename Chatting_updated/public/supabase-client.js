@@ -69,6 +69,10 @@
     return DEFAULT_AVATAR + encodeURIComponent(String(name || 'Anonymous'));
   }
   function isReservedUsername(name) { return String(name || '').trim().toLowerCase().indexOf('anonymous') !== -1; }
+  function isDisplayableUsername(name) {
+    var n = String(name || '').trim();
+    return !!n && !isReservedUsername(n) && n !== 'Anonymous' && n.indexOf('🎓') !== 0;
+  }
   function uni(arr) { return Array.from(new Set((arr || []).filter(Boolean))); }
   function extOf(name) {
     var m = String(name || '').toLowerCase().match(/\.([a-z0-9]+)(?:[?#]|$)/);
@@ -1067,9 +1071,12 @@
     heartbeat: function (force) {
       if (!api.uid) return Promise.resolve();
       if (!force && !api._joined) return Promise.resolve();
+      if (!isDisplayableUsername(api._username)) {
+        return sb.from('presence').delete().eq('uid', api.uid).then(function () {}).catch(function () {});
+      }
       return sb.from('presence').upsert({
         uid: api.uid,
-        username: api._username || 'Anonymous',
+        username: api._username,
         avatar: api._avatar || '',
         room: api._currentRoom || '',
         updated_at: Date.now()
@@ -1081,9 +1088,9 @@
       var seen = {};
       Object.keys(api._presence).forEach(function (k) {
         var row = api._presence[k];
-        if (row.room === room && !seen[row.uid]) {
+        if (row.room === room && !seen[row.uid] && isDisplayableUsername(row.username)) {
           seen[row.uid] = true;
-          out.push({ username: row.username || 'Anonymous', avatar: row.avatar || '', clientId: row.uid });
+          out.push({ username: row.username, avatar: row.avatar || '', clientId: row.uid });
         }
       });
       return out;
@@ -1094,9 +1101,9 @@
       var seen = {};
       Object.keys(api._presence).forEach(function (k) {
         var row = api._presence[k];
-        if (!seen[row.uid]) {
+        if (!seen[row.uid] && isDisplayableUsername(row.username)) {
           seen[row.uid] = true;
-          out.push({ username: row.username || 'Anonymous', avatar: row.avatar || '', clientId: row.uid, room: row.room });
+          out.push({ username: row.username, avatar: row.avatar || '', clientId: row.uid, room: row.room });
         }
       });
       return out;
