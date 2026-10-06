@@ -2041,6 +2041,29 @@
     }
 
 
+
+    /* Glass mode: inner strips were left opaque (light mode looked flat/white) */
+    body.ptr29-glass-ui #rooms-header,
+    body.ptr29-glass-ui #online-header,
+    body.ptr29-glass-ui #room-bar,
+    body.ptr29-glass-ui #chat-form {
+      background: rgba(15,23,42,.44) !important;
+      border-color: rgba(148,163,184,.26) !important;
+      box-shadow: none !important;
+      backdrop-filter: blur(14px) saturate(1.25) !important;
+      -webkit-backdrop-filter: blur(14px) saturate(1.25) !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui #rooms-header,
+    html.ptr29-light-theme body.ptr29-glass-ui #online-header,
+    html.ptr29-light-theme body.ptr29-glass-ui #room-bar,
+    html.ptr29-light-theme body.ptr29-glass-ui #chat-form {
+      background: rgba(255,255,255,.44) !important;
+      border-color: rgba(148,163,184,.34) !important;
+      box-shadow: none !important;
+      backdrop-filter: blur(14px) saturate(1.35) !important;
+      -webkit-backdrop-filter: blur(14px) saturate(1.35) !important;
+    }
+
     /* ── Light mode surface correction: normal + Wenny glass test ────── */
     html.ptr29-light-theme #messages {
       background:
@@ -2088,7 +2111,7 @@
     /* Light + glass mode needs light glass, not the dark glass overlay. */
     html.ptr29-light-theme body.ptr29-glass-ui {
       background:
-        linear-gradient(180deg, rgba(228,239,252,.30), rgba(196,217,244,.48)),
+        linear-gradient(180deg, rgba(255,255,255,.10), rgba(222,236,252,.26)),
         url('glass-backdrop-light.jpg') center center / cover no-repeat,
         radial-gradient(circle at 12% 8%, rgba(59,130,246,.18), transparent 30%),
         radial-gradient(circle at 84% 18%, rgba(168,85,247,.14), transparent 34%),
@@ -2108,14 +2131,14 @@
     html.ptr29-light-theme body.ptr29-glass-ui .context-menu,
     html.ptr29-light-theme body.ptr29-glass-ui .online-menu,
     html.ptr29-light-theme body.ptr29-glass-ui .inbox-popup {
-      background: rgba(255,255,255,.62) !important;
+      background: rgba(255,255,255,.56) !important;
       border-color: rgba(148,163,184,.36) !important;
       box-shadow: 0 18px 42px rgba(15,23,42,.14), inset 0 1px 0 rgba(255,255,255,.72) !important;
-      backdrop-filter: blur(18px) saturate(1.12) !important;
-      -webkit-backdrop-filter: blur(18px) saturate(1.12) !important;
+      backdrop-filter: blur(18px) saturate(1.45) !important;
+      -webkit-backdrop-filter: blur(18px) saturate(1.45) !important;
     }
     html.ptr29-light-theme body.ptr29-glass-ui #messages {
-      background: linear-gradient(180deg, rgba(255,255,255,.34), rgba(255,255,255,.20)) !important;
+      background: linear-gradient(180deg, rgba(255,255,255,.46), rgba(255,255,255,.30)) !important;
     }
     html.ptr29-light-theme body.ptr29-glass-ui .msg,
     html.ptr29-light-theme body.ptr29-glass-ui .room,
