@@ -125,6 +125,24 @@
     if (allowedExts.indexOf(ext) === -1) return { ok: false, error: 'unsupported_file_type' };
     return { ok: true, mime: mime, ext: ext, max: MAX_FILE_BYTES };
   }
+  function dataUrlToBlob(dataUrl) {
+    var m = String(dataUrl || '').match(/^data:([^;,]*)(;base64)?,([\s\S]*)$/);
+    if (!m) throw new Error('invalid_data_url');
+    var mime = (m[1] || 'application/octet-stream').toLowerCase();
+    var isB64 = !!m[2];
+    var raw = m[3] || '';
+    var bin;
+    if (isB64) {
+      bin = atob(raw.replace(/[\r\n]/g, ''));
+    } else {
+      bin = decodeURIComponent(raw);
+    }
+    var len = bin.length;
+    var arr = new Uint8Array(len);
+    for (var i = 0; i < len; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+
   function trimLinkToken(raw) {
     var s = String(raw || '').trim();
     while (/[),.!?;:'"\]]$/.test(s)) s = s.slice(0, -1);
@@ -830,7 +848,7 @@
       var r = sanitizeRoom(room);
       if (!api.uid || !api._joined) return Promise.resolve({ ok: false, error: 'Join a room first' });
 
-      return fetch(dataUrl).then(function (resp) { return resp.blob(); }).then(function (blob) {
+      return Promise.resolve().then(function () { return dataUrlToBlob(dataUrl); }).then(function (blob) {
         var check = validateUpload(kind, originalName, blob);
         if (!check.ok) return { ok: false, error: check.error };
         if (check.kind === 'image') kind = 'image';
