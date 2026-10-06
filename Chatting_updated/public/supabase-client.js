@@ -298,7 +298,10 @@
       return row(api._clientId || api.uid).then(function (res) {
         if (res && res.error && api._clientId && api._clientId !== api.uid) return row(api.uid);
         return res;
-      }).then(function () {});
+      }).then(function () {
+        var acct = api._clientId || api.uid;
+        if (acct && api.accountUpdateProfile) return api.accountUpdateProfile(acct, av, false).then(function () {}, function () {});
+      });
     },
 
     updateProfile: function (room, username, avatar) {
@@ -893,6 +896,16 @@
           dispatch('inbox-changed', { action: 'revoked', requester: requester });
           return { ok: true };
         });
+    },
+
+    accountUpdateProfile: function (id, avatar, termsAccepted) {
+      var acct = String(id || '').trim();
+      if (!acct) return Promise.resolve({ ok: false, error: 'missing' });
+      return sb.rpc('update_account_profile', {
+        acct: acct,
+        avatar_in: String(avatar || ''),
+        terms_accepted_in: !!termsAccepted
+      }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
     },
 
     accountProfile: function (id, username) {

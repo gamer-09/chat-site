@@ -460,6 +460,16 @@
       const renamed = !!(oldUsername && newName && oldUsername !== newName);
       const data = { username, avatar, termsAgreed };
       utils.saveToStorage(CONSTANTS.STORAGE_KEY, data);
+      try {
+        const sess = getAccountSession && getAccountSession();
+        if (sess && sess.id) {
+          const nextSess = { ...sess, username: username || sess.username, avatar: avatar || '', termsAccepted: !!(termsAgreed || sess.termsAccepted) };
+          localStorage.setItem(ACCOUNT_KEY, JSON.stringify(nextSess));
+          if (window.ChatAPI && window.ChatAPI.accountUpdateProfile) {
+            window.ChatAPI.accountUpdateProfile(nextSess.id, avatar || '', !!termsAgreed).catch(() => {});
+          }
+        }
+      } catch {}
       if (renamed) {
         // New identity: a brand-new client ID on EVERY rename (never the
         // same one again, even if you switch back to an old name) and
