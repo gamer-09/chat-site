@@ -239,13 +239,27 @@ function sanitizeAvatarUrl(avatar) {
     return check.ok ? url.href : '';
   } catch { return ''; }
 }
+function mimeForExt(ext) {
+  const e = String(ext || '').toLowerCase();
+  if (e === 'jpg' || e === 'jpeg') return 'image/jpeg';
+  if (e === 'png') return 'image/png';
+  if (e === 'gif') return 'image/gif';
+  if (e === 'webp') return 'image/webp';
+  for (const [mime, exts] of ALLOWED_FILE_MIME.entries()) if ((exts || []).includes(e)) return mime;
+  return '';
+}
+function normalizeUploadMime(mime, ext) {
+  const m = String(mime || '').toLowerCase();
+  if (!m || m === 'application/octet-stream' || m === 'binary/octet-stream') return mimeForExt(ext) || m;
+  return m;
+}
 function parseBase64DataUrl(dataUrl) {
   if (typeof dataUrl !== 'string' || dataUrl.length > Math.ceil(MAX_JSON_BYTES * 1.05)) return null;
-  const m = dataUrl.match(/^data:([^;,]+);base64,([A-Za-z0-9+/=\r\n]+)$/);
+  const m = dataUrl.match(/^data:([^;,]*);base64,([A-Za-z0-9+/=\r\n]+)$/);
   if (!m) return null;
   const b64 = m[2].replace(/[\r\n]/g, '');
   if (!/^[A-Za-z0-9+/]+={0,2}$/.test(b64)) return null;
-  return { mime: m[1].toLowerCase(), buf: Buffer.from(b64, 'base64') };
+  return { mime: (m[1] || 'application/octet-stream').toLowerCase(), buf: Buffer.from(b64, 'base64') };
 }
 function validateImageUpload(dataUrl) {
   const parsed = parseBase64DataUrl(dataUrl);
@@ -261,6 +275,7 @@ function validateFileUpload(dataUrl, originalName) {
   const parsed = parseBase64DataUrl(dataUrl);
   if (!parsed) return { ok: false, error: 'invalid_file' };
   const ext = fileExt(originalName);
+  parsed.mime = normalizeUploadMime(parsed.mime, ext);
   if (BLOCKED_FILE_EXT.has(ext)) return { ok: false, error: 'blocked_file_type' };
   if (!parsed.buf.length) return { ok: false, error: 'empty_file' };
   if (parsed.buf.length > MAX_FILE_BYTES) return { ok: false, error: 'too_large' };

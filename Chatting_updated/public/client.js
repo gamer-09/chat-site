@@ -193,9 +193,23 @@
 
     isBlockedUploadExt: (name) => CONSTANTS.BLOCKED_UPLOAD_EXT.includes(utils.fileExt(name)),
 
+    mimeForFileExt: (ext) => {
+      const e = String(ext || '').toLowerCase();
+      if (e === 'jpg' || e === 'jpeg') return 'image/jpeg';
+      if (e === 'png') return 'image/png';
+      if (e === 'gif') return 'image/gif';
+      if (e === 'webp') return 'image/webp';
+      for (const [mime, exts] of Object.entries(CONSTANTS.ALLOWED_FILE_MIME)) {
+        if ((exts || []).includes(e)) return mime;
+      }
+      return '';
+    },
+
     validateImageFile: (file, label = 'Image', maxBytes = CONSTANTS.MAX_IMAGE_BYTES) => {
       if (!file) return { ok: false, message: 'Choose a file first.' };
-      if (!CONSTANTS.ALLOWED_IMAGE_MIME.includes(file.type)) {
+      const ext = utils.fileExt(file.name);
+      const mime = file.type || utils.mimeForFileExt(ext);
+      if (!CONSTANTS.ALLOWED_IMAGE_MIME.includes(mime)) {
         return { ok: false, message: `${label} type not allowed. Use JPG, PNG, GIF, or WebP.` };
       }
       if (file.size <= 0) return { ok: false, message: `${label} is empty.` };
@@ -208,9 +222,10 @@
       if (file.size <= 0) return { ok: false, message: 'File is empty.' };
       if (file.size > CONSTANTS.MAX_FILE_BYTES) return { ok: false, message: `File too large (max ${utils.formatFileSize(CONSTANTS.MAX_FILE_BYTES)}).` };
       if (utils.isBlockedUploadExt(file.name)) return { ok: false, message: 'That file type is blocked for security.' };
-      if (CONSTANTS.ALLOWED_IMAGE_MIME.includes(file.type)) return utils.validateImageFile(file);
       const ext = utils.fileExt(file.name);
-      const allowedExts = CONSTANTS.ALLOWED_FILE_MIME[file.type] || [];
+      const mime = file.type || utils.mimeForFileExt(ext);
+      if (CONSTANTS.ALLOWED_IMAGE_MIME.includes(mime)) return utils.validateImageFile(file);
+      const allowedExts = CONSTANTS.ALLOWED_FILE_MIME[mime] || [];
       if (!allowedExts.includes(ext)) {
         return { ok: false, message: 'File type not allowed. Use PDF, TXT, CSV, JSON, DOCX, XLSX, PPTX, JPG, PNG, GIF, or WebP.' };
       }

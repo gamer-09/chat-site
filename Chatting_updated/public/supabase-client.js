@@ -89,9 +89,23 @@
     var list = ALLOWED_FILE_MIME[mime] || [];
     return list[0] || fallback || 'bin';
   }
+  function mimeForExt(ext) {
+    var e = String(ext || '').toLowerCase();
+    if (e === 'jpg' || e === 'jpeg') return 'image/jpeg';
+    if (e === 'png') return 'image/png';
+    if (e === 'gif') return 'image/gif';
+    if (e === 'webp') return 'image/webp';
+    for (var mime in ALLOWED_FILE_MIME) if ((ALLOWED_FILE_MIME[mime] || []).indexOf(e) !== -1) return mime;
+    return '';
+  }
+  function normalizeUploadMime(mime, ext) {
+    var m = String(mime || '').toLowerCase();
+    if (!m || m === 'application/octet-stream' || m === 'binary/octet-stream') return mimeForExt(ext) || m;
+    return m;
+  }
   function validateUpload(kind, originalName, blob) {
-    var mime = String(blob && blob.type || '').toLowerCase();
     var ext = extOf(originalName);
+    var mime = normalizeUploadMime(blob && blob.type, ext);
     if (!blob || !blob.size) return { ok: false, error: 'empty_file' };
     if (BLOCKED_UPLOAD_EXT.indexOf(ext) !== -1) return { ok: false, error: 'blocked_file_type' };
     if (kind === 'image') {
