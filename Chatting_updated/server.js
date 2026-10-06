@@ -559,7 +559,7 @@ app.get('/api/rooms/:room/search', (req, res) => {
     return res.status(403).json({ error: 'forbidden' });
   }
   
-  const allMessages = getMessages(room, 1000); // Search up to last 1000 messages
+  const allMessages = getMessages(room, 200); // Search recent messages only to reduce bandwidth
   const results = allMessages.filter(m => (m.message || '').toLowerCase().includes(q) || (m.username || '').toLowerCase().includes(q));
   
   return res.json({ room, query: q, results });
@@ -770,7 +770,7 @@ io.on('connection', (socket) => {
     socket.emit('system', { type: 'welcome', message: `Welcome, ${username}! You joined #${room}` });
     socket.to(room).emit('system', { type: 'join', message: `${username} joined #${room}` });
     socket.emit('rooms', getVisibleRoomsForClient(socket));
-    socket.emit('history', { room, messages: getMessages(room, 100) });
+    socket.emit('history', { room, messages: getMessages(room, 50) });
     presenceJoin(room, socket);
   });
 

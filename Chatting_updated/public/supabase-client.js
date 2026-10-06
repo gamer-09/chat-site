@@ -45,6 +45,9 @@
   var MAX_LINKS_PER_MESSAGE = 5;
   var MAX_LINK_LENGTH = 2048;
   var BLOCKED_LINK_EXT = ['exe', 'msi', 'apk', 'ipa', 'dmg', 'pkg', 'bat', 'cmd', 'sh', 'ps1', 'vbs', 'scr', 'jar', 'js', 'mjs', 'wasm'];
+  var HISTORY_LIMIT = 50;
+  var SEARCH_LIMIT = 150;
+  var PEOPLE_LIMIT = 120;
 
   // ── Event dispatch ─────────────────────────────────────────────────────────
   var handlers = {};
@@ -275,11 +278,11 @@
             if (pl.room === api._currentRoom) dispatch('typing', pl);
           })
           .subscribe();
-        api._heartbeatTimer = setInterval(function () { api.heartbeat(false); }, 15000);
+        api._heartbeatTimer = setInterval(function () { api.heartbeat(false); }, 45000);
         api._pruneTimer = setInterval(function () {
-          sb.rpc('prune_stale_presence', { older_than_ms: 45000 }).then(function () {}, function () {});
+          sb.rpc('prune_stale_presence', { older_than_ms: 120000 }).then(function () {}, function () {});
           api.heartbeat(true);
-        }, 30000);
+        }, 90000);
         api.ready = true;
         dispatch('connect');
       }).catch(function (e) {
@@ -465,7 +468,7 @@
           api.upsertProfile(username, avatar);
           api.heartbeat(true);
 
-          api.getHistory(room, 100).then(function (messages) {
+          api.getHistory(room, HISTORY_LIMIT).then(function (messages) {
             dispatch('history', { room: room, messages: messages });
           });
           api.getRoomMeta(room).then(function (meta) {
@@ -509,8 +512,8 @@
 
     offlineUsers: function () {
       return Promise.all([
-        sb.from('users').select('username,avatar,last_seen').limit(200),
-        sb.from('presence').select('username').limit(200)
+        sb.from('users').select('username,avatar,last_seen').limit(PEOPLE_LIMIT),
+        sb.from('presence').select('username').limit(PEOPLE_LIMIT)
       ]).then(function (rs) {
         var on = {};
         (rs[1].data || []).forEach(function (x) { on[String(x.username || '').toLowerCase()] = true; });
@@ -610,24 +613,28 @@
     // ── Messages ─────────────────────────────────────────────────────────────
     getHistory: function (room, limit) {
       var r = sanitizeRoom(room);
-      return sb.from('messages').select('*').eq('room', r)
-        .order('payload->>timestamp', { ascending: false }).limit(limit || 100)
+      var lim = Math.max(1, Math.min(Number(limit || HISTORY_LIMIT) || HISTORY_LIMIT, 100));
+      return sb.from('messages').select('id, room, payload').eq('room', r)
+        .order('payload->>timestamp', { ascending: false }).limit(lim)
         .then(function (res) {
           var msgs = (res.data || [])
             .map(function (row) { return row.payload; })
             .filter(Boolean)
             .sort(function (a, b) { return (a.timestamp || 0) - (b.timestamp || 0); })
-            .slice(-(limit || 100));
-          return api.loadMetaTables(r).then(function () {
+            .slice(-lim);
+          var ids = msgs.map(function (m) { return m && m.id; }).filter(Boolean);
+          return api.loadMetaTables(r, ids).then(function () {
             return msgs.map(function (m) { return api.mergeMeta(r, m); });
           });
         });
     },
 
-    loadMetaTables: function (room) {
+    loadMetaTables: function (room, messageIds) {
+      var ids = (messageIds || []).filter(Boolean);
+      if (!ids.length) { api._reactions[room] = {}; api._receipts[room] = {}; return Promise.resolve(); }
       var jobs = [
-        sb.from('reactions').select('*').eq('room', room),
-        sb.from('receipts').select('*').eq('room', room)
+        sb.from('reactions').select('*').eq('room', room).in('message_id', ids).limit(ids.length * 20),
+        sb.from('receipts').select('*').eq('room', room).in('message_id', ids).limit(ids.length * 20)
       ];
       return Promise.all(jobs).then(function (results) {
         var reac = {};
@@ -801,7 +808,7 @@
       var r = sanitizeRoom(room);
       var query = String(q || '').trim().toLowerCase();
       if (!query) return Promise.resolve({ results: [] });
-      return sb.from('messages').select('*').eq('room', r).limit(500)
+      return sb.from('messages').select('id, room, payload').eq('room', r).limit(SEARCH_LIMIT)
         .then(function (res) {
           var out = (res.data || [])
             .map(function (row) { return row.payload; })
@@ -1040,7 +1047,7 @@
         .then(function (r) { return (r.data && r.data[0]) || null; }).catch(function () { return null; });
       var statsQ = sb.from('messages')
         .select('payload->>room,payload->>timestamp,payload->>type,payload->>reactions')
-        .eq('payload->>username', un).limit(300)
+        .eq('payload->>username', un).limit(120)
         .then(function (r) { return r.data || []; }).catch(function () { return []; });
       return Promise.all([userQ, statsQ]).then(function (rs) {
         var urow = rs[0], rows = rs[1];
@@ -1238,7 +1245,7 @@
       ch.subscribe(function (status) {
         if (status === 'SUBSCRIBED' && api.uid) {
           // Load initial presence snapshot
-          sb.from('presence').select('*').then(function (res) {
+          sb.from('presence').select('*').limit(PEOPLE_LIMIT).then(function (res) {
             if (!res.error) {
               api._presence = {};
               (res.data || []).forEach(function (row) { api._presence[row.uid] = row; });

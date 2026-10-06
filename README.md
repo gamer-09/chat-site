@@ -301,6 +301,20 @@ Do not send passwords, room passkeys, or unnecessary sensitive information throu
 
 ---
 
+## Egress / bandwidth controls
+
+The GitHub Pages + Supabase deployment is tuned to reduce Supabase egress:
+
+- Room history loads the latest 50 messages by default.
+- Reactions/read receipts are fetched only for the currently loaded history messages, not the whole room.
+- Message search is limited to recent messages.
+- Presence heartbeat/pruning intervals are less aggressive than the original realtime prototype.
+- Upload size/type limits keep large media from consuming storage/egress unexpectedly.
+
+If egress spikes, check Storage downloads first: shared images/files are usually the largest contributor. Consider deleting old uploaded objects, reducing image sizes, or moving to a paid Supabase plan before sharing publicly.
+
+---
+
 ## Legal & Safety
 
 Running a public chat platform makes you the operator. These steps protect you:
