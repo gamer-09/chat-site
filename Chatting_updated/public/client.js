@@ -108,6 +108,7 @@
     avatarFile:       document.getElementById('avatar-file'),
     editProfileBtn:   document.getElementById('edit-profile-btn'),
     glassUiToggle:    document.getElementById('glass-ui-toggle'),
+    glassMotionToggle:document.getElementById('glass-motion-toggle'),
     cancelEditProfileBtn:document.getElementById('cancel-edit-profile'),
     imageBtn:         document.getElementById('image-btn'),
     imageFile:        document.getElementById('image-file'),
@@ -150,6 +151,7 @@
     UNREAD_KEY:    'ptr29_unread_v2',
     INBOX_SEEN_KEY:'ptr29_inbox_seen_v1',
     GLASS_UI_KEY:  'ptr29_wenny_glass_ui_v1',
+    GLASS_MOTION_KEY: 'ptr29_glass_motion_v1',
     DEFAULT_AVATAR:'https://api.dicebear.com/7.x/thumbs/svg?seed=',
     MAX_IMAGE_BYTES: 5 * 1024 * 1024,
     MAX_FILE_BYTES: 10 * 1024 * 1024,
@@ -540,6 +542,24 @@
       elements.glassUiToggle.textContent = enabled ? '↩ Normal UI' : '🫧 Glass UI';
       elements.glassUiToggle.title = enabled ? 'Return to normal UI' : 'Try glass UI';
     }
+    if (elements.glassMotionToggle) {
+      elements.glassMotionToggle.style.display = enabled ? '' : 'none';
+      elements.glassMotionToggle.textContent = glassBackdropMotion() ? '⏸ Still' : '▶ Animate';
+      elements.glassMotionToggle.title = glassBackdropMotion()
+        ? 'Freeze the live backdrop (saves battery)'
+        : 'Resume the live backdrop animation';
+    }
+    // Live canvas backdrop: only runs while glass mode is on, so normal UI costs nothing.
+    const gb = window.PTR29GlassBackdrop;
+    if (gb) {
+      gb.setTheme(document.documentElement.classList.contains('ptr29-light-theme'));
+      gb.setEnabled(!!enabled);
+    }
+  }
+  function glassBackdropMotion() {
+    const gb = window.PTR29GlassBackdrop;
+    if (gb) return gb.motionOn();
+    try { return localStorage.getItem(CONSTANTS.GLASS_MOTION_KEY) !== '0'; } catch { return true; }
   }
   function syncGlassUiAccess(username) {
     const allowed = canUseGlassUi(username);
@@ -2058,6 +2078,16 @@
         try { localStorage.setItem(CONSTANTS.GLASS_UI_KEY, next ? '1' : '0'); } catch {}
       });
     }
+    if (elements.glassMotionToggle) {
+      elements.glassMotionToggle.addEventListener('click', () => {
+        if (!canUseGlassUi(state.myUsername)) return;
+        const gb = window.PTR29GlassBackdrop;
+        const next = !glassBackdropMotion();
+        if (gb) gb.setMotion(next);
+        else { try { localStorage.setItem(CONSTANTS.GLASS_MOTION_KEY, next ? '1' : '0'); } catch {} }
+        setGlassUiEnabled(document.body.classList.contains('ptr29-glass-ui'));
+      });
+    }
 
     elements.editProfileBtn.addEventListener('click', () => {
       elements.editClientId.textContent = state.myClientId || '';
@@ -2400,6 +2430,7 @@
     r.style.setProperty('--composer-surface', '#ffffff');
     r.classList.add('ptr29-light-theme');
     document.getElementById('theme-toggle').textContent = '☀️';
+    if (window.PTR29GlassBackdrop) window.PTR29GlassBackdrop.setTheme(true);
   }
 
   function applyDarkTheme() {
@@ -2407,6 +2438,7 @@
     r.style.removeProperty('color-scheme');
     ['--success','--danger','--warning','--composer-bg','--composer-surface'].forEach((k) => r.style.removeProperty(k));
     r.classList.remove('ptr29-light-theme');
+    if (window.PTR29GlassBackdrop) window.PTR29GlassBackdrop.setTheme(false);
     r.style.removeProperty('--bg');
     r.style.removeProperty('--panel');
     r.style.removeProperty('--panel2');

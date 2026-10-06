@@ -1230,6 +1230,72 @@ html.ptr29-light-theme.ptr29-mobile #image-btn {
 .ptr29-mobile .link-preview-desc { font-size: 11.5px; }
 
 
+/* Keep the account buttons on whole labels: let them wrap instead of shrinking */
+.ptr29-mobile .user-actions { flex-wrap: wrap; }
+.ptr29-mobile .user-actions button { flex: 0 0 auto; white-space: nowrap; }
+
+/* ── Wenny glass UI mode mobile: frost the composer, tab bar and inputs ── */
+/* These elements are forced opaque further up this file (!important), so glass
+   mode needs equal-or-stronger rules or the live backdrop stops at the bottom. */
+body.ptr29-mobile.ptr29-glass-ui #input-area {
+  background: rgba(15,23,42,.44) !important;
+  border-top-color: rgba(148,163,184,.26) !important;
+  box-shadow: 0 -12px 30px rgba(0,0,0,.30) !important;
+  backdrop-filter: blur(14px) saturate(1.25);
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
+}
+body.ptr29-mobile.ptr29-glass-ui #mobile-nav {
+  background: rgba(15,23,42,.46) !important;
+  border-top-color: rgba(148,163,184,.26) !important;
+  backdrop-filter: blur(14px) saturate(1.25);
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
+}
+body.ptr29-mobile.ptr29-glass-ui #text {
+  background: rgba(255,255,255,.10) !important;
+  border-color: rgba(203,213,225,.24) !important;
+  color: var(--text) !important;
+}
+html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #input-area {
+  background: rgba(255,255,255,.44) !important;
+  border-top-color: rgba(148,163,184,.34) !important;
+  box-shadow: 0 -12px 30px rgba(15,23,42,.10) !important;
+}
+html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #mobile-nav {
+  background: rgba(255,255,255,.46) !important;
+  border-top-color: rgba(148,163,184,.34) !important;
+}
+html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #text {
+  background: rgba(255,255,255,.62) !important;
+  border-color: rgba(148,163,184,.34) !important;
+  color: #0b1526 !important;
+  -webkit-text-fill-color: #0b1526 !important;
+}
+html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #emoji-btn,
+html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #file-btn,
+html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #image-btn {
+  background: rgba(255,255,255,.62) !important;
+  border-color: rgba(148,163,184,.34) !important;
+}
+body.ptr29-mobile.ptr29-glass-ui #emoji-btn,
+body.ptr29-mobile.ptr29-glass-ui #file-btn,
+body.ptr29-mobile.ptr29-glass-ui #image-btn {
+  background: rgba(255,255,255,.10) !important;
+  border-color: rgba(203,213,225,.24) !important;
+}
+/* the phone layout only ever shows one pane, so keep the backdrop visible behind it */
+body.ptr29-mobile.ptr29-glass-ui #sidebar,
+body.ptr29-mobile.ptr29-glass-ui #chat,
+body.ptr29-mobile.ptr29-glass-ui #online-panel {
+  background: rgba(15,23,42,.48) !important;
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #sidebar,
+html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #chat,
+html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #online-panel {
+  background: rgba(255,255,255,.50) !important;
+}
+
 /* ── Wenny glass UI mode mobile safety ───────────────────────────────── */
 /* The glass backdrop photo is painted on <body>; keep it viewport-anchored
    (never `fixed`, which iOS mishandles around the dynamic address bar). */

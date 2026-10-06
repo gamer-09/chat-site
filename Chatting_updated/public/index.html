@@ -1974,14 +1974,28 @@
 
     /* ── Optional Wenny-only glass UI test mode ─────────────────────── */
     body.ptr29-glass-ui {
+      /* the backdrop now lives in #glass-backdrop (z-index: -1) so a canvas can animate under the UI */
+      background: transparent !important;
+    }
+    #glass-backdrop {
+      position: fixed; inset: 0; z-index: -1; display: none;
+      pointer-events: none; overflow: hidden; contain: strict;
+    }
+    body.ptr29-glass-ui #glass-backdrop { display: block; }
+    #gb-static,
+    #gb-canvas,
+    #gb-scrim { position: absolute; inset: 0; }
+    #gb-static {
       background:
-        linear-gradient(180deg, rgba(5,12,24,.38), rgba(5,12,24,.60)),
-        url('glass-backdrop-dark.jpg') center center / cover no-repeat,
         radial-gradient(circle at 12% 8%, rgba(96,165,250,.22), transparent 30%),
         radial-gradient(circle at 84% 18%, rgba(168,85,247,.20), transparent 34%),
         radial-gradient(circle at 50% 105%, rgba(45,212,191,.12), transparent 38%),
+        url('glass-backdrop-dark.jpg') center center / cover no-repeat,
         #07111f;
     }
+    #gb-canvas { width: 100%; height: 100%; display: block; opacity: 0; transition: opacity .55s ease; }
+    #gb-canvas.on { opacity: 1; }
+    #gb-scrim { background: linear-gradient(180deg, rgba(5,12,24,.38), rgba(5,12,24,.60)); }
     body.ptr29-glass-ui header,
     body.ptr29-glass-ui #sidebar,
     body.ptr29-glass-ui #chat,
@@ -2110,14 +2124,19 @@
 
     /* Light + glass mode needs light glass, not the dark glass overlay. */
     html.ptr29-light-theme body.ptr29-glass-ui {
+      background: transparent !important;
+      color: #0b1526 !important;
+    }
+    html.ptr29-light-theme #gb-static {
       background:
-        linear-gradient(180deg, rgba(255,255,255,.10), rgba(222,236,252,.26)),
-        url('glass-backdrop-light.jpg') center center / cover no-repeat,
-        radial-gradient(circle at 12% 8%, rgba(59,130,246,.18), transparent 30%),
+        radial-gradient(circle at 12% 8%, rgba(79,157,247,.16), transparent 30%),
         radial-gradient(circle at 84% 18%, rgba(168,85,247,.14), transparent 34%),
         radial-gradient(circle at 50% 105%, rgba(45,212,191,.12), transparent 38%),
-        #eef4fb !important;
-      color: #0b1526 !important;
+        url('glass-backdrop-light.jpg') center center / cover no-repeat,
+        #eef4fb;
+    }
+    html.ptr29-light-theme #gb-scrim {
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(216,232,250,.16));
     }
     html.ptr29-light-theme body.ptr29-glass-ui header,
     html.ptr29-light-theme body.ptr29-glass-ui #sidebar,
@@ -2131,14 +2150,14 @@
     html.ptr29-light-theme body.ptr29-glass-ui .context-menu,
     html.ptr29-light-theme body.ptr29-glass-ui .online-menu,
     html.ptr29-light-theme body.ptr29-glass-ui .inbox-popup {
-      background: rgba(255,255,255,.56) !important;
+      background: rgba(255,255,255,.48) !important;
       border-color: rgba(148,163,184,.36) !important;
       box-shadow: 0 18px 42px rgba(15,23,42,.14), inset 0 1px 0 rgba(255,255,255,.72) !important;
-      backdrop-filter: blur(18px) saturate(1.45) !important;
+      backdrop-filter: blur(18px) saturate(1.5) !important;
       -webkit-backdrop-filter: blur(18px) saturate(1.45) !important;
     }
     html.ptr29-light-theme body.ptr29-glass-ui #messages {
-      background: linear-gradient(180deg, rgba(255,255,255,.46), rgba(255,255,255,.30)) !important;
+      background: linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,.16)) !important;
     }
     html.ptr29-light-theme body.ptr29-glass-ui .msg,
     html.ptr29-light-theme body.ptr29-glass-ui .room,
@@ -2262,6 +2281,12 @@
   </style>
 </head>
 <body>
+  <!-- Live glass backdrop (Wenny glass UI test): still image first paint, canvas waves on top, theme scrim above -->
+  <div id="glass-backdrop" aria-hidden="true">
+    <div id="gb-static"></div>
+    <canvas id="gb-canvas"></canvas>
+    <div id="gb-scrim"></div>
+  </div>
   <header>
     <div class="brand" title="ptr_29 Chat">
       <svg viewBox="0 0 48 48" width="27" height="27" aria-hidden="true"><defs><linearGradient id="ptr29g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".55" stop-color="#3b82f6"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs><path d="M24 5C13 5 4 12.8 4 22.4c0 5.4 2.9 10.2 7.5 13.4-.2 2.9-1.4 5.5-3.4 7.5 4.4-.4 8.2-1.8 10.9-3.7 1.6.3 3.3.5 5 .5 11 0 20-7.8 20-17.4S35 5 24 5z" fill="none" stroke="url(#ptr29g)" stroke-width="3.2" stroke-linejoin="round"/><path d="M26.8 13.5 18.6 25h5.6l-2.3 9.5L30.4 22h-5.6l2-8.5z" fill="url(#ptr29g)"/></svg>
@@ -2309,6 +2334,7 @@
         <div class="user-actions">
           <button id="edit-profile-btn" class="secondary">Edit Profile</button>
           <button id="glass-ui-toggle" class="secondary" style="display:none" title="Toggle glass UI test">🫧 Glass UI</button>
+          <button id="glass-motion-toggle" class="secondary" style="display:none" title="Pause or play the live backdrop">⏸ Still</button>
           <button id="delete-user-btn" class="danger">Delete Account</button>
           <button id="logout-btn" class="secondary">Logout</button>
         </div>
@@ -2785,7 +2811,8 @@
             <ul class="help-tips">
               <li>🆔 <strong>Your identity follows your account</strong> — log in on any device and your content is there; signup and existing-account access require 13+ confirmation plus Terms/Privacy acceptance; passwords are SHA-256-salted on-device, then bcrypt + pepper server-side</li>
               <li>🌙 <strong>Theme</strong> — switch dark/light with the 🌙/☀️ toolbar button; your choice is remembered</li>
-              <li>🫧 <strong>Glass UI test (Wenny only)</strong> — the 🫧 Glass UI button swaps the flat panels for frosted glass floating over a photo backdrop; it ships dark and light backdrop variants, is remembered per browser, and leaves the normal UI untouched for everyone else</li>
+              <li>🫧 <strong>Glass UI test (Wenny only)</strong> — the 🫧 Glass UI button swaps the flat panels for frosted glass floating over a <strong>live backdrop</strong>: flowing colour waves drawn on the spot, with dark and light palettes that follow your theme</li>
+              <li>⏸ <strong>Motion</strong> — the ⏸ Still / ▶ Animate button freezes or resumes the backdrop (handy on battery saver or slow devices); the choice is remembered per browser, and the app also honours your system "reduce motion" setting by starting still. Both buttons disappear with the normal UI, and the backdrop never loads for anyone else</li>
               <li>🔒 <strong>Private rooms are not end-to-end encrypted</strong>; authorized participants and infrastructure providers may technically access content</li>
               <li>🗑️ <strong>Delete Account</strong> (password-verified) erases account + user + every message/reaction/receipt + presence + owned rooms; renames wipe the old name; the operator can purge any username</li>
               <li>⚪ <strong>Presence &amp; last-seen</strong> are visible to other users while your tab is open and as a “seen …” time after you leave</li>
@@ -2949,6 +2976,7 @@
   <script>
     // per-load cache-busting: stale JS can never run again
     document.write('<link rel="stylesheet" href="mobile.css?t=' + Date.now() + '" media="(max-width: 768px)">');
+    document.write('<script src="glass-backdrop.js?t=' + Date.now() + '"><\/script>');
     document.write('<script src="supabase-client.js?t=' + Date.now() + '"><\/script>');
     document.write('<script src="client.js?t=' + Date.now() + '"><\/script>');
   </script>
