@@ -1023,3 +1023,26 @@ body.ptr29-mobile {
   min-width: 0;
   flex: 1;
 }
+
+/* ── 3D motion mobile safety overrides ──────────────────────────────── */
+.ptr29-mobile .msg,
+.ptr29-mobile .room,
+.ptr29-mobile button,
+.ptr29-mobile .secondary,
+.ptr29-mobile .online-item {
+  transform-style: flat;
+}
+.ptr29-mobile .msg:hover,
+.ptr29-mobile .room:hover,
+.ptr29-mobile .online-item:hover {
+  transform: none !important;
+}
+.ptr29-mobile .msg.actions-visible {
+  transform: translateY(-1px) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ptr29-mobile *, .ptr29-mobile *::before, .ptr29-mobile *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
