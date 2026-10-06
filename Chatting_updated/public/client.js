@@ -3439,7 +3439,8 @@
 
   async function ensureExistingAccountTermsAccepted(sess) {
     if (!sess || !sess.id) return true;
-    if (sess.termsAccepted) return true;
+    // Always ask Supabase. Local session flags are only cache and must not be
+    // allowed to skip the required Terms gate.
     if (!window.ChatAPI || !window.ChatAPI.accountTermsStatus) return showTermsVerifyGate(sess);
     await waitForChatAPIReady();
     const status = await window.ChatAPI.accountTermsStatus(sess.id).catch(e => ({ ok: false, error: String(e && e.message || e || 'terms_status_failed') }));
@@ -3468,7 +3469,8 @@
 
   async function ensureExistingAccountAgeVerified(sess) {
     if (!sess || !sess.id) return true;
-    if (sess.ageConfirmed) return true;
+    // Always ask Supabase. Local session flags are only cache and must not be
+    // allowed to skip the required 13+ age gate.
     if (!window.ChatAPI || !window.ChatAPI.accountAgeStatus) return showAgeVerifyGate(sess);
     await waitForChatAPIReady();
     const status = await window.ChatAPI.accountAgeStatus(sess.id).catch(e => ({ ok: false, error: String(e && e.message || e || 'age_status_failed') }));
