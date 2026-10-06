@@ -11,15 +11,14 @@ permissions:
   pages: write
   id-token: write
 
+
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
+    name: Build static Pages artifact
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,13 +27,33 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
-          enablement: true  # auto-enable Pages if not yet configured (avoids "Get Pages site failed / Not Found")
+          enablement: true
 
-      - name: Upload static site
+      - name: Verify static site files
+        run: |
+          test -f Chatting_updated/public/index.html
+          test -f Chatting_updated/public/client.js
+          test -f Chatting_updated/public/supabase-client.js
+          test -f Chatting_updated/public/mobile.css
+          ls -la Chatting_updated/public
+
+      - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: Chatting_updated/public
+          name: github-pages
+          path: ./Chatting_updated/public
+          retention-days: 1
 
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages
