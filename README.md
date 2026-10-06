@@ -24,8 +24,7 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | People panel | Online/Offline toggle with live counts, **search filter**, last-seen times |
 | Member profiles | Online-list ⋮ menu → personal card (avatar, status, activity stats); view-only entry point |
 | Client-ID requests | Consent-based: reasoned request → recipient approves/denies in the 📥 Inbox; approval shares a snapshot and can later be stopped/revoked |
-| Guided tour | 🎓 watch-only demo: fake volunteers Nova & Rex; guide demonstrates room controls, safe links, Client-ID Inbox basics, and temporary demo rooms auto-delete |
-| Username rules | Any username containing “anonymous” is reserved; abandoned/orphan names auto-reclaimable; active names protected |
+| Username rules | Any username containing “anonymous” is reserved and cannot be created, edited into, logged into, or continued from legacy sessions; abandoned/orphan names auto-reclaimable; active names protected |
 | Full wipes | Rename fully erases the old name's messages/reactions/receipts; **Delete Account** (password-verified) erases account + user + all content + owned rooms; operator `purge_user()` for any name |
 | Reactions | Instant hover tooltip with names ("you" for self), correct own-detection, toggle semantics |
 | Accounts | 🔐 Login/register gate before app access; 13+ age confirmation for new and legacy accounts; bcrypt+pepper hashed passwords (SHA-256 on-device first); hashes unreadable via API; 5-try rate limit; logout button; Delete Account = full erase |
@@ -33,7 +32,7 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | Auto avatars | DiceBear avatars generated from your username, or supply your own URL |
 | Admin tools | Rename, clear, delete, transfer ownership, manage admins and users |
 | Inbox | Received + sent Client-ID requests, realtime badge/popup notifications, approval/denial status, and Stop sharing controls |
-| Guided tour | 🎓 Manual live walkthrough from the 🎓 button or Help replay; creates temporary demo rooms only when started and deletes them when finished |
+| Guided tour | 🎓 Launches once after a brand-new account is created, and can be replayed manually from the 🎓 button or Help. It creates temporary demo rooms only when started and deletes them when finished |
 | Themes | 🌙/☀️ dark-light toggle, remembered per browser |
 | Resilience | Self-hosted Supabase lib, versioned assets, network-first service worker |
 | Built-in help | Slide-by-slide help guide accessible from the toolbar |

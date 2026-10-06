@@ -2960,7 +2960,7 @@
     function buildSteps() {
       return [
         { title: 'Welcome 🎓', html: 'Sit back — the guide does everything while you watch. Two demo rooms were created; fake volunteers <b>Nova</b> and <b>Rex</b> will help demonstrate. Press <b>Next</b> to continue.' },
-        { sel: ['#user-section'], mobile: 'rooms', title: '1 · Account identity', html: 'You entered through the 🔐 account gate — login/register is required before anything else. New signups must confirm 13+, and existing accounts are prompted once if not yet verified.' },
+        { sel: ['#user-section'], mobile: 'rooms', title: '1 · Account identity', html: 'You entered through the 🔐 account gate — login/register is required before anything else. New signups must confirm 13+, accept Terms, and usernames containing <b>anonymous</b> are blocked.' },
         { sel: ['#room-list'], mobile: 'rooms', title: '2 · Demo rooms', html: `The guide created <b>#${pubRoom}</b> (public) and 🔒 <b>#${privRoom}</b> (private). You own them for this tour; they vanish at the end.` },
         { sel: ['#messages'], mobile: 'chat', run: async () => { closeSettings(); await joinRoom(pubRoom); }, title: '3 · Entering the room', html: 'The guide just walked into the public demo room. Watch the chat panel light up.' },
         { sel: [PEOPLE_BTN_SEL, '#online-panel'], mobile: 'online', tabletPeople: true, before: openTabletPeople, title: '4 · Meet the volunteers', html: '<b>Nova</b> and <b>Rex</b> just appeared in the <span class="show-desktop-only">Online list</span><span class="show-tablet-only">People panel — it slides in from the 👥 button highlighted above</span><span class="show-mobile-only">Online tab</span> — the fake people who help demonstrate management.' },
@@ -3181,6 +3181,7 @@
 
   // ── Accounts: gate, login, register, logout ──────────────────────────────
   const ACCOUNT_KEY = 'ptr29_account_session';
+  const TOUR_PENDING_KEY = 'ptr29_tour_pending_after_signup_v1';
   const getAccountSession = () => { try { return JSON.parse(localStorage.getItem(ACCOUNT_KEY) || 'null'); } catch { return null; } };
   async function sha256hex(str) {
     try {
@@ -3293,6 +3294,7 @@
         localStorage.removeItem(CONSTANTS.PASSKEYS_KEY);
         localStorage.removeItem(CONSTANTS.UNREAD_KEY);
         localStorage.removeItem(CONSTANTS.INBOX_SEEN_KEY);
+        if (mode === 'reg') sessionStorage.setItem(TOUR_PENDING_KEY, '1');
       } catch {}
       location.reload();
     });
@@ -3457,9 +3459,14 @@
     document.getElementById('logout-btn')?.addEventListener('click', logout);
     init();
     initMobile();  // Run after init
-    // Guided tour is manual only (🎓 button / Help replay). Do not auto-create
-    // tour rooms on login/relogin; that caused duplicate tour rooms if users
-    // refreshed, logged out/in, or hit a broken tour state.
+    // Launch the tour once after a successful new account creation only.
+    // Do not auto-create tour rooms on ordinary login/relogin.
+    try {
+      if (sessionStorage.getItem(TOUR_PENDING_KEY) === '1') {
+        sessionStorage.removeItem(TOUR_PENDING_KEY);
+        setTimeout(() => tour.start(), 900);
+      }
+    } catch {}
   })();
 
   if ('serviceWorker' in navigator) {

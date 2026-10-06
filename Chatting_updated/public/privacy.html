@@ -98,7 +98,7 @@
       <h2>2. Information processed</h2>
       <ul class="data-list">
         <li><strong>Account data:</strong> access requires login or registration at the start gate. We store your username, password hash — the password is SHA-256-salted on your device, then bcrypt-hashed server-side with a secret pepper — avatar, creation time, account session records, and whether the account has confirmed the 13+ age requirement. There is no password-recovery process, and hashes are not readable, listable, or modifiable through the API.</li>
-        <li><strong>Profile data:</strong> your chosen username, optional avatar URL, anonymous user/client ID, and last-seen time.</li>
+        <li><strong>Profile data:</strong> your chosen username, optional avatar URL, Supabase anonymous-auth/user/client ID, and last-seen time. Display usernames containing “anonymous” are reserved and blocked.</li>
         <li><strong>Room data:</strong> room name, public/private setting, owner, administrators, members, creation time, and any room passkey.</li>
         <li><strong>Content:</strong> messages, replies, edit state, timestamps, reactions, read receipts, files, images, original filenames, MIME type, and file size.</li>
         <li><strong>Link processing:</strong> messages are checked for ordinary and Markdown-style links so unsafe protocols, private/local destinations, credential-obfuscated URLs, punycode look-alikes, risky downloads, and link spam can be blocked before storage. The app does not perform a full third-party malware or phishing reputation scan of destination sites.</li>
@@ -177,7 +177,7 @@
       <h2>11. Your choices and rights</h2>
       <p>Depending on where you live, you may have rights to access, correct, delete, restrict, or object to certain processing, or to receive a portable copy. These rights may be limited by the anonymous nature of the Service, other users’ rights, legal obligations, and the ability to verify that a browser identity or content belongs to you.</p>
       <p>You can edit your own profile, delete eligible messages, leave rooms, clear browser data, disable notifications, or use the in-app <strong>Delete Account</strong> control, which performs the full erase described in section 6. For a broader request, contact the operator and provide the minimum information needed to identify the relevant account, room, or message.</p>
-      <p>The current creator/admin interface cannot terminate another anonymous identity, ban a user across the platform, revoke or reserve a username, or automatically erase every record associated with a person. A request may require a manual Supabase data operation, may be limited by the ability to verify ownership, and may not be technically possible for every provider record or copy.</p>
+      <p>The current creator/admin interface cannot generally terminate another Supabase anonymous identity, ban an arbitrary user across the platform, force a username change, or automatically erase every record associated with a person. The reserved “anonymous” username pattern is blocked by app/database rules for new and legacy account use. A request may require a manual Supabase data operation, may be limited by the ability to verify ownership, and may not be technically possible for every provider record or copy.</p>
     </section>
 
     <section class="section">
