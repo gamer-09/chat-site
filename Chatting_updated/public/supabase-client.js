@@ -350,6 +350,10 @@
         if (res && res.error && api._clientId && api._clientId !== api.uid) return row(api.uid);
         return res;
       }).then(function () {
+        // the room owner is stored as this browser's uid, so that row must carry
+        // the CURRENT account's name or rooms show the previous account's name
+        return api.syncIdentityRow();
+      }).then(function () {
         var acct = api._clientId || api.uid;
         if (acct && api.accountUpdateProfile) return api.accountUpdateProfile(acct, av, false).then(function () {}, function () {});
       });
@@ -414,9 +418,8 @@
         .then(function (res) {
           if (res.error || !res.data) return null;
           var d = res.data;
-          var me = api._clientId || api.uid;
-          var isManager = d.owner_id === me || (d.admins || []).indexOf(me) !== -1
-            || (api.uid && (d.owner_id === api.uid || (d.admins || []).indexOf(api.uid) !== -1));
+          var isManager = api.isMine(d.owner_id)
+            || (d.admins || []).some(function (x) { return api.isMine(x); });
           var ids = uni([].concat(d.owner_id || [], d.admins || [], d.members || []));
           return sb.from('users').select('client_id, username, avatar').in('client_id', ids.length ? ids : ['__none__'])
             .then(function (ures) {
@@ -443,9 +446,47 @@
         });
     },
 
-    // Re-assign rooms this browser created before the identity fix. Server-side
-    // the function only touches rows whose owner_id is this browser's own auth
-    // uid and only for an account this browser is signed in as.
+    // Every id that legitimately means "me" on this device: the signed-in
+    // account id, this browser's auth uid, and the current client id. Rooms and
+    // rows created before or after the account model must both read as mine.
+    identityAliases: function () {
+      var out = [];
+      var push = function (v) { v = String(v || '').trim(); if (v && out.indexOf(v) === -1) out.push(v); };
+      push(api._clientId);
+      push(api.uid);
+      if (api._accountId) push(api._accountId);
+      return out;
+    },
+
+    isMine: function (id) {
+      var v = String(id || '').trim();
+      if (!v) return false;
+      return api.identityAliases().indexOf(v) !== -1;
+    },
+
+    isMineAny: function (ids) {
+      if (!Array.isArray(ids)) return false;
+      return ids.some(function (x) { return api.isMine(x); });
+    },
+
+    // Keep the users row for THIS browser's uid showing the signed-in account's
+    // name/avatar, so a room created now is displayed under the right account
+    // even though ownership is stored as the auth uid.
+    syncIdentityRow: function () {
+      if (!api.uid) return Promise.resolve();
+      if (!api._accountId) return Promise.resolve();
+      if (!isDisplayableUsername(api._username)) return Promise.resolve();
+      return sb.from('users').upsert({
+        client_id: api.uid,
+        username: api._username,
+        avatar: api._avatar || '',
+        last_seen: Date.now()
+      }, { onConflict: 'client_id' }).then(function () {}, function () {});
+    },
+
+    // Re-point any room this browser owns so the owner shows the signed-in
+    // account, and refresh this browser's users row. Never moves ownership to a
+    // different identity (server RPCs must keep accepting it).
     claimRooms: function (acct) {
       if (!acct) return Promise.resolve({ ok: false, error: 'no_account' });
       return sb.rpc('claim_browser_rooms', { p_acct: String(acct) })
@@ -460,15 +501,19 @@
       var clean = sanitizeRoom(name);
       if (!clean) return Promise.resolve({ ok: false, error: 'Invalid room name' });
       if (clean === 'general') return Promise.resolve({ ok: false, error: 'Room already exists' });
+      return api.syncIdentityRow().then(function () {
       return sb.from('rooms').select('name').eq('name', clean).maybeSingle()
         .then(function (chk) {
           if (chk.data) return { ok: false, error: 'Room already exists' };
-          var me = api._clientId || api.uid;   // account id when signed in, never the browser uid
+          // owner_id must stay the browser's auth uid: RLS and the room RPCs
+          // (delete_room, rename_room, …) compare against auth.uid(). The owner
+          // NAME is resolved from the users row, which we keep in sync with the
+          // signed-in account (see syncIdentityRow).
           return sb.from('rooms').insert({
             name: clean,
             is_private: !!isPrivate,
-            owner_id: me,
-            admins: [me],
+            owner_id: api.uid,
+            admins: [api.uid],
             members: [],
             passkey: '',
             created_at: Date.now()
@@ -478,6 +523,7 @@
             return { ok: true, name: clean, created: true };
           });
         });
+      });
     },
 
     doJoin: function (p) {
@@ -518,8 +564,8 @@
           .catch(function () { proceed({ ok: false, error: 'rpc_error' }); });
       };
       api.getRoomMeta(room).then(function (meta) {
-        var isMember = meta && (meta.ownerId === api.uid
-          || meta.admins.indexOf(api.uid) !== -1
+        var isMember = meta && (api.isMine(meta.ownerId)
+          || (meta.admins || []).some(function (x) { return api.isMine(x); })
           || meta.members.indexOf(api.uid) !== -1);
         if (isMember) {
           proceed({ ok: true });
@@ -1294,6 +1340,7 @@
 
   // Client-issued identity override (set after a rename)
   api.setClientId = function (id) { api._clientId = id || null; };
+  api.setAccountId = function (id) { api._accountId = id || null; };
 
   // ── Public helpers for rendering media (signed URLs) ───────────────────────
   window.PtrMedia = {

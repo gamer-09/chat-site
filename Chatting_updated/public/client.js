@@ -908,8 +908,8 @@
     },
 
     renderMeta: (meta) => {
-      const isOwner = meta.ownerId === state.myClientId;
-      const isAdmin = (meta.admins || []).includes(state.myClientId);
+      const isOwner = isMine(meta.ownerId);
+      const isAdmin = isMineAny(meta.admins);
       state.canManageCurrentRoom = isOwner || isAdmin;
       state.canDeleteRoom = isOwner || isAdmin;
 
@@ -946,7 +946,7 @@
         elements.roomAdminsList.innerHTML = list.length === 0
           ? '<span style="color:var(--text-dim)">None</span>'
           : list.map(u => {
-              const isOwnerChip = meta.ownerId === u.clientId;
+              const isOwnerChip = isMine(u.clientId) || String(u.clientId) === String(meta.ownerId || '');
               const canRemove = state.canManageCurrentRoom && !isOwnerChip && state.currentRoom !== 'general';
               return `<span class="chip member-chip" title="${utils.escapeHtml(u.username)}">
                 ${utils.escapeHtml(u.username)}${isOwnerChip ? ' 👑' : ''}
@@ -1165,7 +1165,7 @@
     if (!msg) return false;
     const u = String(msg.username || '').trim();
     const me = String(state.myUsername || '').trim();
-    if (msg.clientId === state.myClientId) {
+    if (isMine(msg.clientId) || msg.clientId === state.myClientId) {
       // renamed away from these? then they're not yours anymore
       if (u && me && u !== me) return false;
       return true;
@@ -1177,7 +1177,7 @@
     if (!el) return false;
     const u = String(el.dataset.username || '').trim();
     const me = String(state.myUsername || '').trim();
-    if (el.dataset.clientId === state.myClientId) {
+    if (isMine(el.dataset.clientId) || el.dataset.clientId === state.myClientId) {
       if (u && me && u !== me) return false;
       return true;
     }
@@ -1663,6 +1663,7 @@
         state.myClientId = utils.getOrCreateClientId();
       }
       if (window.ChatAPI && window.ChatAPI.setClientId) window.ChatAPI.setClientId(state.myClientId);
+      if (acct && acct.id && window.ChatAPI && window.ChatAPI.setAccountId) window.ChatAPI.setAccountId(acct.id);
       try { const d = JSON.parse(localStorage.getItem(CONSTANTS.STORAGE_KEY) || '{}'); state.myUsername = d.username || ''; } catch {}
       // keep the server-side profile row (name + avatar) in sync
       if (state.myUsername) socket.emit('update-profile', { room: state.currentRoom, username: state.myUsername, avatar: (utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {}) || {}).avatar || '' });
@@ -1699,7 +1700,7 @@
       if (document.querySelector(`[data-id="${data.id}"]`)) return; // dedupe (realtime + optimistic)
       if (data.room === state.currentRoom) {
         messages.render(data);
-        if (data.clientId !== state.myClientId)
+        if (!isMine(data.clientId) && data.clientId !== state.myClientId)
           socket.emit('mark-read', { room: state.currentRoom, messageId: data.id });
       } else {
         state.unreadCounts[data.room] = (state.unreadCounts[data.room] || 0) + 1;
@@ -3441,6 +3442,19 @@
   const TOUR_PENDING_KEY = 'ptr29_tour_pending_after_signup_v1';
   const getAccountSession = () => { try { return JSON.parse(localStorage.getItem(ACCOUNT_KEY) || 'null'); } catch { return null; } };
 
+  // Every id that legitimately means "me" on this device.
+  function myIds() {
+    const out = [];
+    const push = (v) => { const s = String(v || '').trim(); if (s && !out.includes(s)) out.push(s); };
+    push(state.myClientId);
+    if (window.ChatAPI) { push(window.ChatAPI.uid); push(window.ChatAPI._clientId); push(window.ChatAPI._accountId); }
+    const sess = getAccountSession();
+    if (sess && sess.id) push(sess.id);
+    return out;
+  }
+  function isMine(id) { const v = String(id || '').trim(); return !!v && myIds().includes(v); }
+  function isMineAny(ids) { return Array.isArray(ids) && ids.some((x) => isMine(x)); }
+
   // One-time repair: rooms created on this browser before the identity fix were
   // stored with owner_id = the browser's anonymous auth uid, so they showed a
   // previous account as owner. The server only lets an account claim rooms whose
@@ -3823,6 +3837,8 @@
       localStorage.removeItem(CONSTANTS.CLIENT_ID_ISSUED_KEY);
     } catch {}
     if (window.ChatAPI && window.ChatAPI.setClientId) window.ChatAPI.setClientId(sess.id);
+    if (window.ChatAPI && window.ChatAPI.setAccountId) window.ChatAPI.setAccountId(sess.id);
+    if (window.ChatAPI && window.ChatAPI.syncIdentityRow) window.ChatAPI.syncIdentityRow();
     claimRoomsFor(sess);
     document.getElementById('logout-btn')?.addEventListener('click', logout);
     init();
