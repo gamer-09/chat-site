@@ -185,6 +185,16 @@
     } catch (e) { return ''; }
   }
 
+  function friendlyUploadError(message, where) {
+    var msg = String(message || 'Upload failed');
+    if (/row-level security|violates.*policy|not authorized|permission/i.test(msg)) {
+      return where === 'message'
+        ? 'Upload saved, but posting it was blocked by the database message policy. Run Supabase migration 029_upload_policy_and_message_fix.sql.'
+        : 'Upload blocked by Supabase Storage policy. Run Supabase migration 029_upload_policy_and_message_fix.sql.';
+    }
+    return msg;
+  }
+
   // ── API object ─────────────────────────────────────────────────────────────
   var api = {
     sb: sb,
@@ -825,7 +835,7 @@
 
         return sb.storage.from('chat-uploads').upload(path, blob, { contentType: mime, upsert: false })
           .then(function (up) {
-            if (up.error) return { ok: false, error: up.error.message || 'Upload failed' };
+            if (up.error) return { ok: false, error: friendlyUploadError(up.error.message, 'storage') };
             var payload = {
               id: genId(),
               room: r,
@@ -844,7 +854,7 @@
             };
             return sb.from('messages').insert({ id: payload.id, room: r, payload: payload })
               .then(function (res) {
-                if (res.error) return { ok: false, error: res.error.message || 'Upload failed' };
+                if (res.error) return { ok: false, error: friendlyUploadError(res.error.message, 'message') };
                 dispatch('chat-message', api.mergeMeta(r, payload));
                 return { ok: true, message: payload };
               });
