@@ -1979,6 +1979,73 @@
     .link-preview-host { color: var(--text-dim); font-size: 11px; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .link-preview-card:hover { border-color: var(--accent); }
 
+
+    /* ── Optional Wenny-only glass UI test mode ─────────────────────── */
+    body.ptr29-glass-ui {
+      background:
+        radial-gradient(circle at 12% 8%, rgba(96,165,250,.22), transparent 30%),
+        radial-gradient(circle at 84% 18%, rgba(168,85,247,.20), transparent 34%),
+        radial-gradient(circle at 50% 105%, rgba(45,212,191,.12), transparent 38%),
+        #07111f;
+    }
+    body.ptr29-glass-ui header,
+    body.ptr29-glass-ui #sidebar,
+    body.ptr29-glass-ui #chat,
+    body.ptr29-glass-ui #online-panel,
+    body.ptr29-glass-ui #room-bar,
+    body.ptr29-glass-ui #input-area,
+    body.ptr29-glass-ui .modal,
+    body.ptr29-glass-ui .help-modal-inner,
+    body.ptr29-glass-ui .ag-card,
+    body.ptr29-glass-ui .context-menu,
+    body.ptr29-glass-ui .online-menu,
+    body.ptr29-glass-ui .inbox-popup {
+      background: rgba(15, 23, 42, .58) !important;
+      border-color: rgba(148, 163, 184, .28) !important;
+      box-shadow: 0 18px 54px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.08) !important;
+      backdrop-filter: blur(18px) saturate(1.18);
+      -webkit-backdrop-filter: blur(18px) saturate(1.18);
+    }
+    body.ptr29-glass-ui #messages {
+      background: linear-gradient(180deg, rgba(15,23,42,.12), rgba(15,23,42,.04));
+    }
+    body.ptr29-glass-ui .msg,
+    body.ptr29-glass-ui .room,
+    body.ptr29-glass-ui input,
+    body.ptr29-glass-ui select,
+    body.ptr29-glass-ui textarea,
+    body.ptr29-glass-ui button.secondary,
+    body.ptr29-glass-ui .file-attachment,
+    body.ptr29-glass-ui .reaction-pill,
+    body.ptr29-glass-ui .link-preview-card {
+      background: rgba(255,255,255,.075) !important;
+      border-color: rgba(203,213,225,.20) !important;
+      box-shadow: 0 10px 30px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.08) !important;
+      backdrop-filter: blur(14px) saturate(1.15);
+      -webkit-backdrop-filter: blur(14px) saturate(1.15);
+    }
+    body.ptr29-glass-ui .msg.me {
+      background: linear-gradient(135deg, rgba(37,99,235,.52), rgba(124,58,237,.34)) !important;
+      border-color: rgba(147,197,253,.30) !important;
+    }
+    body.ptr29-glass-ui #text,
+    body.ptr29-glass-ui #username,
+    body.ptr29-glass-ui #people-search,
+    body.ptr29-glass-ui #search-messages-input {
+      color: var(--text) !important;
+      -webkit-text-fill-color: var(--text) !important;
+    }
+    body.ptr29-glass-ui .mobile-nav-btn.active,
+    body.ptr29-glass-ui .pt-btn.active,
+    body.ptr29-glass-ui .room.active {
+      background: linear-gradient(135deg, rgba(37,99,235,.62), rgba(124,58,237,.42)) !important;
+      color: #fff !important;
+    }
+    body.ptr29-glass-ui #glass-ui-toggle {
+      border-color: rgba(125,211,252,.45) !important;
+      color: #bfdbfe !important;
+    }
+
   </style>
 </head>
 <body>

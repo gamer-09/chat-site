@@ -107,6 +107,7 @@
     avatarUploadBtn:  document.getElementById('avatar-upload-btn'),
     avatarFile:       document.getElementById('avatar-file'),
     editProfileBtn:   document.getElementById('edit-profile-btn'),
+    glassUiToggle:    document.getElementById('glass-ui-toggle'),
     cancelEditProfileBtn:document.getElementById('cancel-edit-profile'),
     imageBtn:         document.getElementById('image-btn'),
     imageFile:        document.getElementById('image-file'),
@@ -148,6 +149,7 @@
     PASSKEYS_KEY:  'ptr29_room_keys_v2',
     UNREAD_KEY:    'ptr29_unread_v2',
     INBOX_SEEN_KEY:'ptr29_inbox_seen_v1',
+    GLASS_UI_KEY:  'ptr29_wenny_glass_ui_v1',
     DEFAULT_AVATAR:'https://api.dicebear.com/7.x/thumbs/svg?seed=',
     MAX_IMAGE_BYTES: 5 * 1024 * 1024,
     MAX_FILE_BYTES: 10 * 1024 * 1024,
@@ -529,6 +531,29 @@
     closeAll: ()  => document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open')),
   };
 
+  function canUseGlassUi(username) {
+    return String(username || '').trim().toLowerCase() === 'wenny';
+  }
+  function setGlassUiEnabled(enabled) {
+    document.body.classList.toggle('ptr29-glass-ui', !!enabled);
+    if (elements.glassUiToggle) {
+      elements.glassUiToggle.textContent = enabled ? '↩ Normal UI' : '🫧 Glass UI';
+      elements.glassUiToggle.title = enabled ? 'Return to normal UI' : 'Try glass UI';
+    }
+  }
+  function syncGlassUiAccess(username) {
+    const allowed = canUseGlassUi(username);
+    if (elements.glassUiToggle) elements.glassUiToggle.style.display = allowed ? '' : 'none';
+    if (!allowed) {
+      setGlassUiEnabled(false);
+      try { localStorage.removeItem(CONSTANTS.GLASS_UI_KEY); } catch {}
+      return;
+    }
+    let enabled = false;
+    try { enabled = localStorage.getItem(CONSTANTS.GLASS_UI_KEY) === '1'; } catch {}
+    setGlassUiEnabled(enabled);
+  }
+
   // ── Profile ────────────────────────────────────────────────────────────────
   const profile = {
     load: () => {
@@ -594,6 +619,7 @@
       if (elements.editUsername) elements.editUsername.value = username || '';
       if (elements.editAvatar) elements.editAvatar.value = avatar || '';
       if (elements.mobileUsername) elements.mobileUsername.value = username || '';
+      syncGlassUiAccess(username || '');
     },
 
     // Debounced live username availability checker
@@ -2024,6 +2050,15 @@
     elements.confirmDeleteUserBtn.addEventListener('click', profile.delete);
 
     // Edit profile
+    if (elements.glassUiToggle) {
+      elements.glassUiToggle.addEventListener('click', () => {
+        if (!canUseGlassUi(state.myUsername)) return;
+        const next = !document.body.classList.contains('ptr29-glass-ui');
+        setGlassUiEnabled(next);
+        try { localStorage.setItem(CONSTANTS.GLASS_UI_KEY, next ? '1' : '0'); } catch {}
+      });
+    }
+
     elements.editProfileBtn.addEventListener('click', () => {
       elements.editClientId.textContent = state.myClientId || '';
       const data = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
