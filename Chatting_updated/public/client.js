@@ -566,16 +566,18 @@
     light: { panel: .40,  item: .52,  strip: .36, msgsA: .22, msgsB: .10, scrimA: .02, scrimB: .10 },
   };
   function glassStrength() {
-    let v = 25;
+    let v = 35;
     try { const raw = localStorage.getItem(CONSTANTS.GLASS_STRENGTH_KEY); if (raw !== null) v = Number(raw); } catch {}
-    if (!Number.isFinite(v)) v = 25;
-    return Math.min(100, Math.max(10, v));
+    if (!Number.isFinite(v)) v = 35;
+    return Math.min(100, Math.max(0, v));
   }
   function applyGlassStrength(pct) {
-    const p = Number.isFinite(Number(pct)) ? Math.min(100, Math.max(10, Number(pct))) : glassStrength();
+    const p = Number.isFinite(Number(pct)) ? Math.min(100, Math.max(0, Number(pct))) : glassStrength();
     const light = document.documentElement.classList.contains('ptr29-light-theme');
     const base = light ? GLASS_ALPHA_BASE.light : GLASS_ALPHA_BASE.dark;
-    const k = 0.60 + (p / 100) * 0.90;          // thinner glass = fewer alpha, more backdrop
+    // 0 = almost bare glass, 100 = solid panel (alpha as well as blur, so the
+    // waves keep their shape instead of dissolving into a flat wash)
+    const k = 0.14 + (p / 100) * 1.48;
     const a = (x) => Math.min(0.96, Math.max(0.015, x)).toFixed(3);
     const r = document.documentElement.style;
     r.setProperty('--gb-panel',   a(base.panel   * k));
@@ -585,6 +587,8 @@
     r.setProperty('--gb-msgs-b',  a(base.msgsB   * k));
     r.setProperty('--gb-scrim-a', a(base.scrimA  * k));
     r.setProperty('--gb-scrim-b', a(base.scrimB  * k));
+    r.setProperty('--gb-blur',    (4 + (p / 100) * 16).toFixed(1) + 'px');
+    r.setProperty('--gb-blur-sm', (3 + (p / 100) * 12).toFixed(1) + 'px');
   }
   function glassBackdropMotion() {
     const gb = window.PTR29GlassBackdrop;

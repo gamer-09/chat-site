@@ -1241,14 +1241,14 @@ body.ptr29-mobile.ptr29-glass-ui #input-area {
   background: rgba(15,23,42, var(--gb-strip, .34)) !important;
   border-top-color: rgba(148,163,184,.26) !important;
   box-shadow: 0 -12px 30px rgba(0,0,0,.30) !important;
-  backdrop-filter: blur(14px) saturate(1.25);
-  -webkit-backdrop-filter: blur(14px) saturate(1.25);
+  backdrop-filter: blur(var(--gb-blur-sm, 14px)) saturate(1.25);
+  -webkit-backdrop-filter: blur(var(--gb-blur-sm, 14px)) saturate(1.25);
 }
 body.ptr29-mobile.ptr29-glass-ui #mobile-nav {
   background: rgba(15,23,42, var(--gb-strip, .36)) !important;
   border-top-color: rgba(148,163,184,.26) !important;
-  backdrop-filter: blur(14px) saturate(1.25);
-  -webkit-backdrop-filter: blur(14px) saturate(1.25);
+  backdrop-filter: blur(var(--gb-blur-sm, 14px)) saturate(1.25);
+  -webkit-backdrop-filter: blur(var(--gb-blur-sm, 14px)) saturate(1.25);
 }
 body.ptr29-mobile.ptr29-glass-ui #text {
   background: rgba(255,255,255,.10) !important;
@@ -1287,8 +1287,8 @@ body.ptr29-mobile.ptr29-glass-ui #sidebar,
 body.ptr29-mobile.ptr29-glass-ui #chat,
 body.ptr29-mobile.ptr29-glass-ui #online-panel {
   background: rgba(15,23,42, var(--gb-panel, .44)) !important;
-  backdrop-filter: blur(16px) saturate(1.2);
-  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  backdrop-filter: blur(var(--gb-blur, 16px)) saturate(1.2);
+  -webkit-backdrop-filter: blur(var(--gb-blur, 16px)) saturate(1.2);
 }
 html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #sidebar,
 html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #chat,
@@ -1308,8 +1308,8 @@ body.ptr29-mobile.ptr29-glass-ui {
 .ptr29-mobile.ptr29-glass-ui #chat,
 .ptr29-mobile.ptr29-glass-ui #online-panel,
 .ptr29-mobile.ptr29-glass-ui #input-area {
-  backdrop-filter: blur(14px) saturate(1.1);
-  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  backdrop-filter: blur(var(--gb-blur-sm, 14px)) saturate(1.1);
+  -webkit-backdrop-filter: blur(var(--gb-blur-sm, 14px)) saturate(1.1);
 }
 .ptr29-mobile.ptr29-glass-ui #glass-ui-toggle {
   min-width: 0;
