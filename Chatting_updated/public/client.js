@@ -3257,8 +3257,24 @@
         return;
       }
       try {
-        localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ id: res.id, username: res.username, ageConfirmed: mode === 'reg' ? true : !!res.age_confirmed, termsAccepted: mode === 'reg' ? true : !!res.terms_accepted }));
+        const accountSession = {
+          id: res.id,
+          username: res.username,
+          ageConfirmed: mode === 'reg' ? true : !!res.age_confirmed,
+          termsAccepted: mode === 'reg' ? true : !!res.terms_accepted,
+          avatar: res.avatar || ''
+        };
+        localStorage.setItem(ACCOUNT_KEY, JSON.stringify(accountSession));
         localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, res.id);
+        localStorage.removeItem(CONSTANTS.CLIENT_ID_ISSUED_KEY);
+        utils.saveToStorage(CONSTANTS.STORAGE_KEY, {
+          username: res.username,
+          avatar: res.avatar || '',
+          termsAgreed: accountSession.termsAccepted
+        });
+        localStorage.removeItem(CONSTANTS.PASSKEYS_KEY);
+        localStorage.removeItem(CONSTANTS.UNREAD_KEY);
+        localStorage.removeItem(CONSTANTS.INBOX_SEEN_KEY);
       } catch {}
       location.reload();
     });
@@ -3352,7 +3368,17 @@
     try {
       if (window.ChatAPI && window.ChatAPI.accountLogout) await window.ChatAPI.accountLogout(sess && sess.id);
     } catch {}
-    try { localStorage.removeItem(ACCOUNT_KEY); localStorage.removeItem(CONSTANTS.CLIENT_ID_KEY); } catch {}
+    try {
+      [
+        ACCOUNT_KEY,
+        CONSTANTS.STORAGE_KEY,
+        CONSTANTS.CLIENT_ID_KEY,
+        CONSTANTS.CLIENT_ID_ISSUED_KEY,
+        CONSTANTS.PASSKEYS_KEY,
+        CONSTANTS.UNREAD_KEY,
+        CONSTANTS.INBOX_SEEN_KEY,
+      ].forEach(k => localStorage.removeItem(k));
+    } catch {}
     location.reload();
   }
 
@@ -3363,12 +3389,16 @@
     const ageOk = await ensureExistingAccountAgeVerified(sess);
     if (!ageOk) return;
     try { localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, sess.id); } catch {}
-    // fresh world: adopt account identity as local profile if none exists yet
+    // Always adopt the authenticated account identity for this browser session.
+    // This prevents a previously logged-out account's cached local profile from
+    // being reused when the user logs into a different account on any device.
     try {
-      const prof = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
-      if (!prof.username && sess.username) {
-        utils.saveToStorage(CONSTANTS.STORAGE_KEY, { username: sess.username, avatar: '', termsAgreed: !!sess.termsAccepted });
-      }
+      utils.saveToStorage(CONSTANTS.STORAGE_KEY, {
+        username: sess.username || '',
+        avatar: sess.avatar || '',
+        termsAgreed: !!sess.termsAccepted,
+      });
+      localStorage.removeItem(CONSTANTS.CLIENT_ID_ISSUED_KEY);
     } catch {}
     if (window.ChatAPI && window.ChatAPI.setClientId) window.ChatAPI.setClientId(sess.id);
     document.getElementById('logout-btn')?.addEventListener('click', logout);

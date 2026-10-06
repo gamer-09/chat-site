@@ -12,6 +12,7 @@
     "socket.io": "^4.8.4"
   },
   "overrides": {
-    "engine.io": "^6.6.10"
+    "engine.io": "^6.6.10",
+    "proxy-addr": "^2.0.8"
   }
 }
