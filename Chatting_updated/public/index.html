@@ -2245,6 +2245,54 @@
     }
 
 
+    /* ── Glass mode: content must stay readable ──────────────────────── */
+    /* The typing strip was hard-coded light grey, so it stayed a solid white
+       band between the room bar and the messages in light glass mode. */
+    body.ptr29-glass-ui #typing {
+      background: transparent !important;
+      border-top: 1px solid rgba(148,163,184,.22) !important;
+      color: var(--accent) !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui #typing {
+      background: transparent !important;
+      color: #1d4ed8 !important;
+    }
+    /* Message bubbles are content, not chrome: keep them solid so text never
+       fights the moving waves. Same in both themes. */
+    body.ptr29-glass-ui .msg {
+      background: #111827 !important;
+      border-color: rgba(148,163,184,.28) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      box-shadow: 0 8px 22px rgba(0,0,0,.34) !important;
+    }
+    body.ptr29-glass-ui .msg.me {
+      background: linear-gradient(135deg, #1d4ed8, #6d28d9) !important;
+      border-color: rgba(147,197,253,.34) !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui .msg {
+      background: #ffffff !important;
+      border-color: #dbe3ec !important;
+      color: #0b1526 !important;
+      box-shadow: 0 8px 20px rgba(15,23,42,.12) !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui .msg.me {
+      background: linear-gradient(135deg, #dbeafe, #ede9fe) !important;
+      border-color: #bfdbfe !important;
+      color: #0b1526 !important;
+    }
+    /* text/media inside a solid bubble keeps its contrast */
+    body.ptr29-glass-ui .msg .file-attachment,
+    body.ptr29-glass-ui .msg .link-preview-card {
+      background: rgba(148,163,184,.16) !important;
+      border-color: rgba(148,163,184,.28) !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui .msg .file-attachment,
+    html.ptr29-light-theme body.ptr29-glass-ui .msg .link-preview-card {
+      background: #f1f5f9 !important;
+      border-color: #dbe3ec !important;
+    }
+
     /* ── Light theme surface consistency (normal + glass) ────────────── */
     html { background-color: #0b1220; }
     html.ptr29-light-theme { background-color: #eef4fb; }
