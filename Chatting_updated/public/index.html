@@ -2302,6 +2302,28 @@
       border-color: #dbe3ec !important;
     }
 
+    /* Glass mode: the dialog scrim is what made every dialog look solid.
+       It was rgba(0,0,0,.7) + blur, i.e. the whole screen behind the dialog got
+       crushed to near-black, so even a 30%-opaque dialog had nothing to show
+       through it. Let the waves through — but keep the age/terms gates dark. */
+    body.ptr29-glass-ui .modal-overlay {
+      background: rgba(4,10,22,.30) !important;
+      backdrop-filter: blur(3px) saturate(1.12) !important;
+      -webkit-backdrop-filter: blur(3px) saturate(1.12) !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui .modal-overlay {
+      background: rgba(206,224,246,.34) !important;
+      backdrop-filter: blur(3px) saturate(1.06) !important;
+      -webkit-backdrop-filter: blur(3px) saturate(1.06) !important;
+    }
+    /* the gates keep near-opaque backdrops so legal copy stays readable */
+    body.ptr29-glass-ui .ag-overlay {
+      background: rgba(4,8,18,.82) !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui .ag-overlay {
+      background: rgba(15,23,42,.55) !important;
+    }
+
     /* ── Glass mode: dialogs and menus stay readable ─────────────────── */
     /* Popovers are content, not chrome: the thickness slider must not make
        them see-through, or labels/inputs vanish into the backdrop. */
