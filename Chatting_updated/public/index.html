@@ -2281,7 +2281,7 @@
               <div class="demo-btn-row" style="justify-content:flex-end">
                 <div class="demo-btn sm-btn highlight-btn">Save Changes</div>
               </div>
-              <div class="demo-share-hint">Your browser identity is used for private-room membership</div>
+              <div class="demo-share-hint">Your account identity is used for private-room membership</div>
             </div>
           </div>
           <div class="help-text">
@@ -2322,13 +2322,13 @@
           </div>
           <div class="help-text">
             <h3>🏠 Rooms</h3>
-            <p>Available rooms appear in the left sidebar. Public rooms are open to signed-in anonymous visitors. Private rooms require existing membership or a valid passkey.</p>
+            <p>Available rooms appear in the left sidebar. Public rooms are open to signed-in accounts. Private rooms require existing membership or a valid passkey.</p>
             <ul class="help-tips">
               <li>📌 <strong>Click a room</strong> to switch to it; unread messages appear as a badge</li>
               <li>➕ <strong>Create Room</strong> with a name and optional private-room setting</li>
               <li>🔒 <strong>Private means access-controlled</strong>, not end-to-end encrypted</li>
               <li>🔑 <strong>Join by passkey</strong> by entering the code in the sidebar; the browser may save it for reconnecting</li>
-              <li>👥 <strong>Membership persists</strong> for the same anonymous browser identity after a successful private-room join</li>
+              <li>👥 <strong>Membership persists</strong> for the same account identity after a successful private-room join</li>
               <li>↻ <strong>Refresh</strong> manually reloads the room list</li>
               <li>🎓 <strong>The guided tour</strong> creates two temporary rooms (public + private), lets you browse them during the demo — sending still requires a verified account — and deletes them when it ends</li>
             </ul>
@@ -2500,14 +2500,14 @@
           </div>
           <div class="help-text">
             <h3>🔐 Privacy, Data &amp; Current Limits</h3>
-            <p>The production site uses GitHub Pages and Supabase with account gates, database policies, upload limits, CSP headers, and safe-link checks. Understand the limits before sharing content.</p>
+            <p>The production site uses GitHub Pages and Supabase with account gates, age/Terms verification, database policies, upload limits, CSP headers, safe-link checks, and Client-ID consent controls. Understand the limits before sharing content.</p>
             <ul class="help-tips">
               <li>🆔 <strong>Your identity follows your account</strong> — log in on any device and your content is there; signup and existing-account access require 13+ confirmation plus Terms/Privacy acceptance; passwords are SHA-256-salted on-device, then bcrypt + pepper server-side</li>
               <li>🌙 <strong>Theme</strong> — switch dark/light with the 🌙/☀️ toolbar button; your choice is remembered</li>
               <li>🔒 <strong>Private rooms are not end-to-end encrypted</strong>; authorized participants and infrastructure providers may technically access content</li>
               <li>🗑️ <strong>Delete Account</strong> (password-verified) erases account + user + every message/reaction/receipt + presence + owned rooms; renames wipe the old name; the operator can purge any username</li>
               <li>⚪ <strong>Presence &amp; last-seen</strong> are visible to other users while your tab is open and as a “seen …” time after you leave</li>
-              <li>🛡️ <strong>Admin rights are room-scoped</strong>; there is no global ban, account termination, or username-revocation control</li>
+              <li>🛡️ <strong>Admin rights are room-scoped</strong>; there is no general global ban/account-termination control, but the reserved “anonymous” username pattern is blocked</li>
               <li>📄 Read the <a href="terms.html" target="_blank" rel="noopener noreferrer">Terms of Use</a> and <a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacy Policy</a>; they cover the 13+ rule, uploads, safe links, link-safety limits, Client-ID requests, and account deletion</li>
               <li>☎️ <strong>Contact</strong> is available from the header: WhatsApp, Instagram, YouTube, and GitHub links are the official operator channels</li>
             </ul>

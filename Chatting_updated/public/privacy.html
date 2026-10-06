@@ -90,7 +90,7 @@
 
     <section class="section">
       <h2>1. Scope and operator</h2>
-      <p>This Policy explains how the operator of ptr_29 Chat (“we,” “us,” or “our”) handles information when you use the production application at <a href="https://gamer-09.github.io/chat-site/">gamer-09.github.io/chat-site</a>. It covers the website, anonymous authentication, chat rooms, messages, presence, reactions, read receipts, and uploads.</p>
+      <p>This Policy explains how the operator of ptr_29 Chat (“we,” “us,” or “our”) handles information when you use the production application at <a href="https://gamer-09.github.io/chat-site/">gamer-09.github.io/chat-site</a>. It covers the website, account access, Supabase anonymous-auth technical IDs, chat rooms, messages, presence, reactions, read receipts, and uploads.</p>
       <p>The application is hosted on GitHub Pages and uses Supabase as its authentication, database, realtime, and file-storage provider.</p>
     </section>
 
@@ -98,7 +98,7 @@
       <h2>2. Information processed</h2>
       <ul class="data-list">
         <li><strong>Account data:</strong> access requires login or registration at the start gate. We store your username, password hash — the password is SHA-256-salted on your device, then bcrypt-hashed server-side with a secret pepper — avatar, creation time, account session records, and whether the account has confirmed the 13+ age requirement, and whether the account has accepted the Terms/Privacy Policy. There is no password-recovery process, and hashes are not readable, listable, or modifiable through the API.</li>
-        <li><strong>Profile data:</strong> your chosen username, optional avatar URL, Supabase anonymous-auth/user/client ID, and last-seen time. Display usernames containing “anonymous” are reserved and blocked.</li>
+        <li><strong>Profile data:</strong> your chosen username, optional avatar URL, Supabase authentication/user/client ID, and last-seen time. Display usernames containing “anonymous” are reserved and blocked.</li>
         <li><strong>Room data:</strong> room name, public/private setting, owner, administrators, members, creation time, and any room passkey.</li>
         <li><strong>Content:</strong> messages, replies, edit state, timestamps, reactions, read receipts, files, images, original filenames, MIME type, and file size.</li>
         <li><strong>Link processing:</strong> messages are checked for ordinary and Markdown-style links so unsafe protocols, private/local destinations, credential-obfuscated URLs, punycode look-alikes, risky downloads, and link spam can be blocked before storage. The app does not perform a full third-party malware or phishing reputation scan of destination sites.</li>
@@ -111,7 +111,7 @@
     <section class="section">
       <h2>3. How information is used</h2>
       <ul>
-        <li>Authenticate the browser anonymously and maintain a stable identity.</li>
+        <li>Authenticate the browser through Supabase and maintain a stable account/client identity.</li>
         <li>Deliver messages and media, synchronize rooms, and show presence, typing, reactions, and read receipts.</li>
         <li>Enforce room membership, ownership, administration, passkeys, and row-level access controls.</li>
         <li>Remember local preferences and reconnect the browser to previously joined rooms.</li>
@@ -126,7 +126,7 @@
       <h3>Public rooms</h3>
       <p>Messages, usernames, avatars, reactions, receipts, and shared media in a public room are available to authenticated visitors who can access that room. Online/offline status and last-seen times of all users are visible in the People panel.</p>
       <h3>Private rooms</h3>
-      <p>Private rooms use Supabase row-level security, owner/admin/member lists, and passkeys. Once a passkey admits a user, that anonymous user ID may be added as a room member. Private-room content is not end-to-end encrypted.</p>
+      <p>Private rooms use Supabase row-level security, owner/admin/member lists, and passkeys. Once a passkey admits a user, that account/client ID may be added as a room member. Private-room content is not end-to-end encrypted.</p>
       <h3>Room administrators, operator, and providers</h3>
       <p>Room owner/admin powers apply only to the room they manage. They can manage that room’s settings and membership and can clear or delete the room, but the application does not let them ban a user platform-wide, terminate an anonymous identity, delete another user’s profile, revoke a username, or force a username change.</p>
       <p>The Supabase project owner may be technically able to inspect or manually change database and storage records outside the application. This infrastructure access is separate from the room-admin interface and is not an automated global account-management or moderation feature.</p>
@@ -160,7 +160,7 @@
     <section class="section">
       <h2>8. Browser notifications and local choices</h2>
       <p>The Service may ask for browser notification permission. Notifications can contain the room name, sender name, and a message preview, which may appear on a locked screen or be visible to other device users. You can deny or revoke permission in browser settings.</p>
-      <p>You can clear local storage, cookies, service-worker data, and notification permissions through your browser. Doing so may sign you out, remove saved passkeys, or make the same anonymous identity unrecoverable.</p>
+      <p>You can clear local storage, cookies, service-worker data, and notification permissions through your browser. Doing so may sign you out, remove saved passkeys, or make the same local browser session unrecoverable.</p>
     </section>
 
     <section class="section">
@@ -175,9 +175,9 @@
 
     <section class="section">
       <h2>11. Your choices and rights</h2>
-      <p>Depending on where you live, you may have rights to access, correct, delete, restrict, or object to certain processing, or to receive a portable copy. These rights may be limited by the anonymous nature of the Service, other users’ rights, legal obligations, and the ability to verify that a browser identity or content belongs to you.</p>
+      <p>Depending on where you live, you may have rights to access, correct, delete, restrict, or object to certain processing, or to receive a portable copy. These rights may be limited by the account/technical-ID nature of the Service, other users’ rights, legal obligations, and the ability to verify that a browser identity or content belongs to you.</p>
       <p>You can edit your own profile, delete eligible messages, leave rooms, clear browser data, disable notifications, or use the in-app <strong>Delete Account</strong> control, which performs the full erase described in section 6. For a broader request, contact the operator and provide the minimum information needed to identify the relevant account, room, or message.</p>
-      <p>The current creator/admin interface cannot generally terminate another Supabase anonymous identity, ban an arbitrary user across the platform, force a username change, or automatically erase every record associated with a person. The reserved “anonymous” username pattern is blocked by app/database rules for new and legacy account use. A request may require a manual Supabase data operation, may be limited by the ability to verify ownership, and may not be technically possible for every provider record or copy.</p>
+      <p>The current creator/admin interface cannot generally terminate another Supabase technical auth identity, ban an arbitrary user across the platform, force a username change, or automatically erase every record associated with a person. The reserved “anonymous” username pattern is blocked by app/database rules for new and legacy account use. A request may require a manual Supabase data operation, may be limited by the ability to verify ownership, and may not be technically possible for every provider record or copy.</p>
     </section>
 
     <section class="section">

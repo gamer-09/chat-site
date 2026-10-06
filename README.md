@@ -13,7 +13,7 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 
 | Feature | Details |
 |---|---|
-| Real-time messaging | Instant delivery via WebSocket (Socket.io) |
+| Real-time messaging | Instant delivery via Supabase Realtime on GitHub Pages; Socket.IO remains available in the self-hosted Node server |
 | Multiple rooms | Join existing rooms or create your own |
 | Private rooms | Lock any room with a passkey |
 | Image sharing | Upload and send allow-listed images up to 5 MB; other safe document types up to 10 MB |
@@ -47,7 +47,7 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 
 ```
 Chatting_updated/
-├── server.js            # Express + Socket.io server — entry point
+├── server.js            # Express + Socket.IO server — self-hosted entry point
 ├── package.json
 ├── Dockerfile
 ├── Procfile             # For Heroku-style platforms
@@ -59,7 +59,7 @@ Chatting_updated/
 │   ├── client.js        # Frontend Socket.io logic
 │   ├── mobile.css       # Mobile styles
 │   └── sw.js            # Service worker
-└── uploads/             # Uploaded images — auto-created on first run
+└── uploads/             # Self-hosted uploads — auto-created on first run
 ```
 
 ---
@@ -79,7 +79,7 @@ npm install
 npm start
 ```
 
-Open `http://localhost:3000` in your browser.
+Open `http://localhost:3000` in your browser. The deployed GitHub Pages version uses `public/supabase-client.js` and Supabase; the Node server is the self-hosted fallback.
 
 For development with auto-reload:
 
@@ -200,9 +200,9 @@ Set `HOST=0.0.0.0` in your hosting dashboard's environment variables. `PORT` is 
 
 ### Joining a room
 
-1. Enter a **username** in the sidebar — minimum 2 characters, must be unique across all connected users.
-2. Click a room from the list, or click **+ New Room** to create one.
-3. Click **Join**.
+1. Log in or create an account at the account gate. New signups must confirm 13+ and accept Terms/Privacy.
+2. Pick a room from the Rooms list, or click **+ New Room** to create one.
+3. Public rooms open immediately; private rooms require membership or a valid passkey.
 
 ### Sending a message
 
@@ -266,7 +266,7 @@ Room owners have a settings panel with:
 | Event | Payload | Description |
 |---|---|---|
 | `join` | `{ room, username, avatar, clientId }` | Enter a room |
-| `message` | `{ room, text, clientId }` | Send a text message |
+| `chat-message` | `{ text, replyTo }` | Send a text message |
 | `typing` | `{ isTyping }` | Broadcast typing state |
 | `update-profile` | `{ room, clientId, username, avatar }` | Change display name or avatar |
 | `check-username` | `{ username }` | Check if a username is available |
@@ -276,15 +276,13 @@ Room owners have a settings panel with:
 
 ### WebSocket events (server → client)
 
-`message`, `presence`, `system`, `typing`, `users`, `receipt`, `room-renamed`, `room-deleted`
+`chat-message`, `history`, `presence`, `presence-all`, `system`, `typing`, `rooms`, `read-receipt`, `message-updated`, `message-deleted`, `room-renamed`, `room-deleted`
 
 ---
 
 ## Data Storage
 
-All data is written to `data/db.json` — a plain JSON file, no database server needed. Back this file up regularly if message history matters.
-
-For high-traffic deployments, replace the read/write calls in `data/store.js` with a proper database (PostgreSQL, SQLite, MongoDB, etc.).
+The deployed GitHub Pages app stores data in Supabase tables/storage. The self-hosted Node server stores data in `Chatting_updated/data/db.json` plus local `uploads/`; back those up if you run the Node version. Do not commit runtime data or uploads to GitHub.
 
 ---
 
