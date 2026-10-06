@@ -255,27 +255,6 @@
       flex-wrap: wrap;
       align-items: center;
     }
-    .glass-strength {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      padding: 6px 11px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--border);
-      color: var(--text);
-      font-size: 14px;
-      line-height: 1;
-    }
-    .glass-strength input[type="range"] { width: 86px; height: 16px; accent-color: var(--accent); }
-    .glass-strength-val {
-      min-width: 38px;
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-      font-weight: 600;
-      font-size: 13px;
-      opacity: .95;
-    }
     
     /* Chat area */
     #chat {
@@ -2613,11 +2592,6 @@
           <button id="edit-profile-btn" class="secondary">Edit Profile</button>
           <button id="glass-ui-toggle" class="secondary" style="display:none" title="Toggle glass UI test">🫧 Glass UI</button>
           <button id="glass-motion-toggle" class="secondary" style="display:none" title="Pause or play the live backdrop">⏸ Still</button>
-          <label id="glass-strength-wrap" class="glass-strength" style="display:none" title="Glass thickness — capped at the final 15% level; the background never goes solid">
-            <span aria-hidden="true">◐</span>
-            <input type="range" id="glass-strength" min="0" max="15" step="1" value="15" aria-label="Glass see-through amount">
-            <b id="glass-strength-val" class="glass-strength-val">15%</b>
-          </label>
           <button id="delete-user-btn" class="danger">Delete Account</button>
           <button id="logout-btn" class="secondary">Logout</button>
         </div>
@@ -3096,7 +3070,7 @@
               <li>🌙 <strong>Theme</strong> — switch dark/light with the 🌙/☀️ toolbar button; your choice is remembered</li>
               <li>🫧 <strong>Glass UI test (Wenny only)</strong> — the 🫧 Glass UI button swaps the flat panels for frosted glass floating over a <strong>live backdrop</strong>: flowing colour waves drawn on the spot, with dark and light palettes that follow your theme</li>
               <li>⏸ <strong>Motion</strong> — the ⏸ Still / ▶ Animate button freezes or resumes the backdrop (handy on battery saver or slow devices); the choice is remembered per browser, and the app also honours your system "reduce motion" setting by starting still. Both controls disappear with the normal UI, and the backdrop never runs for anyone else</li>
-              <li>◐ <strong>Glass thickness</strong> — one slider for both the panel opacity <em>and</em> the blur, capped at <strong>15%</strong> so the backdrop always shows through. All the way left is bare glass, 15% is the final shipping level (panels ~15% opaque, light 6.4px blur). Dialogs, menus and message bubbles are deliberately left solid so labels, fields and text stay readable. Remembered per browser</li>
+              <li>🫧 <strong>Glass level</strong> — fixed at the final <strong>15%</strong> for everyone (panels ~15% opaque with a light 6.4px blur, so the live backdrop always shows through). Dialogs sit at 30% and the 13+/Terms gates stay near-solid so their legal copy is always readable; message bubbles are deliberately opaque so text never fights the waves</li>
               <li>🔒 <strong>Private rooms are not end-to-end encrypted</strong>; authorized participants and infrastructure providers may technically access content</li>
               <li>🗑️ <strong>Delete Account</strong> (password-verified) erases account + user + every message/reaction/receipt + presence + owned rooms; renames wipe the old name; the operator can purge any username</li>
               <li>⚪ <strong>Presence &amp; last-seen</strong> are visible to other users while your tab is open and as a “seen …” time after you leave</li>

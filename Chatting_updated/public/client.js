@@ -109,9 +109,6 @@
     editProfileBtn:   document.getElementById('edit-profile-btn'),
     glassUiToggle:    document.getElementById('glass-ui-toggle'),
     glassMotionToggle:document.getElementById('glass-motion-toggle'),
-    glassStrength:    document.getElementById('glass-strength'),
-    glassStrengthWrap:document.getElementById('glass-strength-wrap'),
-    glassStrengthVal: document.getElementById('glass-strength-val'),
     cancelEditProfileBtn:document.getElementById('cancel-edit-profile'),
     imageBtn:         document.getElementById('image-btn'),
     imageFile:        document.getElementById('image-file'),
@@ -155,8 +152,7 @@
     INBOX_SEEN_KEY:'ptr29_inbox_seen_v1',
     GLASS_UI_KEY:  'ptr29_wenny_glass_ui_v1',
     GLASS_MOTION_KEY: 'ptr29_glass_motion_v1',
-    GLASS_STRENGTH_KEY: 'ptr29_glass_strength_v1',
-    GLASS_STRENGTH_MAX: 15,   // final, operator-set cap: glass never goes more solid than this
+    GLASS_LEVEL: 15,   // final, operator-set level: panels sit at ~15% opacity
     DEFAULT_AVATAR:'https://api.dicebear.com/7.x/thumbs/svg?seed=',
     MAX_IMAGE_BYTES: 5 * 1024 * 1024,
     MAX_FILE_BYTES: 10 * 1024 * 1024,
@@ -547,7 +543,6 @@
       elements.glassUiToggle.textContent = enabled ? '↩ Normal UI' : '🫧 Glass UI';
       elements.glassUiToggle.title = enabled ? 'Return to normal UI' : 'Try glass UI';
     }
-    if (elements.glassStrengthWrap) elements.glassStrengthWrap.style.display = enabled ? '' : 'none';
     if (elements.glassMotionToggle) {
       elements.glassMotionToggle.style.display = enabled ? '' : 'none';
       elements.glassMotionToggle.textContent = glassBackdropMotion() ? '⏸ Still' : '▶ Animate';
@@ -567,21 +562,14 @@
     dark:  { panel: .42,  item: .075, strip: .34, msgsA: .24, msgsB: .12, scrimA: .11, scrimB: .24 },
     light: { panel: .40,  item: .52,  strip: .36, msgsA: .22, msgsB: .10, scrimA: .02, scrimB: .10 },
   };
-  function glassStrength() {
-    const max = CONSTANTS.GLASS_STRENGTH_MAX;
-    let v = max;
-    try { const raw = localStorage.getItem(CONSTANTS.GLASS_STRENGTH_KEY); if (raw !== null) v = Number(raw); } catch {}
-    if (!Number.isFinite(v)) v = max;
-    return Math.min(max, Math.max(0, v));
-  }
-  function applyGlassStrength(pct) {
-    const max = CONSTANTS.GLASS_STRENGTH_MAX;
-    const p = Number.isFinite(Number(pct)) ? Math.min(max, Math.max(0, Number(pct))) : glassStrength();
+  // The level is fixed for everyone at CONSTANTS.GLASS_LEVEL; there is no
+  // per-browser control any more, so the alphas/blur below are constants.
+  function applyGlassLevel() {
     const light = document.documentElement.classList.contains('ptr29-light-theme');
     const base = light ? GLASS_ALPHA_BASE.light : GLASS_ALPHA_BASE.dark;
-    // 0 = bare glass, 15 (the cap) = the final shipped level: panels sit at ~15%
-    // opacity with a light blur, so the waves always stay clearly visible.
-    const n = p / max;
+    // n = 1 is the final shipped level: panels ~15% opaque, blur 6.4px, so the
+    // live backdrop always stays clearly visible through the chrome.
+    const n = CONSTANTS.GLASS_LEVEL / CONSTANTS.GLASS_LEVEL;
     const k = 0.14 + n * 0.222;
     const a = (x) => Math.min(0.96, Math.max(0.015, x)).toFixed(3);
     const r = document.documentElement.style;
@@ -594,16 +582,6 @@
     r.setProperty('--gb-scrim-b', a(base.scrimB  * k));
     r.setProperty('--gb-blur',    (4 + n * 2.4).toFixed(1) + 'px');
     r.setProperty('--gb-blur-sm', (3 + n * 1.8).toFixed(1) + 'px');
-    // show the exact level on the control so it can be quoted back to the operator
-    const pctLabel = Math.round(p) + '%';
-    if (elements.glassStrengthVal) elements.glassStrengthVal.textContent = pctLabel;
-    if (elements.glassStrengthWrap) {
-      const panelPct = Math.round(Number(r.getPropertyValue('--gb-panel')) * 100);
-      const blurPx = Number(r.getPropertyValue('--gb-blur').replace('px', ''));
-      elements.glassStrengthWrap.title =
-        'Glass thickness ' + pctLabel + ' of ' + max + '% (capped) — panels ' + panelPct +
-        '% opaque, blur ' + blurPx.toFixed(1) + 'px.';
-    }
   }
   function glassBackdropMotion() {
     const gb = window.PTR29GlassBackdrop;
@@ -2135,16 +2113,6 @@
         try { localStorage.setItem(CONSTANTS.GLASS_UI_KEY, next ? '1' : '0'); } catch {}
       });
     }
-    if (elements.glassStrength) {
-      const capped = glassStrength();
-      elements.glassStrength.max = String(CONSTANTS.GLASS_STRENGTH_MAX);
-      elements.glassStrength.value = String(capped);
-      try { localStorage.setItem(CONSTANTS.GLASS_STRENGTH_KEY, String(capped)); } catch {}
-      elements.glassStrength.addEventListener('input', () => {
-        applyGlassStrength(elements.glassStrength.value);
-        try { localStorage.setItem(CONSTANTS.GLASS_STRENGTH_KEY, String(elements.glassStrength.value)); } catch {}
-      });
-    }
     if (elements.glassMotionToggle) {
       elements.glassMotionToggle.addEventListener('click', () => {
         if (!canUseGlassUi(state.myUsername)) return;
@@ -2493,7 +2461,7 @@
     const themeBtn = document.getElementById('theme-toggle');
     const root = document.documentElement;
     const savedTheme = localStorage.getItem('ptr29_theme') || 'dark';
-    applyGlassStrength();
+    applyGlassLevel();
     if (savedTheme === 'light') applyLightTheme();
     if (themeBtn) {
       themeBtn.addEventListener('click', () => {
@@ -2523,7 +2491,7 @@
     r.classList.add('ptr29-light-theme');
     document.getElementById('theme-toggle').textContent = '☀️';
     if (window.PTR29GlassBackdrop) window.PTR29GlassBackdrop.setTheme(true);
-    applyGlassStrength();
+    applyGlassLevel();
   }
 
   function applyDarkTheme() {
@@ -2532,7 +2500,7 @@
     ['--success','--danger','--warning','--composer-bg','--composer-surface'].forEach((k) => r.style.removeProperty(k));
     r.classList.remove('ptr29-light-theme');
     if (window.PTR29GlassBackdrop) window.PTR29GlassBackdrop.setTheme(false);
-    applyGlassStrength();
+    applyGlassLevel();
     r.style.removeProperty('--bg');
     r.style.removeProperty('--panel');
     r.style.removeProperty('--panel2');
