@@ -1796,15 +1796,7 @@
     }
     html.ptr29-light-theme #online-panel,
     html.ptr29-light-theme #sidebar {
-      background: var(--panel2);
-    }
-    html.ptr29-light-theme #online-panel::after,
-    html.ptr29-light-theme #sidebar::after {
-      content: "";
-      flex: 0 0 72px;
-      background: var(--composer-bg, #f8fafc);
-      border-top: 1px solid var(--border);
-      display: block;
+      background: #ffffff;
     }
     html.ptr29-light-theme #text,
     html.ptr29-light-theme #username,
@@ -2153,6 +2145,92 @@
       color: #1d4ed8 !important;
       background: rgba(219,234,254,.68) !important;
     }
+
+
+    /* ── Light theme surface consistency (normal + glass) ────────────── */
+    html { background-color: #0b1220; }
+    html.ptr29-light-theme { background-color: #eef4fb; }
+
+    html.ptr29-light-theme header {
+      background: linear-gradient(180deg, #ffffff, #f4f7fb) !important;
+      border-bottom: 1px solid var(--border) !important;
+      box-shadow: 0 6px 18px rgba(15,23,42,.06) !important;
+    }
+    html.ptr29-light-theme #rooms-header,
+    html.ptr29-light-theme #online-header,
+    html.ptr29-light-theme #room-bar {
+      background: #f8fafc !important;
+      border-color: var(--border) !important;
+    }
+    html.ptr29-light-theme #room-info-banner {
+      background: #f4f7fb !important;
+      border-bottom: 1px solid var(--border) !important;
+    }
+    html.ptr29-light-theme #sidebar,
+    html.ptr29-light-theme #online-panel {
+      background: #ffffff !important;
+      border-color: var(--border) !important;
+    }
+    html.ptr29-light-theme #chat,
+    html.ptr29-light-theme #messages {
+      background: #f8fafc !important;
+    }
+    html.ptr29-light-theme #input-area {
+      background: #ffffff !important;
+      border-top: 1px solid var(--border) !important;
+      box-shadow: 0 -6px 16px rgba(15,23,42,.05) !important;
+    }
+    html.ptr29-light-theme #typing {
+      background: #f8fafc !important;
+      color: #516278 !important;
+    }
+    html.ptr29-light-theme .sys { color: #1d4ed8 !important; }
+    html.ptr29-light-theme .room {
+      background: #f8fafc !important;
+      border-color: #e2e8f0 !important;
+      color: var(--text) !important;
+      box-shadow: none !important;
+    }
+    html.ptr29-light-theme .room:hover { background: #eef4fb !important; }
+    html.ptr29-light-theme .room.active {
+      background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+      border-color: #2563eb !important;
+      color: #ffffff !important;
+    }
+    html.ptr29-light-theme .online-item { background: transparent !important; }
+    html.ptr29-light-theme .online-item:hover { background: #f1f5f9 !important; }
+    html.ptr29-light-theme .pt-btn {
+      background: #ffffff !important;
+      border-color: #d7e0eb !important;
+      color: #46586f !important;
+    }
+    html.ptr29-light-theme .pt-btn.active {
+      background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+      border-color: #2563eb !important;
+      color: #ffffff !important;
+    }
+    html.ptr29-light-theme .context-menu,
+    html.ptr29-light-theme .online-menu {
+      background: #ffffff !important;
+      border-color: #d7e0eb !important;
+      box-shadow: 0 16px 34px rgba(15,23,42,.16) !important;
+    }
+    html.ptr29-light-theme .context-menu button,
+    html.ptr29-light-theme .online-menu button { color: var(--text) !important; }
+    html.ptr29-light-theme .context-menu button:hover,
+    html.ptr29-light-theme .online-menu button:hover { background: #f1f5f9 !important; }
+    html.ptr29-light-theme #reply-preview-bar { background: #e8f0fe !important; }
+    html.ptr29-light-theme .msg-actions {
+      background: #ffffff !important;
+      border-color: #d7e0eb !important;
+      box-shadow: 0 8px 20px rgba(15,23,42,.14) !important;
+    }
+    html.ptr29-light-theme .receipts { color: #516278 !important; }
+    html.ptr29-light-theme #people-search,
+    html.ptr29-light-theme #search-messages-input,
+    html.ptr29-light-theme #passkey-join-input { background: #ffffff !important; }
+    html.ptr29-light-theme .mobile-nav-btn { color: #46586f !important; }
+    html.ptr29-light-theme .mobile-nav-btn.active { color: #1d4ed8 !important; }
 
   </style>
 </head>
