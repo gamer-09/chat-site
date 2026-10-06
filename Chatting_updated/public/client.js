@@ -109,6 +109,8 @@
     editProfileBtn:   document.getElementById('edit-profile-btn'),
     glassUiToggle:    document.getElementById('glass-ui-toggle'),
     glassMotionToggle:document.getElementById('glass-motion-toggle'),
+    glassStrength:    document.getElementById('glass-strength'),
+    glassStrengthWrap:document.getElementById('glass-strength-wrap'),
     cancelEditProfileBtn:document.getElementById('cancel-edit-profile'),
     imageBtn:         document.getElementById('image-btn'),
     imageFile:        document.getElementById('image-file'),
@@ -152,6 +154,7 @@
     INBOX_SEEN_KEY:'ptr29_inbox_seen_v1',
     GLASS_UI_KEY:  'ptr29_wenny_glass_ui_v1',
     GLASS_MOTION_KEY: 'ptr29_glass_motion_v1',
+    GLASS_STRENGTH_KEY: 'ptr29_glass_strength_v1',
     DEFAULT_AVATAR:'https://api.dicebear.com/7.x/thumbs/svg?seed=',
     MAX_IMAGE_BYTES: 5 * 1024 * 1024,
     MAX_FILE_BYTES: 10 * 1024 * 1024,
@@ -542,6 +545,7 @@
       elements.glassUiToggle.textContent = enabled ? '↩ Normal UI' : '🫧 Glass UI';
       elements.glassUiToggle.title = enabled ? 'Return to normal UI' : 'Try glass UI';
     }
+    if (elements.glassStrengthWrap) elements.glassStrengthWrap.style.display = enabled ? '' : 'none';
     if (elements.glassMotionToggle) {
       elements.glassMotionToggle.style.display = enabled ? '' : 'none';
       elements.glassMotionToggle.textContent = glassBackdropMotion() ? '⏸ Still' : '▶ Animate';
@@ -555,6 +559,32 @@
       gb.setTheme(document.documentElement.classList.contains('ptr29-light-theme'));
       gb.setEnabled(!!enabled);
     }
+  }
+  // ── glass thickness: one slider drives every translucent surface ──────────
+  const GLASS_ALPHA_BASE = {
+    dark:  { panel: .42,  item: .075, strip: .34, msgsA: .24, msgsB: .12, scrimA: .18, scrimB: .34 },
+    light: { panel: .40,  item: .52,  strip: .36, msgsA: .22, msgsB: .10, scrimA: .02, scrimB: .10 },
+  };
+  function glassStrength() {
+    let v = 25;
+    try { const raw = localStorage.getItem(CONSTANTS.GLASS_STRENGTH_KEY); if (raw !== null) v = Number(raw); } catch {}
+    if (!Number.isFinite(v)) v = 25;
+    return Math.min(100, Math.max(10, v));
+  }
+  function applyGlassStrength(pct) {
+    const p = Number.isFinite(Number(pct)) ? Math.min(100, Math.max(10, Number(pct))) : glassStrength();
+    const light = document.documentElement.classList.contains('ptr29-light-theme');
+    const base = light ? GLASS_ALPHA_BASE.light : GLASS_ALPHA_BASE.dark;
+    const k = 0.60 + (p / 100) * 0.90;          // thinner glass = fewer alpha, more backdrop
+    const a = (x) => Math.min(0.96, Math.max(0.015, x)).toFixed(3);
+    const r = document.documentElement.style;
+    r.setProperty('--gb-panel',   a(base.panel   * k));
+    r.setProperty('--gb-item',    a(base.item    * k));
+    r.setProperty('--gb-strip',   a(base.strip   * k));
+    r.setProperty('--gb-msgs-a',  a(base.msgsA   * k));
+    r.setProperty('--gb-msgs-b',  a(base.msgsB   * k));
+    r.setProperty('--gb-scrim-a', a(base.scrimA  * k));
+    r.setProperty('--gb-scrim-b', a(base.scrimB  * k));
   }
   function glassBackdropMotion() {
     const gb = window.PTR29GlassBackdrop;
@@ -2078,6 +2108,13 @@
         try { localStorage.setItem(CONSTANTS.GLASS_UI_KEY, next ? '1' : '0'); } catch {}
       });
     }
+    if (elements.glassStrength) {
+      elements.glassStrength.value = String(glassStrength());
+      elements.glassStrength.addEventListener('input', () => {
+        applyGlassStrength(elements.glassStrength.value);
+        try { localStorage.setItem(CONSTANTS.GLASS_STRENGTH_KEY, String(elements.glassStrength.value)); } catch {}
+      });
+    }
     if (elements.glassMotionToggle) {
       elements.glassMotionToggle.addEventListener('click', () => {
         if (!canUseGlassUi(state.myUsername)) return;
@@ -2402,6 +2439,7 @@
     const themeBtn = document.getElementById('theme-toggle');
     const root = document.documentElement;
     const savedTheme = localStorage.getItem('ptr29_theme') || 'dark';
+    applyGlassStrength();
     if (savedTheme === 'light') applyLightTheme();
     if (themeBtn) {
       themeBtn.addEventListener('click', () => {
@@ -2431,6 +2469,7 @@
     r.classList.add('ptr29-light-theme');
     document.getElementById('theme-toggle').textContent = '☀️';
     if (window.PTR29GlassBackdrop) window.PTR29GlassBackdrop.setTheme(true);
+    applyGlassStrength();
   }
 
   function applyDarkTheme() {
@@ -2439,6 +2478,7 @@
     ['--success','--danger','--warning','--composer-bg','--composer-surface'].forEach((k) => r.style.removeProperty(k));
     r.classList.remove('ptr29-light-theme');
     if (window.PTR29GlassBackdrop) window.PTR29GlassBackdrop.setTheme(false);
+    applyGlassStrength();
     r.style.removeProperty('--bg');
     r.style.removeProperty('--panel');
     r.style.removeProperty('--panel2');

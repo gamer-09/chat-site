@@ -252,7 +252,21 @@
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+      align-items: center;
     }
+    .glass-strength {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 11px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--border);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1;
+    }
+    .glass-strength input[type="range"] { width: 86px; height: 16px; accent-color: var(--accent); }
     
     /* Chat area */
     #chat {
@@ -1995,7 +2009,7 @@
     }
     #gb-canvas { width: 100%; height: 100%; display: block; opacity: 0; transition: opacity .55s ease; }
     #gb-canvas.on { opacity: 1; }
-    #gb-scrim { background: linear-gradient(180deg, rgba(5,12,24,.38), rgba(5,12,24,.60)); }
+    #gb-scrim { background: linear-gradient(180deg, rgba(5,12,24, var(--gb-scrim-a, .18)), rgba(5,12,24, var(--gb-scrim-b, .34))); }
     body.ptr29-glass-ui header,
     body.ptr29-glass-ui #sidebar,
     body.ptr29-glass-ui #chat,
@@ -2008,14 +2022,14 @@
     body.ptr29-glass-ui .context-menu,
     body.ptr29-glass-ui .online-menu,
     body.ptr29-glass-ui .inbox-popup {
-      background: rgba(15, 23, 42, .52) !important;
+      background: rgba(15, 23, 42, var(--gb-panel, .42)) !important;
       border-color: rgba(148, 163, 184, .28) !important;
       box-shadow: 0 18px 54px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.08) !important;
       backdrop-filter: blur(18px) saturate(1.18);
       -webkit-backdrop-filter: blur(18px) saturate(1.18);
     }
     body.ptr29-glass-ui #messages {
-      background: linear-gradient(180deg, rgba(9,16,30,.42), rgba(9,16,30,.24));
+      background: linear-gradient(180deg, rgba(9,16,30, var(--gb-msgs-a, .24)), rgba(9,16,30, var(--gb-msgs-b, .12)));
     }
     body.ptr29-glass-ui .msg,
     body.ptr29-glass-ui .room,
@@ -2026,7 +2040,7 @@
     body.ptr29-glass-ui .file-attachment,
     body.ptr29-glass-ui .reaction-pill,
     body.ptr29-glass-ui .link-preview-card {
-      background: rgba(255,255,255,.075) !important;
+      background: rgba(255,255,255, var(--gb-item, .075)) !important;
       border-color: rgba(203,213,225,.20) !important;
       box-shadow: 0 10px 30px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.08) !important;
       backdrop-filter: blur(14px) saturate(1.15);
@@ -2061,7 +2075,7 @@
     body.ptr29-glass-ui #online-header,
     body.ptr29-glass-ui #room-bar,
     body.ptr29-glass-ui #chat-form {
-      background: rgba(15,23,42,.44) !important;
+      background: rgba(15,23,42, var(--gb-strip, .34)) !important;
       border-color: rgba(148,163,184,.26) !important;
       box-shadow: none !important;
       backdrop-filter: blur(14px) saturate(1.25) !important;
@@ -2071,7 +2085,7 @@
     html.ptr29-light-theme body.ptr29-glass-ui #online-header,
     html.ptr29-light-theme body.ptr29-glass-ui #room-bar,
     html.ptr29-light-theme body.ptr29-glass-ui #chat-form {
-      background: rgba(255,255,255,.44) !important;
+      background: rgba(255,255,255, var(--gb-strip, .36)) !important;
       border-color: rgba(148,163,184,.34) !important;
       box-shadow: none !important;
       backdrop-filter: blur(14px) saturate(1.35) !important;
@@ -2136,7 +2150,7 @@
         #eef4fb;
     }
     html.ptr29-light-theme #gb-scrim {
-      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(216,232,250,.16));
+      background: linear-gradient(180deg, rgba(255,255,255, var(--gb-scrim-a, .02)), rgba(216,232,250, var(--gb-scrim-b, .10)));
     }
     html.ptr29-light-theme body.ptr29-glass-ui header,
     html.ptr29-light-theme body.ptr29-glass-ui #sidebar,
@@ -2150,14 +2164,14 @@
     html.ptr29-light-theme body.ptr29-glass-ui .context-menu,
     html.ptr29-light-theme body.ptr29-glass-ui .online-menu,
     html.ptr29-light-theme body.ptr29-glass-ui .inbox-popup {
-      background: rgba(255,255,255,.48) !important;
+      background: rgba(255,255,255, var(--gb-panel, .40)) !important;
       border-color: rgba(148,163,184,.36) !important;
       box-shadow: 0 18px 42px rgba(15,23,42,.14), inset 0 1px 0 rgba(255,255,255,.72) !important;
       backdrop-filter: blur(18px) saturate(1.5) !important;
       -webkit-backdrop-filter: blur(18px) saturate(1.45) !important;
     }
     html.ptr29-light-theme body.ptr29-glass-ui #messages {
-      background: linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,.16)) !important;
+      background: linear-gradient(180deg, rgba(255,255,255, var(--gb-msgs-a, .22)), rgba(255,255,255, var(--gb-msgs-b, .10))) !important;
     }
     html.ptr29-light-theme body.ptr29-glass-ui .msg,
     html.ptr29-light-theme body.ptr29-glass-ui .room,
@@ -2168,7 +2182,7 @@
     html.ptr29-light-theme body.ptr29-glass-ui .file-attachment,
     html.ptr29-light-theme body.ptr29-glass-ui .reaction-pill,
     html.ptr29-light-theme body.ptr29-glass-ui .link-preview-card {
-      background: rgba(255,255,255,.56) !important;
+      background: rgba(255,255,255, var(--gb-item, .52)) !important;
       color: #0b1526 !important;
       border-color: rgba(148,163,184,.34) !important;
       box-shadow: 0 10px 28px rgba(15,23,42,.12), inset 0 1px 0 rgba(255,255,255,.65) !important;
@@ -2335,6 +2349,10 @@
           <button id="edit-profile-btn" class="secondary">Edit Profile</button>
           <button id="glass-ui-toggle" class="secondary" style="display:none" title="Toggle glass UI test">🫧 Glass UI</button>
           <button id="glass-motion-toggle" class="secondary" style="display:none" title="Pause or play the live backdrop">⏸ Still</button>
+          <label id="glass-strength-wrap" class="glass-strength" style="display:none" title="Glass thickness — slide left for more visible backdrop, right for a more solid panel">
+            <span aria-hidden="true">◐</span>
+            <input type="range" id="glass-strength" min="10" max="100" step="5" value="25" aria-label="Glass see-through amount">
+          </label>
           <button id="delete-user-btn" class="danger">Delete Account</button>
           <button id="logout-btn" class="secondary">Logout</button>
         </div>
@@ -2812,7 +2830,8 @@
               <li>🆔 <strong>Your identity follows your account</strong> — log in on any device and your content is there; signup and existing-account access require 13+ confirmation plus Terms/Privacy acceptance; passwords are SHA-256-salted on-device, then bcrypt + pepper server-side</li>
               <li>🌙 <strong>Theme</strong> — switch dark/light with the 🌙/☀️ toolbar button; your choice is remembered</li>
               <li>🫧 <strong>Glass UI test (Wenny only)</strong> — the 🫧 Glass UI button swaps the flat panels for frosted glass floating over a <strong>live backdrop</strong>: flowing colour waves drawn on the spot, with dark and light palettes that follow your theme</li>
-              <li>⏸ <strong>Motion</strong> — the ⏸ Still / ▶ Animate button freezes or resumes the backdrop (handy on battery saver or slow devices); the choice is remembered per browser, and the app also honours your system "reduce motion" setting by starting still. Both buttons disappear with the normal UI, and the backdrop never loads for anyone else</li>
+              <li>⏸ <strong>Motion</strong> — the ⏸ Still / ▶ Animate button freezes or resumes the backdrop (handy on battery saver or slow devices); the choice is remembered per browser, and the app also honours your system "reduce motion" setting by starting still. Both controls disappear with the normal UI, and the backdrop never runs for anyone else</li>
+              <li>◐ <strong>Glass thickness</strong> — slide left and the panels go thinner so more of the backdrop shows through; slide right for a more solid, easier-on-the-eyes panel. Remembered per browser</li>
               <li>🔒 <strong>Private rooms are not end-to-end encrypted</strong>; authorized participants and infrastructure providers may technically access content</li>
               <li>🗑️ <strong>Delete Account</strong> (password-verified) erases account + user + every message/reaction/receipt + presence + owned rooms; renames wipe the old name; the operator can purge any username</li>
               <li>⚪ <strong>Presence &amp; last-seen</strong> are visible to other users while your tab is open and as a “seen …” time after you leave</li>

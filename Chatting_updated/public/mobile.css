@@ -1238,14 +1238,14 @@ html.ptr29-light-theme.ptr29-mobile #image-btn {
 /* These elements are forced opaque further up this file (!important), so glass
    mode needs equal-or-stronger rules or the live backdrop stops at the bottom. */
 body.ptr29-mobile.ptr29-glass-ui #input-area {
-  background: rgba(15,23,42,.44) !important;
+  background: rgba(15,23,42, var(--gb-strip, .34)) !important;
   border-top-color: rgba(148,163,184,.26) !important;
   box-shadow: 0 -12px 30px rgba(0,0,0,.30) !important;
   backdrop-filter: blur(14px) saturate(1.25);
   -webkit-backdrop-filter: blur(14px) saturate(1.25);
 }
 body.ptr29-mobile.ptr29-glass-ui #mobile-nav {
-  background: rgba(15,23,42,.46) !important;
+  background: rgba(15,23,42, var(--gb-strip, .36)) !important;
   border-top-color: rgba(148,163,184,.26) !important;
   backdrop-filter: blur(14px) saturate(1.25);
   -webkit-backdrop-filter: blur(14px) saturate(1.25);
@@ -1256,16 +1256,16 @@ body.ptr29-mobile.ptr29-glass-ui #text {
   color: var(--text) !important;
 }
 html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #input-area {
-  background: rgba(255,255,255,.44) !important;
+  background: rgba(255,255,255, var(--gb-strip, .36)) !important;
   border-top-color: rgba(148,163,184,.34) !important;
   box-shadow: 0 -12px 30px rgba(15,23,42,.10) !important;
 }
 html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #mobile-nav {
-  background: rgba(255,255,255,.46) !important;
+  background: rgba(255,255,255, var(--gb-strip, .38)) !important;
   border-top-color: rgba(148,163,184,.34) !important;
 }
 html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #text {
-  background: rgba(255,255,255,.62) !important;
+  background: rgba(255,255,255, var(--gb-item, .52)) !important;
   border-color: rgba(148,163,184,.34) !important;
   color: #0b1526 !important;
   -webkit-text-fill-color: #0b1526 !important;
@@ -1286,14 +1286,14 @@ body.ptr29-mobile.ptr29-glass-ui #image-btn {
 body.ptr29-mobile.ptr29-glass-ui #sidebar,
 body.ptr29-mobile.ptr29-glass-ui #chat,
 body.ptr29-mobile.ptr29-glass-ui #online-panel {
-  background: rgba(15,23,42,.48) !important;
+  background: rgba(15,23,42, var(--gb-panel, .44)) !important;
   backdrop-filter: blur(16px) saturate(1.2);
   -webkit-backdrop-filter: blur(16px) saturate(1.2);
 }
 html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #sidebar,
 html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #chat,
 html.ptr29-light-theme body.ptr29-mobile.ptr29-glass-ui #online-panel {
-  background: rgba(255,255,255,.50) !important;
+  background: rgba(255,255,255, var(--gb-panel, .42)) !important;
 }
 
 /* ── Wenny glass UI mode mobile safety ───────────────────────────────── */
