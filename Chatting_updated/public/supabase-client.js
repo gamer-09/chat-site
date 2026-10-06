@@ -930,6 +930,7 @@
     },
 
     accountLogin: function (un, hash) {
+      if (isReservedUsername(un)) return Promise.resolve({ ok: false, error: 'invalid_username' });
       return sb.rpc('login_account', { un: un, pass: hash }).then(function (r) {
         var out = r.data || { ok: false, error: (r.error && r.error.message) || 'failed' };
         if (!out || !out.ok || out.avatar) return out;

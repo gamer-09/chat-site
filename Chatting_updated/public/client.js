@@ -3246,6 +3246,7 @@
       const btn = ov.querySelector('#ag-go');
       err.textContent = '';
       if (!un || !pw) { err.textContent = 'Enter username and password.'; return; }
+      if (utils.isReservedUsername(un)) { err.textContent = 'Usernames containing "anonymous" are not allowed.'; return; }
       if (mode === 'reg') {
         const pwCheck = utils.validatePassword(pw, un);
         if (!pwCheck.ok) { err.textContent = pwCheck.message; return; }
@@ -3266,7 +3267,7 @@
           taken: 'That username already has an account — log in instead.',
           invalid_credentials: 'Wrong username or password.',
           locked: 'Too many failed attempts — locked for 15 minutes.',
-          invalid_username: 'Invalid username. Do not use names containing anonymous.',
+          invalid_username: 'Invalid username. Usernames containing anonymous are not allowed.',
           age_required: 'You must confirm you are at least 13 years old to create an account.',
           terms_required: 'You must agree to the Terms and Conditions to create an account.',
         };
@@ -3400,11 +3401,7 @@
     return out;
   }
 
-  async function logout() {
-    const sess = getAccountSession();
-    try {
-      if (window.ChatAPI && window.ChatAPI.accountLogout) await window.ChatAPI.accountLogout(sess && sess.id);
-    } catch {}
+  function clearLocalAccountState() {
     try {
       [
         ACCOUNT_KEY,
@@ -3416,6 +3413,14 @@
         CONSTANTS.INBOX_SEEN_KEY,
       ].forEach(k => localStorage.removeItem(k));
     } catch {}
+  }
+
+  async function logout() {
+    const sess = getAccountSession();
+    try {
+      if (window.ChatAPI && window.ChatAPI.accountLogout) await window.ChatAPI.accountLogout(sess && sess.id);
+    } catch {}
+    clearLocalAccountState();
     location.reload();
   }
 
@@ -3423,7 +3428,17 @@
   (async () => {
     let sess = getAccountSession();
     if (!sess) { showAuthGate(); return; }
+    if (utils.isReservedUsername(sess.username)) {
+      clearLocalAccountState();
+      showAuthGate('This username is no longer allowed because it contains "anonymous". Please use another account.');
+      return;
+    }
     sess = await hydrateAccountSessionProfile(sess);
+    if (utils.isReservedUsername(sess.username)) {
+      clearLocalAccountState();
+      showAuthGate('This username is no longer allowed because it contains "anonymous". Please use another account.');
+      return;
+    }
     const ageOk = await ensureExistingAccountAgeVerified(sess);
     if (!ageOk) return;
     try { localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, sess.id); } catch {}
