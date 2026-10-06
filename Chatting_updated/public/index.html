@@ -2309,11 +2309,32 @@
     body.ptr29-glass-ui .ag-card,
     body.ptr29-glass-ui .context-menu,
     body.ptr29-glass-ui .online-menu,
+    /* Dialogs sit at the operator-set 30% opacity level (--gb-dialog-a).
+       The blur is heavier than the panels so text stays legible at that alpha. */
+    body.ptr29-glass-ui .modal,
+    body.ptr29-glass-ui .help-modal-inner,
     body.ptr29-glass-ui .inbox-popup {
-      background: #0b1221 !important;
+      background: rgba(11,18,33, var(--gb-dialog-a, .30)) !important;
+      border-color: rgba(148,163,184,.34) !important;
+      color: var(--text) !important;
+      box-shadow: 0 24px 64px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.10) !important;
+      backdrop-filter: blur(22px) saturate(1.30) !important;
+      -webkit-backdrop-filter: blur(22px) saturate(1.30) !important;
+    }
+    /* small pop-up menus keep a little more body behind their text */
+    body.ptr29-glass-ui .context-menu,
+    body.ptr29-glass-ui .online-menu {
+      background: rgba(11,18,33, var(--gb-menu-a, .74)) !important;
       border-color: rgba(148,163,184,.30) !important;
       color: var(--text) !important;
-      box-shadow: 0 24px 64px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.06) !important;
+      backdrop-filter: blur(16px) saturate(1.16) !important;
+      -webkit-backdrop-filter: blur(16px) saturate(1.16) !important;
+    }
+    /* age / terms gates carry legal copy — keep them high contrast */
+    body.ptr29-glass-ui .ag-card {
+      background: rgba(11,18,33, var(--gb-gate-a, .92)) !important;
+      border-color: rgba(148,163,184,.30) !important;
+      color: var(--text) !important;
       backdrop-filter: blur(18px) saturate(1.14) !important;
       -webkit-backdrop-filter: blur(18px) saturate(1.14) !important;
     }
@@ -2322,11 +2343,26 @@
     html.ptr29-light-theme body.ptr29-glass-ui .ag-card,
     html.ptr29-light-theme body.ptr29-glass-ui .context-menu,
     html.ptr29-light-theme body.ptr29-glass-ui .online-menu,
+    html.ptr29-light-theme body.ptr29-glass-ui .modal,
+    html.ptr29-light-theme body.ptr29-glass-ui .help-modal-inner,
     html.ptr29-light-theme body.ptr29-glass-ui .inbox-popup {
-      background: #ffffff !important;
-      border-color: rgba(148,163,184,.42) !important;
+      background: rgba(255,255,255, var(--gb-dialog-a, .30)) !important;
+      border-color: rgba(148,163,184,.40) !important;
       color: #0b1526 !important;
-      box-shadow: 0 24px 60px rgba(15,23,42,.22), inset 0 1px 0 rgba(255,255,255,.9) !important;
+      box-shadow: 0 24px 60px rgba(15,23,42,.20), inset 0 1px 0 rgba(255,255,255,.55) !important;
+      backdrop-filter: blur(22px) saturate(1.32) !important;
+      -webkit-backdrop-filter: blur(22px) saturate(1.32) !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui .context-menu,
+    html.ptr29-light-theme body.ptr29-glass-ui .online-menu {
+      background: rgba(255,255,255, var(--gb-menu-a, .74)) !important;
+      border-color: rgba(148,163,184,.34) !important;
+      color: #0b1526 !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui .ag-card {
+      background: rgba(255,255,255, var(--gb-gate-a, .92)) !important;
+      border-color: rgba(148,163,184,.40) !important;
+      color: #0b1526 !important;
     }
     /* fields and buttons inside a dialog need real contrast */
     body.ptr29-glass-ui .modal h3,
@@ -2364,6 +2400,17 @@
     html.ptr29-light-theme body.ptr29-glass-ui .modal label,
     html.ptr29-light-theme body.ptr29-glass-ui .help-modal-inner h3 {
       color: #0b1526 !important;
+    }
+    /* paragraphs inside dialogs (e.g. Contact the operator) */
+    body.ptr29-glass-ui .modal p,
+    body.ptr29-glass-ui .help-modal-inner p,
+    body.ptr29-glass-ui .inbox-popup-body {
+      color: var(--text-muted) !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui .modal p,
+    html.ptr29-light-theme body.ptr29-glass-ui .help-modal-inner p,
+    html.ptr29-light-theme body.ptr29-glass-ui .inbox-popup-body {
+      color: #3f4c60 !important;
     }
     html.ptr29-light-theme body.ptr29-glass-ui .modal label,
     html.ptr29-light-theme body.ptr29-glass-ui .modal .hint {
