@@ -72,6 +72,7 @@
   var raf = 0, t = 0, last = 0, lastPaint = 0, slowTicks = 0, visible = true;
   var w = 0, h = 0, dpr = 1, rs = RS_HIGH, orbScale = 3, bokehN = 16;
   var cache = { key: '', base: null, band: [] };
+  var scene = { lam: 400, unit: 1 };   // wave geometry, recomputed per viewport
   var frames = 0, fpsAt = 0;
 
   var bokeh = [];
@@ -131,6 +132,19 @@
     orbCv.width = Math.max(48, Math.round(w / orbScale));
     orbCv.height = Math.max(48, Math.round(h / orbScale));
     cache.key = '';
+    computeScene();
+  }
+
+  // The waves used to be measured in "fraction of height" for their height and
+  // "fraction of width" for their length, so a phone got tall cramped crests and
+  // a desktop got long flat ones. Anchor both to one length instead: the crest
+  // SHAPE is then identical on every screen, only the number of crests on screen
+  // changes a little.
+  function computeScene() {
+    var S = Math.max(1, Math.min(w, h));
+    var lam = Math.min(Math.max(w / 1.35, S * 0.85), S * 1.7);
+    scene.lam = lam || 400;
+    scene.unit = Math.min(Math.max(S / 700, 0.7), 1.8);   // sprites scale with the screen too
   }
 
   function drawOrbs(pal) {
@@ -158,13 +172,16 @@
 
   function bandPaths(i, pal) {
     var amp = (pal && pal.amp) || 1;
+    var lam = scene.lam * (1 - i * 0.09);                // each band slightly tighter
     var yBase = h * (0.36 + i * 0.185);
-    var a1 = h * (0.085 + i * 0.022) * amp;
-    var a2 = h * (0.040 + i * 0.015) * amp;
-    var k1 = (1.05 + i * 0.34) * 6.28318530718 / Math.max(w, 1);
-    var k2 = (2.25 + i * 0.47) * 6.28318530718 / Math.max(w, 1);
+    // amplitude is a fraction of the wavelength (constant crest slope) and is
+    // capped by the screen height so a tall band never swallows the layout
+    var a1 = Math.min(h * 0.17, lam * (0.105 + i * 0.012)) * amp;
+    var a2 = Math.min(h * 0.08, lam * (0.045 + i * 0.010)) * amp;
+    var k1 = 6.28318530718 / lam;
+    var k2 = k1 * 2.1;
     var s1 = 0.34 + i * 0.10, s2 = -0.23 - i * 0.06, ph = i * 1.7;
-    var step = Math.max(6, w / 130);
+    var step = Math.max(5, Math.min(w / 90, lam / 34));  // resolution follows the wave
     var top = new Path2D();
     for (var x = -12; x <= w + 12; x += step) {
       var y = yBase + Math.sin(x * k1 + t * s1 + ph) * a1 + Math.sin(x * k2 + t * s2 + ph * 1.6) * a2;
@@ -201,8 +218,9 @@
       var s = bokeh[b];
       var y = ((s.y - t * s.s * 0.05) % 1 + 1) % 1;
       var x = s.x + Math.sin(t * 0.16 + s.p) * 0.025;
-      var d = s.r * 2;
-      ctx.drawImage(sp, x * w - s.r, y * h - s.r, d, d);
+      var r = s.r * scene.unit;
+      var d = r * 2;
+      ctx.drawImage(sp, x * w - r, y * h - r, d, d);
     }
     ctx.globalAlpha = 1;
     if (!canvas.classList.contains('on')) canvas.classList.add('on');   // crossfade from the still image
