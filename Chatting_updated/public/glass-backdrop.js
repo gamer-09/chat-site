@@ -29,23 +29,27 @@
   // ── palettes ────────────────────────────────────────────────────────────────
   var P = {
     dark: {
-      base: ['#0c1c34', '#050d19'],
+      base: ['#0e2344', '#040a1a'],
       comp: 'lighter',
+      amp: 1.18,          // dark needs more travel to read as motion
+      crest: 2.1,         // and a brighter travelling crest line
       orbs: [
-        { c0: 'rgba(59,130,246,.78)', c1: 'rgba(59,130,246,.20)', sx: .34, sy: .27, px: 0.0, py: 1.2, r: .80 },
-        { c0: 'rgba(168,85,247,.70)', c1: 'rgba(168,85,247,.18)', sx: .26, sy: .37, px: 2.1, py: 0.4, r: .76 },
-        { c0: 'rgba(45,212,191,.58)', c1: 'rgba(45,212,191,.15)', sx: .42, sy: .21, px: 4.0, py: 2.6, r: .70 }
+        { c0: 'rgba(59,130,246,.88)', c1: 'rgba(59,130,246,.26)', sx: .34, sy: .27, px: 0.0, py: 1.2, r: .80 },
+        { c0: 'rgba(168,85,247,.80)', c1: 'rgba(168,85,247,.24)', sx: .26, sy: .37, px: 2.1, py: 0.4, r: .76 },
+        { c0: 'rgba(45,212,191,.70)', c1: 'rgba(45,212,191,.20)', sx: .42, sy: .21, px: 4.0, py: 2.6, r: .70 }
       ],
       bands: [
-        { top: 'rgba(56,189,248,.56)', mid: 'rgba(37,99,235,.32)', bot: 'rgba(37,99,235,0)', hi: 'rgba(186,230,253,.78)' },
-        { top: 'rgba(139,92,246,.52)', mid: 'rgba(124,58,237,.30)', bot: 'rgba(124,58,237,0)', hi: 'rgba(221,214,254,.66)' },
-        { top: 'rgba(45,212,191,.46)', mid: 'rgba(13,148,136,.26)', bot: 'rgba(13,148,136,0)', hi: 'rgba(204,251,241,.58)' }
+        { top: 'rgba(34,211,238,.66)', mid: 'rgba(37,99,235,.38)', bot: 'rgba(37,99,235,0)', hi: 'rgba(207,250,254,.95)' },
+        { top: 'rgba(168,85,247,.60)', mid: 'rgba(124,58,237,.36)', bot: 'rgba(124,58,237,0)', hi: 'rgba(233,213,255,.88)' },
+        { top: 'rgba(45,212,191,.54)', mid: 'rgba(13,148,136,.32)', bot: 'rgba(13,148,136,0)', hi: 'rgba(209,250,229,.82)' }
       ],
-      bokeh: 'rgba(226,240,255,.9)'
+      bokeh: 'rgba(235,246,255,.95)'
     },
     light: {
       base: ['#eaf2fd', '#e2ecfa'],
       comp: 'source-over',
+      amp: 1.0,
+      crest: 1.5,
       orbs: [
         { c0: 'rgba(70,150,246,.74)', c1: 'rgba(70,150,246,.24)', sx: .34, sy: .27, px: 0.0, py: 1.2, r: .80 },
         { c0: 'rgba(146,126,240,.70)', c1: 'rgba(146,126,240,.22)', sx: .26, sy: .37, px: 2.1, py: 0.4, r: .76 },
@@ -152,10 +156,11 @@
     ctx.globalCompositeOperation = 'source-over';
   }
 
-  function bandPaths(i) {
+  function bandPaths(i, pal) {
+    var amp = (pal && pal.amp) || 1;
     var yBase = h * (0.36 + i * 0.185);
-    var a1 = h * (0.085 + i * 0.022);
-    var a2 = h * (0.040 + i * 0.015);
+    var a1 = h * (0.085 + i * 0.022) * amp;
+    var a2 = h * (0.040 + i * 0.015) * amp;
     var k1 = (1.05 + i * 0.34) * 6.28318530718 / Math.max(w, 1);
     var k2 = (2.25 + i * 0.47) * 6.28318530718 / Math.max(w, 1);
     var s1 = 0.34 + i * 0.10, s2 = -0.23 - i * 0.06, ph = i * 1.7;
@@ -183,11 +188,11 @@
     ctx.fillRect(0, 0, w, h);
     drawOrbs(pal);
     for (var i = 0; i < pal.bands.length; i++) {
-      var pth = bandPaths(i);
+      var pth = bandPaths(i, pal);
       ctx.fillStyle = cache.band[i];
       ctx.fill(pth.fill);
       ctx.strokeStyle = pal.bands[i].hi;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = pal.crest || 1.5;
       ctx.stroke(pth.top);
     }
     var sp = bokehSprite(pal.bokeh);

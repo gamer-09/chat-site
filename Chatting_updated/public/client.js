@@ -562,7 +562,7 @@
   }
   // ── glass thickness: one slider drives every translucent surface ──────────
   const GLASS_ALPHA_BASE = {
-    dark:  { panel: .42,  item: .075, strip: .34, msgsA: .24, msgsB: .12, scrimA: .18, scrimB: .34 },
+    dark:  { panel: .42,  item: .075, strip: .34, msgsA: .24, msgsB: .12, scrimA: .11, scrimB: .24 },
     light: { panel: .40,  item: .52,  strip: .36, msgsA: .22, msgsB: .10, scrimA: .02, scrimB: .10 },
   };
   function glassStrength() {
