@@ -2092,6 +2092,44 @@
       -webkit-backdrop-filter: blur(14px) saturate(1.35) !important;
     }
 
+    /* Glass mode: panels inside the layout (sidebar footer, chat banner, settings)
+       were still hard-coded opaque, so they ignored the thickness slider. */
+    /* These sat ON TOP of an already-frosted parent, so giving them a frost of
+       their own just stacked more haze. Let the parent's glass show instead. */
+    body.ptr29-glass-ui #join-by-passkey,
+    body.ptr29-glass-ui #user-section,
+    body.ptr29-glass-ui #room-info-banner {
+      background: transparent !important;
+      border-color: rgba(148,163,184,.24) !important;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    body.ptr29-glass-ui #room-settings-panel,
+    body.ptr29-glass-ui .chip,
+    body.ptr29-glass-ui #user-avatar-preview {
+      background: rgba(255,255,255, var(--gb-item, .075)) !important;
+      border-color: rgba(148,163,184,.24) !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui #join-by-passkey,
+    html.ptr29-light-theme body.ptr29-glass-ui #user-section,
+    html.ptr29-light-theme body.ptr29-glass-ui #room-info-banner {
+      background: transparent !important;
+      border-color: rgba(148,163,184,.32) !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui #room-settings-panel,
+    html.ptr29-light-theme body.ptr29-glass-ui .chip,
+    html.ptr29-light-theme body.ptr29-glass-ui #user-avatar-preview {
+      background: rgba(255,255,255, var(--gb-item, .52)) !important;
+      border-color: rgba(148,163,184,.32) !important;
+    }
+    /* the light theme pinned the passkey box to solid white */
+    html.ptr29-light-theme body.ptr29-glass-ui #passkey-join-input {
+      background: rgba(255,255,255, var(--gb-item, .52)) !important;
+      border-color: rgba(148,163,184,.34) !important;
+      color: #0b1526 !important;
+      -webkit-text-fill-color: #0b1526 !important;
+    }
+
     /* ── Light mode surface correction: normal + Wenny glass test ────── */
     html.ptr29-light-theme #messages {
       background:
