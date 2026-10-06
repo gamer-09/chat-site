@@ -3388,6 +3388,84 @@
     });
   }
 
+  function showTermsVerifyGate(sess) {
+    return new Promise(resolve => {
+      const ov = el('div', { class: 'ag-overlay', id: 'ag-terms-overlay' });
+      ov.innerHTML = `
+        <div class="ag-card" role="dialog" aria-modal="true" aria-label="Terms and Privacy verification">
+          <div class="ag-brand">${BRAND_SVG}<div class="ag-title">Terms & Privacy</div></div>
+          <p class="ag-sub">Before continuing, this existing account must accept the current Terms and Privacy Policy.</p>
+          <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text);line-height:1.4;margin:8px 0 12px">
+            <input id="ag-existing-terms" type="checkbox" style="margin-top:2px">
+            <span>I agree to the <a href="terms.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none">Terms and Conditions</a> and <a href="privacy.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none">Privacy Policy</a>.</span>
+          </label>
+          <div id="ag-terms-err" class="ag-err"></div>
+          <button id="ag-terms-go" class="ag-go" type="button">Accept and continue ➤</button>
+          <button id="ag-terms-logout" class="secondary" type="button" style="width:100%;margin-top:8px">Log out instead</button>
+        </div>`;
+      document.body.append(ov);
+      try { document.body.style.overflow = 'hidden'; } catch {}
+      ov.querySelector('#ag-terms-logout').addEventListener('click', async () => { ov.remove(); await logout(); });
+      ov.querySelector('#ag-terms-go').addEventListener('click', async () => {
+        const err = ov.querySelector('#ag-terms-err');
+        const btn = ov.querySelector('#ag-terms-go');
+        err.textContent = '';
+        if (!ov.querySelector('#ag-existing-terms')?.checked) { err.textContent = 'You must agree to the Terms and Privacy Policy to continue.'; return; }
+        btn.disabled = true; btn.textContent = 'Saving…';
+        const res = await window.ChatAPI.accountConfirmTerms(sess.id);
+        btn.disabled = false; btn.textContent = 'Accept and continue ➤';
+        if (!res || !res.ok) {
+          const code = res && res.error;
+          if (code === 'forbidden' || code === 'not_authenticated') {
+            err.textContent = 'Please log in again to accept Terms securely.';
+            clearLocalAccountState();
+            setTimeout(() => location.reload(), 1200);
+            return;
+          }
+          err.textContent = code || 'Failed to save Terms acceptance.';
+          return;
+        }
+        try {
+          localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ ...sess, termsAccepted: true }));
+          const prof = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
+          utils.saveToStorage(CONSTANTS.STORAGE_KEY, { ...prof, termsAgreed: true });
+        } catch {}
+        ov.remove();
+        try { document.body.style.overflow = ''; } catch {}
+        resolve(true);
+      });
+    });
+  }
+
+  async function ensureExistingAccountTermsAccepted(sess) {
+    if (!sess || !sess.id) return true;
+    if (sess.termsAccepted) return true;
+    if (!window.ChatAPI || !window.ChatAPI.accountTermsStatus) return showTermsVerifyGate(sess);
+    await waitForChatAPIReady();
+    const status = await window.ChatAPI.accountTermsStatus(sess.id).catch(e => ({ ok: false, error: String(e && e.message || e || 'terms_status_failed') }));
+    if (status && status.ok && status.terms_accepted) {
+      try {
+        localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ ...sess, termsAccepted: true }));
+        const prof = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
+        utils.saveToStorage(CONSTANTS.STORAGE_KEY, { ...prof, termsAgreed: true });
+      } catch {}
+      return true;
+    }
+    if (status && status.ok === false) {
+      const code = String(status.error || '');
+      if (code === 'forbidden' || code === 'not_authenticated') {
+        clearLocalAccountState();
+        showAuthGate('For security, this older account must log in again before Terms acceptance can be saved.');
+        return false;
+      }
+      if (/function|schema|rpc|not found|PGRST/i.test(code)) {
+        showAuthGate('Terms verification needs the latest Supabase SQL migration. Please run 026, then log in again.');
+        return false;
+      }
+    }
+    return showTermsVerifyGate(sess);
+  }
+
   async function ensureExistingAccountAgeVerified(sess) {
     if (!sess || !sess.id) return true;
     if (sess.ageConfirmed) return true;
@@ -3473,6 +3551,10 @@
     }
     const ageOk = await ensureExistingAccountAgeVerified(sess);
     if (!ageOk) return;
+    sess = getAccountSession() || sess;
+    const termsOk = await ensureExistingAccountTermsAccepted(sess);
+    if (!termsOk) return;
+    sess = getAccountSession() || sess;
     try { localStorage.setItem(CONSTANTS.CLIENT_ID_KEY, sess.id); } catch {}
     // Always adopt the authenticated account identity for this browser session.
     // This prevents a previously logged-out account's cached local profile from

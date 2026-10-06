@@ -5,7 +5,7 @@
 # Chat Site
 
 
-A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supabase; the repo also includes the original Node.js/Express/Socket.io server for self-hosting. Access requires an account (login/register gate) and a 13+ age confirmation; existing accounts created before the age gate are prompted once to confirm. Your username, rooms and content follow the account across devices.
+A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supabase; the repo also includes the original Node.js/Express/Socket.io server for self-hosting. Access requires an account (login/register gate), 13+ age confirmation, and Terms/Privacy acceptance; existing accounts created before those gates are prompted before entering. Your username, rooms and content follow the account across devices.
 
 ---
 
@@ -27,7 +27,7 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | Username rules | Any username containing “anonymous” is reserved and cannot be created, edited into, logged into, or continued from legacy sessions; abandoned/orphan names auto-reclaimable; active names protected |
 | Full wipes | Rename fully erases the old name's messages/reactions/receipts; **Delete Account** (password-verified) erases account + user + all content + owned rooms; operator `purge_user()` for any name |
 | Reactions | Instant hover tooltip with names ("you" for self), correct own-detection, toggle semantics |
-| Accounts | 🔐 Login/register gate before app access; 13+ age confirmation for new and legacy accounts; bcrypt+pepper hashed passwords (SHA-256 on-device first); hashes unreadable via API; 5-try rate limit; logout button; Delete Account = full erase |
+| Accounts | 🔐 Login/register gate before app access; 13+ age confirmation and Terms/Privacy acceptance for new and legacy accounts; bcrypt+pepper hashed passwords (SHA-256 on-device first); hashes unreadable via API; 5-try rate limit; logout button; Delete Account = full erase |
 | Unique usernames | Server enforces no two users share the same name |
 | Auto avatars | DiceBear avatars generated from your username, or supply your own URL |
 | Admin tools | Rename, clear, delete, transfer ownership, manage admins and users |
@@ -121,9 +121,10 @@ For the GitHub Pages + Supabase deployment, run the SQL files in `supabase/` in 
 023_account_profile_terms_sync.sql
 024_ban_anonymous_usernames.sql
 025_block_reserved_account_login.sql
+026_existing_account_terms_gate.sql
 ```
 
-`011_security_hardening.sql` enforces account-session binding, stricter RLS, upload type/size limits, and safer message payload checks on the server side. Then run `supabase/012_safe_links.sql` to enforce safe-link validation in Supabase too. Run `supabase/013_inbox_badge_fix.sql` to enable realtime inbox badge updates, `supabase/014_stop_client_id_sharing.sql` to allow approved Client-ID sharing to be stopped, then `supabase/015_age_gate_signup.sql` to enforce the 13+ signup gate server-side, then `supabase/016_existing_account_age_verification.sql` so existing accounts are prompted and can store their confirmation, then `supabase/017_legacy_age_login_fix.sql` so legacy sessions that predate account sessions are forced through fresh login/verification instead of being skipped, then `supabase/018_terms_acceptance_signup.sql` so Terms acceptance is stored and enforced server-side at signup, then `supabase/019_markdown_safe_links.sql` so Markdown-style pasted links are parsed safely instead of rejected incorrectly, then `supabase/020_safe_link_regex_fix.sql` to correct the PostgreSQL regex used by the RLS safe-link check, then `supabase/021_login_avatar_fallback.sql` so older accounts restore avatars saved in the profile table, then `supabase/022_backfill_account_avatars.sql` to copy existing profile avatars into the account table, then `supabase/023_account_profile_terms_sync.sql` so future avatar and Terms changes sync back to the account record, then `supabase/024_ban_anonymous_usernames.sql` to reserve any username containing “anonymous”, then `supabase/025_block_reserved_account_login.sql` to block legacy accounts using that reserved pattern from logging in.
+`011_security_hardening.sql` enforces account-session binding, stricter RLS, upload type/size limits, and safer message payload checks on the server side. Then run `supabase/012_safe_links.sql` to enforce safe-link validation in Supabase too. Run `supabase/013_inbox_badge_fix.sql` to enable realtime inbox badge updates, `supabase/014_stop_client_id_sharing.sql` to allow approved Client-ID sharing to be stopped, then `supabase/015_age_gate_signup.sql` to enforce the 13+ signup gate server-side, then `supabase/016_existing_account_age_verification.sql` so existing accounts are prompted and can store their confirmation, then `supabase/017_legacy_age_login_fix.sql` so legacy sessions that predate account sessions are forced through fresh login/verification instead of being skipped, then `supabase/018_terms_acceptance_signup.sql` so Terms acceptance is stored and enforced server-side at signup, then `supabase/019_markdown_safe_links.sql` so Markdown-style pasted links are parsed safely instead of rejected incorrectly, then `supabase/020_safe_link_regex_fix.sql` to correct the PostgreSQL regex used by the RLS safe-link check, then `supabase/021_login_avatar_fallback.sql` so older accounts restore avatars saved in the profile table, then `supabase/022_backfill_account_avatars.sql` to copy existing profile avatars into the account table, then `supabase/023_account_profile_terms_sync.sql` so future avatar and Terms changes sync back to the account record, then `supabase/024_ban_anonymous_usernames.sql` to reserve any username containing “anonymous”, then `supabase/025_block_reserved_account_login.sql` to block legacy accounts using that reserved pattern from logging in, then `supabase/026_existing_account_terms_gate.sql` so every existing account must accept Terms/Privacy before entering.
 
 ---
 
@@ -341,3 +342,4 @@ The app already includes `public/terms.html` (Terms of Service / Terms of Use) a
 | `supabase/023_account_profile_terms_sync.sql` | Saves future avatar updates and Terms acceptance to the account record |
 | `supabase/024_ban_anonymous_usernames.sql` | Reserves any username containing “anonymous” case-insensitively |
 | `supabase/025_block_reserved_account_login.sql` | Blocks legacy accounts containing “anonymous” from logging in/continuing use |
+| `supabase/026_existing_account_terms_gate.sql` | Forces existing accounts to accept Terms/Privacy before app access |

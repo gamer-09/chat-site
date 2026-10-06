@@ -958,6 +958,12 @@
     accountConfirmAge: function (id) {
       return sb.rpc('confirm_account_age', { acct: id }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
     },
+    accountTermsStatus: function (id) {
+      return sb.rpc('account_terms_status', { acct: id }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
+    },
+    accountConfirmTerms: function (id) {
+      return sb.rpc('confirm_account_terms', { acct: id }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
+    },
     accountDelete: function (id, hash) {
       return sb.rpc('delete_account', { acct: id, pass: hash }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
     },
