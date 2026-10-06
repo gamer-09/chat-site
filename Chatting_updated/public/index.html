@@ -1885,6 +1885,22 @@
       html.ptr29-light-theme #image-btn { background: #e7edf5 !important; border-color: #d7e0eb !important; color: var(--text) !important; }
     }
 
+
+    /* ── Tablet composer viewport anchor (769px–1024px) ─────────────── */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      :root { --ptr29-keyboard-offset: 0px; --ptr29-composer-h: 72px; }
+      #chat { position: relative; overflow: hidden; }
+      #input-area {
+        position: sticky;
+        bottom: var(--ptr29-keyboard-offset, 0px);
+        z-index: 70;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      #messages { padding-bottom: 12px; }
+    }
+
   </style>
 </head>
 <body>

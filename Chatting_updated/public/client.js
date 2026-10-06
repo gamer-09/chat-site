@@ -2188,6 +2188,43 @@
     });
   };
 
+  // ── Composer viewport sync: keeps lower input bar in the visible screen
+  // on mobile/tablet and when the on-screen keyboard changes VisualViewport.
+  let composerViewportSyncReady = false;
+  function setupComposerViewportSync() {
+    if (composerViewportSyncReady) return;
+    composerViewportSyncReady = true;
+    const syncComposerViewport = () => {
+      const root = document.documentElement;
+      const inputArea = document.getElementById('input-area');
+      if (inputArea) root.style.setProperty('--ptr29-composer-h', Math.ceil(inputArea.getBoundingClientRect().height || 64) + 'px');
+      if (window.visualViewport) {
+        const vv = window.visualViewport;
+        const keyboardOffset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+        root.style.setProperty('--ptr29-keyboard-offset', keyboardOffset + 'px');
+      } else {
+        root.style.setProperty('--ptr29-keyboard-offset', '0px');
+      }
+    };
+    syncComposerViewport();
+    window.addEventListener('resize', syncComposerViewport);
+    if (window.visualViewport) {
+      let lastVVHeight = window.visualViewport.height;
+      const onViewportChange = () => {
+        syncComposerViewport();
+        const vv = window.visualViewport;
+        const keyboardOpen = vv.height < lastVVHeight - 80;
+        if (keyboardOpen && document.body.classList.contains('ptr29-view-chat')) {
+          const msgs = document.getElementById('messages');
+          if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 80);
+        }
+        if (!keyboardOpen) lastVVHeight = vv.height;
+      };
+      window.visualViewport.addEventListener('resize', onViewportChange);
+      window.visualViewport.addEventListener('scroll', onViewportChange);
+    }
+  }
+
   // ── Init ───────────────────────────────────────────────────────────────────
   const init = () => {
     if (window.ChatAPI._offline) setTimeout(() => showToast('Backend unreachable — offline mode. Check your connection and reload.', 'error'), 600);
@@ -2196,6 +2233,7 @@
     Object.entries(socketHandlers).forEach(([event, handler]) => socket.on(event, handler));
     setTimeout(refreshInboxBadge, 800);
     bindEvents();
+    setupComposerViewportSync();
     const roomFromUrl = new URLSearchParams(window.location.search).get('room');
     if (roomFromUrl) state.currentRoom = roomFromUrl;
 
@@ -2436,23 +2474,6 @@
         badge.style.display = count > 0 ? 'flex' : 'none';
       }
     };
-
-    // ── VisualViewport: keep input visible when keyboard opens (iOS/Android) ─
-    if (window.visualViewport) {
-      let lastVVHeight = window.visualViewport.height;
-      window.visualViewport.addEventListener('resize', () => {
-        if (!document.body.classList.contains('ptr29-mobile')) return;
-        const vv = window.visualViewport;
-        const keyboardOpen = vv.height < lastVVHeight - 80;
-        // When keyboard opens, scroll messages to bottom so latest is visible
-        if (keyboardOpen && document.body.classList.contains('ptr29-view-chat')) {
-          const msgs = document.getElementById('messages');
-          if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 80);
-        }
-        // When keyboard closes, restore
-        if (!keyboardOpen) lastVVHeight = vv.height;
-      });
-    }
 
     // ── Prevent double-tap zoom on fast button presses ──────────────────
     let lastTouch = 0;
