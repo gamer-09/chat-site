@@ -2310,7 +2310,7 @@
     body.ptr29-glass-ui .context-menu,
     body.ptr29-glass-ui .online-menu,
     body.ptr29-glass-ui .inbox-popup {
-      background: rgba(11,18,33,.94) !important;
+      background: #0b1221 !important;
       border-color: rgba(148,163,184,.30) !important;
       color: var(--text) !important;
       box-shadow: 0 24px 64px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.06) !important;
@@ -2323,7 +2323,7 @@
     html.ptr29-light-theme body.ptr29-glass-ui .context-menu,
     html.ptr29-light-theme body.ptr29-glass-ui .online-menu,
     html.ptr29-light-theme body.ptr29-glass-ui .inbox-popup {
-      background: rgba(255,255,255,.95) !important;
+      background: #ffffff !important;
       border-color: rgba(148,163,184,.42) !important;
       color: #0b1526 !important;
       box-shadow: 0 24px 60px rgba(15,23,42,.22), inset 0 1px 0 rgba(255,255,255,.9) !important;
@@ -2383,9 +2383,19 @@
     /* checkboxes: keep them visible (theme accent), never transparent */
     body.ptr29-glass-ui input[type="checkbox"] {
       accent-color: var(--accent) !important;
-      background: transparent !important;
+      background: rgba(255,255,255,.92) !important;
+      border: 1px solid rgba(148,163,184,.55) !important;
+      border-radius: 4px;
       width: 16px;
       height: 16px;
+      appearance: auto;
+      -webkit-appearance: auto;
+      padding: 0;
+      flex: 0 0 auto;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui input[type="checkbox"] {
+      background: #ffffff !important;
+      border-color: #c3cedb !important;
     }
     body.ptr29-glass-ui .modal .modal-actions button.secondary,
     html.ptr29-light-theme body.ptr29-glass-ui .modal .modal-actions button.secondary {
