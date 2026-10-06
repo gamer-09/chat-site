@@ -301,6 +301,8 @@
       return s.length > maxLen ? s.slice(0, maxLen) + '…' : s;
     },
 
+    isReservedUsername: (name) => String(name || '').trim().toLowerCase().includes('anonymous'),
+
     formatFileSize: (bytes) => {
       if (bytes < 1024) return bytes + ' B';
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -522,6 +524,11 @@
         hint.textContent = 'Too short (min 2 characters)';
         return;
       }
+      if (utils.isReservedUsername(val)) {
+        hint.className = 'username-hint taken';
+        hint.textContent = '✗ Usernames containing "anonymous" are reserved';
+        return;
+      }
       hint.className = 'username-hint checking';
       hint.textContent = 'Checking…';
       profile._checkTimer = setTimeout(() => {
@@ -570,8 +577,8 @@
         showToast('Username must be at least 2 characters', 'error');
         return resolve(false);
       }
-      if (val.toLowerCase() === 'anonymous') {
-        showToast('"Anonymous" is reserved — please choose another name', 'error');
+      if (utils.isReservedUsername(val)) {
+        showToast('Usernames containing "anonymous" are reserved — please choose another name', 'error');
         return resolve(false);
       }
       const avatarCheck = utils.validateAvatarValue(avatar);
@@ -3259,7 +3266,7 @@
           taken: 'That username already has an account — log in instead.',
           invalid_credentials: 'Wrong username or password.',
           locked: 'Too many failed attempts — locked for 15 minutes.',
-          invalid_username: 'Invalid username.',
+          invalid_username: 'Invalid username. Do not use names containing anonymous.',
           age_required: 'You must confirm you are at least 13 years old to create an account.',
           terms_required: 'You must agree to the Terms and Conditions to create an account.',
         };

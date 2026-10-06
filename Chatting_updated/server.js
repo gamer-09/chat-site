@@ -515,6 +515,7 @@ app.get('/api/users/check-username', (req, res) => {
   if (!raw) return res.json({ available: false, error: 'empty' });
   if (raw.length < 2) return res.json({ available: false, error: 'too_short' });
   if (raw.length > 50) return res.json({ available: false, error: 'too_long' });
+  if (isReservedUsername(raw)) return res.json({ available: false, error: 'reserved' });
   const lc = raw.toLowerCase();
   const taken = getAllUsers().some(u => {
     if (ownClientId && u.clientId === ownClientId) return false;
@@ -567,6 +568,9 @@ app.post('/admin/shutdown', requireAdminToken, (req, res) => {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function sanitizeRoomName(input) {
   return String(input || DEFAULT_ROOM).trim().toLowerCase().replace(/[^a-z0-9_-]/gi, '-').slice(0, 50) || DEFAULT_ROOM;
+}
+function isReservedUsername(input) {
+  return String(input || '').trim().toLowerCase().includes('anonymous');
 }
 
 // Check if any active socket for this clientId has ephemeral passkey access to the room
@@ -704,6 +708,10 @@ io.on('connection', (socket) => {
     let p = payload;
     if (typeof p === 'string') p = { username: p, room: DEFAULT_ROOM };
     const username = (typeof p.username === 'string' && p.username.trim()) ? p.username.trim().slice(0, 50) : 'Anonymous';
+    if (username !== 'Anonymous' && isReservedUsername(username)) {
+      socket.emit('system', { type: 'error', message: 'Usernames containing "anonymous" are reserved.' });
+      return;
+    }
     const room     = sanitizeRoomName(p.room);
     const avatar   = sanitizeAvatarUrl(p.avatar) || defaultAvatar(username);
     const clientId = (typeof p.clientId === 'string' && p.clientId.trim()) ? p.clientId.trim().slice(0, 64) : null;
@@ -1103,6 +1111,10 @@ io.on('connection', (socket) => {
     if (!r) return;
     const oldUsername = socket.data.username;
     const newUsername = (typeof username === 'string' && username.trim()) ? username.trim().slice(0, 50) : oldUsername;
+    if (isReservedUsername(newUsername)) {
+      socket.emit('system', { type: 'error', message: 'Usernames containing "anonymous" are reserved.' });
+      return;
+    }
 
     // Prevent username theft: check if the new name is taken by someone else
     if (newUsername !== oldUsername) {
@@ -1134,6 +1146,7 @@ io.on('connection', (socket) => {
     if (!raw) { if (typeof ack === 'function') ack({ available: false, error: 'empty' }); return; }
     if (raw.length < 2) { if (typeof ack === 'function') ack({ available: false, error: 'too_short' }); return; }
     if (raw.length > 50) { if (typeof ack === 'function') ack({ available: false, error: 'too_long' }); return; }
+    if (isReservedUsername(raw)) { if (typeof ack === 'function') ack({ available: false, error: 'reserved' }); return; }
     const lc = raw.toLowerCase();
     const taken = getAllUsers().some(u => u.clientId !== socket.data.clientId && (u.username || '').toLowerCase() === lc);
     if (typeof ack === 'function') ack({ available: !taken, username: raw });

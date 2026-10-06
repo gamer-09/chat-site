@@ -68,6 +68,7 @@
   function defaultAvatar(name) {
     return DEFAULT_AVATAR + encodeURIComponent(String(name || 'Anonymous'));
   }
+  function isReservedUsername(name) { return String(name || '').trim().toLowerCase().indexOf('anonymous') !== -1; }
   function uni(arr) { return Array.from(new Set((arr || []).filter(Boolean))); }
   function extOf(name) {
     var m = String(name || '').toLowerCase().match(/\.([a-z0-9]+)(?:[?#]|$)/);
@@ -266,7 +267,7 @@
       if (!raw) return Promise.resolve({ available: false, error: 'empty' });
       if (raw.length < 2) return Promise.resolve({ available: false, error: 'too_short' });
       if (raw.length > 50) return Promise.resolve({ available: false, error: 'too_long' });
-      if (raw.toLowerCase() === 'anonymous') return Promise.resolve({ available: false, error: 'reserved' });
+      if (isReservedUsername(raw)) return Promise.resolve({ available: false, error: 'reserved' });
       var cid = api._clientId || api.uid || '';
       return sb.rpc('username_available', { un: raw, cid: cid }).then(function (res) {
         if (res.error) {
@@ -286,6 +287,7 @@
     upsertProfile: function (username, avatar) {
       if (!api.uid) return Promise.resolve();
       var un = String(username || '').trim().slice(0, 50) || 'Anonymous';
+      if (isReservedUsername(un) && un !== 'Anonymous') return Promise.resolve({ error: 'reserved_username' });
       var av = sanitizeAvatarUrl(avatar) || defaultAvatar(un);
       api._username = un;
       api._avatar = av;
@@ -306,6 +308,7 @@
 
     updateProfile: function (room, username, avatar) {
       var un = String(username || '').trim().slice(0, 50);
+      if (isReservedUsername(un)) { dispatch('system', { type: 'error', message: 'Usernames containing "anonymous" are reserved.' }); return; }
       var av = sanitizeAvatarUrl(avatar);
       api._username = un || api._username;
       api._avatar = av || api._avatar;
