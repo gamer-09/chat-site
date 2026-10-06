@@ -2227,13 +2227,17 @@
     r.style.setProperty('--success',      '#15803d');
     r.style.setProperty('--danger',       '#b91c1c');
     r.style.setProperty('--warning',      '#b45309');
+    r.style.setProperty('--composer-bg',  '#f8fafc');
+    r.style.setProperty('--composer-surface', '#ffffff');
+    r.classList.add('ptr29-light-theme');
     document.getElementById('theme-toggle').textContent = '☀️';
   }
 
   function applyDarkTheme() {
     const r = document.documentElement;
     r.style.removeProperty('color-scheme');
-    ['--success','--danger','--warning'].forEach((k) => r.style.removeProperty(k));
+    ['--success','--danger','--warning','--composer-bg','--composer-surface'].forEach((k) => r.style.removeProperty(k));
+    r.classList.remove('ptr29-light-theme');
     r.style.removeProperty('--bg');
     r.style.removeProperty('--panel');
     r.style.removeProperty('--panel2');

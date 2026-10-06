@@ -1867,6 +1867,57 @@
       header, #sidebar, #chat, #online-panel { box-shadow: 0 8px 20px rgba(0,0,0,.20); }
     }
 
+
+    /* ── Light theme composer/panel polish ───────────────────────────── */
+    html.ptr29-light-theme body {
+      background: var(--bg);
+    }
+    html.ptr29-light-theme #chat,
+    html.ptr29-light-theme #messages {
+      background: var(--bg);
+    }
+    html.ptr29-light-theme #chat-form {
+      background: linear-gradient(180deg, rgba(255,255,255,.88), var(--composer-bg, #f8fafc));
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -10px 26px rgba(15, 23, 42, .08);
+    }
+    html.ptr29-light-theme #online-panel,
+    html.ptr29-light-theme #sidebar {
+      background: var(--panel2);
+    }
+    html.ptr29-light-theme #online-panel::after,
+    html.ptr29-light-theme #sidebar::after {
+      content: "";
+      flex: 0 0 72px;
+      background: var(--composer-bg, #f8fafc);
+      border-top: 1px solid var(--border);
+      display: block;
+    }
+    html.ptr29-light-theme #text,
+    html.ptr29-light-theme #username,
+    html.ptr29-light-theme #avatar,
+    html.ptr29-light-theme #search-messages-input,
+    html.ptr29-light-theme #people-search,
+    html.ptr29-light-theme input,
+    html.ptr29-light-theme select,
+    html.ptr29-light-theme textarea {
+      background: var(--composer-surface, #fff);
+      border-color: var(--border-light);
+      color: var(--text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+    }
+    html.ptr29-light-theme #emoji-btn,
+    html.ptr29-light-theme #file-btn,
+    html.ptr29-light-theme #image-btn,
+    html.ptr29-light-theme button.secondary {
+      background: #e9eff6;
+      color: var(--text);
+      border-color: var(--border);
+    }
+    html.ptr29-light-theme #send-btn {
+      box-shadow: 0 10px 24px rgba(37, 99, 235, .22);
+    }
+
   </style>
 </head>
 <body>
