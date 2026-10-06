@@ -2301,6 +2301,96 @@
       border-color: #dbe3ec !important;
     }
 
+    /* ── Glass mode: dialogs and menus stay readable ─────────────────── */
+    /* Popovers are content, not chrome: the thickness slider must not make
+       them see-through, or labels/inputs vanish into the backdrop. */
+    body.ptr29-glass-ui .modal,
+    body.ptr29-glass-ui .help-modal-inner,
+    body.ptr29-glass-ui .ag-card,
+    body.ptr29-glass-ui .context-menu,
+    body.ptr29-glass-ui .online-menu,
+    body.ptr29-glass-ui .inbox-popup {
+      background: rgba(11,18,33,.94) !important;
+      border-color: rgba(148,163,184,.30) !important;
+      color: var(--text) !important;
+      box-shadow: 0 24px 64px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.06) !important;
+      backdrop-filter: blur(18px) saturate(1.14) !important;
+      -webkit-backdrop-filter: blur(18px) saturate(1.14) !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui .modal,
+    html.ptr29-light-theme body.ptr29-glass-ui .help-modal-inner,
+    html.ptr29-light-theme body.ptr29-glass-ui .ag-card,
+    html.ptr29-light-theme body.ptr29-glass-ui .context-menu,
+    html.ptr29-light-theme body.ptr29-glass-ui .online-menu,
+    html.ptr29-light-theme body.ptr29-glass-ui .inbox-popup {
+      background: rgba(255,255,255,.95) !important;
+      border-color: rgba(148,163,184,.42) !important;
+      color: #0b1526 !important;
+      box-shadow: 0 24px 60px rgba(15,23,42,.22), inset 0 1px 0 rgba(255,255,255,.9) !important;
+    }
+    /* fields and buttons inside a dialog need real contrast */
+    body.ptr29-glass-ui .modal h3,
+    body.ptr29-glass-ui .modal label,
+    body.ptr29-glass-ui .help-modal-inner h3,
+    body.ptr29-glass-ui .ag-card h3 {
+      color: var(--text) !important;
+    }
+    body.ptr29-glass-ui .modal label,
+    body.ptr29-glass-ui .modal .hint,
+    body.ptr29-glass-ui .modal small {
+      color: var(--text-muted) !important;
+    }
+    body.ptr29-glass-ui .modal input,
+    body.ptr29-glass-ui .modal select,
+    body.ptr29-glass-ui .modal textarea,
+    body.ptr29-glass-ui .modal button.secondary,
+    body.ptr29-glass-ui .context-menu button,
+    body.ptr29-glass-ui .online-menu button {
+      background: rgba(255,255,255,.10) !important;
+      border-color: rgba(203,213,225,.28) !important;
+      color: var(--text) !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui .modal input,
+    html.ptr29-light-theme body.ptr29-glass-ui .modal select,
+    html.ptr29-light-theme body.ptr29-glass-ui .modal textarea,
+    html.ptr29-light-theme body.ptr29-glass-ui .modal button.secondary,
+    html.ptr29-light-theme body.ptr29-glass-ui .context-menu button,
+    html.ptr29-light-theme body.ptr29-glass-ui .online-menu button {
+      background: #f1f5f9 !important;
+      border-color: #dbe3ec !important;
+      color: #0b1526 !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui .modal h3,
+    html.ptr29-light-theme body.ptr29-glass-ui .modal label,
+    html.ptr29-light-theme body.ptr29-glass-ui .help-modal-inner h3 {
+      color: #0b1526 !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui .modal label,
+    html.ptr29-light-theme body.ptr29-glass-ui .modal .hint {
+      color: #3f4c60 !important;
+    }
+    /* placeholder text was near-invisible against the frosted inputs */
+    body.ptr29-glass-ui input::placeholder,
+    body.ptr29-glass-ui textarea::placeholder {
+      color: var(--text-dim) !important;
+      opacity: 1 !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui input::placeholder,
+    html.ptr29-light-theme body.ptr29-glass-ui textarea::placeholder {
+      color: #5b6b81 !important;
+      opacity: 1 !important;
+    }
+    /* checkboxes: keep them visible (theme accent), never transparent */
+    body.ptr29-glass-ui input[type="checkbox"] {
+      accent-color: var(--accent) !important;
+      background: transparent !important;
+      width: 16px;
+      height: 16px;
+    }
+    body.ptr29-glass-ui .modal .modal-actions button.secondary,
+    html.ptr29-light-theme body.ptr29-glass-ui .modal .modal-actions button.secondary {
+      font-weight: 500;
+    }
     /* ── Light theme surface consistency (normal + glass) ────────────── */
     html { background-color: #0b1220; }
     html.ptr29-light-theme { background-color: #eef4fb; }
@@ -2926,7 +3016,7 @@
               <li>🌙 <strong>Theme</strong> — switch dark/light with the 🌙/☀️ toolbar button; your choice is remembered</li>
               <li>🫧 <strong>Glass UI test (Wenny only)</strong> — the 🫧 Glass UI button swaps the flat panels for frosted glass floating over a <strong>live backdrop</strong>: flowing colour waves drawn on the spot, with dark and light palettes that follow your theme</li>
               <li>⏸ <strong>Motion</strong> — the ⏸ Still / ▶ Animate button freezes or resumes the backdrop (handy on battery saver or slow devices); the choice is remembered per browser, and the app also honours your system "reduce motion" setting by starting still. Both controls disappear with the normal UI, and the backdrop never runs for anyone else</li>
-              <li>◐ <strong>Glass thickness</strong> — one slider for both the panel opacity <em>and</em> the blur, capped at <strong>15%</strong> so the backdrop always shows through. All the way left is bare glass, 15% is the final shipping level (panels ~15% opaque, light 6.4px blur). Remembered per browser</li>
+              <li>◐ <strong>Glass thickness</strong> — one slider for both the panel opacity <em>and</em> the blur, capped at <strong>15%</strong> so the backdrop always shows through. All the way left is bare glass, 15% is the final shipping level (panels ~15% opaque, light 6.4px blur). Dialogs, menus and message bubbles are deliberately left solid so labels, fields and text stay readable. Remembered per browser</li>
               <li>🔒 <strong>Private rooms are not end-to-end encrypted</strong>; authorized participants and infrastructure providers may technically access content</li>
               <li>🗑️ <strong>Delete Account</strong> (password-verified) erases account + user + every message/reaction/receipt + presence + owned rooms; renames wipe the old name; the operator can purge any username</li>
               <li>⚪ <strong>Presence &amp; last-seen</strong> are visible to other users while your tab is open and as a “seen …” time after you leave</li>
