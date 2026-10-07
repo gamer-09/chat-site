@@ -2168,6 +2168,15 @@
         unbanRoomUser(btn.dataset.unban);
       }));
     }
+    // Ban someone by Client ID / username (court settings, not the People menu)
+    const banInput = document.getElementById('room-ban-input');
+    const banBtn   = document.getElementById('room-ban-btn');
+    if (banBtn && banInput) {
+      const go = () => { banRoomUser(banInput.value); banInput.value = ''; };
+      banBtn.addEventListener('click', go);
+      banInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
+    }
+
     window.PTR29RoomRoles = { addRoomMember, addRoomAdmin, kickRoomUser, banRoomUser, unbanRoomUser, refreshBans };
 
     const addAdminBtn   = document.getElementById('add-admin-btn');
@@ -3336,11 +3345,11 @@
           || !!(row && row.room && String(row.room) === String(state.currentRoom));
         menu.innerHTML = '<button type="button" data-act="profile">👤 View profile</button>' +
                          '<button type="button" data-act="req">🔑 Request Client ID</button>' +
-                         (canManage && rowId && inRoom
+                         (canManage && rowId && inRoom && !isMine(rowId)
+                           && String(rowId) !== String(meta.ownerId || '')
+                           && !(meta.admins || []).some((id) => String(id) === String(rowId))
                            ? '<button type="button" data-act="kick">🚪 Kick from #' + utils.escapeHtml(state.currentRoom) + '</button>'
-                           : (canManage && rowId
-                               ? '<button type="button" data-act="ban">⛔ Ban from #' + utils.escapeHtml(state.currentRoom) + '</button>'
-                               : ''));
+                           : '');
         const r = btn.getBoundingClientRect();
         menu.style.top = Math.min(r.bottom + 6, innerHeight - 110) + 'px';
         menu.style.right = Math.max(8, innerWidth - r.right) + 'px';
@@ -3349,12 +3358,6 @@
           closeMenu();
           if (act === 'profile') userProfile.open(name);
           if (act === 'req') userProfile.open(name, { focusRequest: true });
-          if (act === 'ban') {
-            const target = (state.lastPresenceUsers || state.currentRoomPresence || [])
-              .find(u => String(u.username || '').toLowerCase() === String(name || '').toLowerCase());
-            const idVal = (target && (target.clientId || target.uid)) || name;
-            if (window.PTR29RoomRoles) window.PTR29RoomRoles.banRoomUser(idVal);
-          }
           if (act === 'kick') {
             const target = (state.lastPresenceUsers || state.currentRoomPresence || [])
               .find(u => String(u.username || '').toLowerCase() === String(name || '').toLowerCase());
