@@ -3075,7 +3075,8 @@
               <li>➕ <strong>Create Room</strong> with a name and optional private-room setting</li>
               <li>🔒 <strong>Private means access-controlled</strong>, not end-to-end encrypted</li>
               <li>🔑 <strong>Join by passkey</strong> by entering the code in the sidebar; the browser may save it for reconnecting</li>
-              <li>👥 <strong>Membership persists</strong> for the same account identity after a successful private-room join</li>
+              <li>👥 <strong>Membership persists</strong> for the same account identity after a successful private-room join, and an owner/admin can add you directly (see Room Settings)</li>
+              <li>🚪 <strong>Kicked or banned?</strong> A room owner/admin can remove you; you can rejoin once they press <em>Allow rejoin</em> in that room's settings</li>
               <li>↻ <strong>Refresh</strong> manually reloads the room list</li>
               <li>🎓 <strong>The guided tour</strong> creates two temporary rooms (public + private), lets you browse them during the demo — sending still requires a verified account — and deletes them when it ends</li>
             </ul>
@@ -3118,7 +3119,10 @@
               <li>👆 <strong>Tap a message on mobile</strong> or right-click it on desktop to reveal actions</li>
               <li>📎 <strong>Files</strong> are allow-listed up to 10 MB; 📷 <strong>images</strong> are JPG/PNG/GIF/WebP up to 5 MB</li>
               <li>🔗 <strong>Links</strong> may be plain or Markdown-style; private/local, credential-hidden, punycode, risky download, spammy, and unsafe-protocol links are blocked before saving. This is not a full malware scan of the destination.</li>
-              <li>✓ <strong>Read receipts</strong> and typing status are visible to room participants</li>
+              <li>@ <strong>Mentions</strong> — type <code>@</code> in the composer for a filtered list of users (online first). The person you mention sees a highlighted <b>@name</b> chip, an in-app toast and a system notification</li>
+              <li>🔎 <strong>Search</strong> (the box in the room bar) highlights every match, shows a live counter like <code>2/6</code> and steps through them with ↑/↓ (Enter / Shift+Enter). <b>✕</b> cancels and restores your view</li>
+              <li>⬇️ <strong>Jump to newest</strong> — a floating ↓ button appears when you scroll up, with a badge counting messages that arrived while you were reading</li>
+              <li>✓ <strong>Read receipts</strong> and typing status are visible to room participants; links and receipts re-tint per theme so they stay readable on both bubble colours</li>
               <li>⚠️ Deleting a message removes it from chat, but an associated uploaded storage object may remain</li>
             </ul>
           </div>
@@ -3162,7 +3166,11 @@
               <li>✏️ <strong>Rename</strong> the room (not available for #general)</li>
               <li>🔒 <strong>Privacy</strong> switches between public and access-controlled private membership</li>
               <li>🔑 <strong>Passkey</strong> can be generated, copied, saved, or cleared; it is not an encryption key</li>
-              <li>🛡️ <strong>Add Admin / Add User</strong> manage room powers and private-room access; settings show owner &amp; admin usernames (not raw IDs)</li>
+              <li>🛡️ <strong>Add Admin / Add User</strong> accept a <strong>Client ID or a username</strong> and are resolved server-side, so private-room access really works. Settings show owner &amp; admin usernames (not raw IDs)</li>
+              <li>👑 <strong>The owner counts as an admin</strong> in the room banner, and is shown with a crown in the admin list</li>
+              <li>🚪 <strong>Kick</strong> — the ⋮ menu in the People panel offers it only for someone who is actually in this room (never for the owner, an admin, or yourself)</li>
+              <li>⛔ <strong>Ban / Allow rejoin</strong> — <em>Room settings → Banned from this room</em> lets you ban someone by Client ID or username and press ↩ to let them back in. A banned person cannot rejoin, even with the passkey</li>
+              <li>🔑 <strong>Old-room rescue</strong> — if a room's owner row belongs to a dead browser session, an admin is offered "claim ownership" so management works again</li>
               <li>🧹 <strong>Clear</strong> removes the room’s message rows; <strong>Delete Room</strong> is available to the owner or a room admin</li>
               <li>🚫 <strong>No global moderation:</strong> room admins cannot ban a user platform-wide, terminate an identity, delete another profile, or revoke a username</li>
             </ul>
@@ -3212,11 +3220,12 @@
               <li> <strong>Offline list</strong> shows everyone not present, with “seen …” last-seen times</li>
               <li>🔎 <strong>Search people</strong> filters both lists live as you type</li>
               <li>🔔 <strong>Room info</strong> shows the owner, live user count, and room-admin count</li>
-              <li>⋮ <strong>Per-person menu</strong> — View profile or Request Client ID (the only place profiles open)</li>
+              <li>⋮ <strong>Per-person menu</strong> — View profile, Request Client ID, and (for a room manager) <b>Kick</b> when that person is in the current room</li>
               <li>📬 <strong>Unread badges</strong> mark activity in rooms you are not viewing</li>
               <li>⌨️ <strong>Typing indicators</strong> are temporary realtime broadcasts</li>
               <li>🖼️ <strong>Click an image</strong> to view the authorized signed media URL in the lightbox</li>
-              <li>🔔 <strong>Browser notifications are optional</strong> and may expose sender, room, and message previews on your screen</li>
+              <li>🔔 <strong>System notifications</strong> are sent through the service worker, so they appear <b>outside the app</b> (background tab, minimised window, locked phone) for other-room messages, mentions and inbox requests. Turn them on in <b>Edit Profile → Appearance</b>; they may expose sender, room and a short preview on your screen. On iPhone, add the site to your Home Screen first</li>
+              <li>🎨 <strong>Appearance lives in Edit Profile</strong> — Glass UI (frosted panels over the live animated backdrop) and the backdrop motion switch</li>
             </ul>
           </div>
         </div>
@@ -3251,13 +3260,15 @@
             <ul class="help-tips">
               <li>🆔 <strong>Your identity follows your account</strong> — log in on any device and your content is there; signup and existing-account access require 13+ confirmation plus Terms/Privacy acceptance; passwords are SHA-256-salted on-device, then bcrypt + pepper server-side</li>
               <li>🌙 <strong>Theme</strong> — switch dark/light with the 🌙/☀️ toolbar button; your choice is remembered</li>
+              <li>🫧 <strong>Glass UI</strong> — optional frosted look with a live animated backdrop, switched on in Edit Profile → Appearance (fixed 15% glass level, motion can be frozen)</li>
               <li>🫧 <strong>Glass UI (everyone)</strong> — turn it on in <strong>Edit Profile → Appearance</strong> to swap the flat panels for frosted glass floating over a <strong>live backdrop</strong>: flowing colour waves drawn on the spot, with dark and light palettes that follow your theme. It applies immediately and is remembered on this browser</li>
               <li>⏸ <strong>Motion</strong> — freeze or resume the waves with the ⏸ Still / ▶ Animate button in the sidebar, or the "Live backdrop animation" switch in Edit Profile (handy on battery saver or slow devices). The app also honours your system "reduce motion" setting by starting still</li>
               <li>🫧 <strong>Glass level</strong> — fixed at the final <strong>15%</strong> for everyone (panels ~15% opaque with a light 6.4px blur, so the live backdrop always shows through). Dialogs sit at 30% and the 13+/Terms gates stay near-solid so their legal copy is always readable; message bubbles are deliberately opaque so text never fights the waves</li>
               <li>🔒 <strong>Private rooms are not end-to-end encrypted</strong>; authorized participants and infrastructure providers may technically access content</li>
               <li>🗑️ <strong>Delete Account</strong> (password-verified) erases account + user + every message/reaction/receipt + presence + owned rooms; renames wipe the old name; the operator can purge any username</li>
               <li>⚪ <strong>Presence &amp; last-seen</strong> are visible to other users while your tab is open and as a “seen …” time after you leave</li>
-              <li>🛡️ <strong>Admin rights are room-scoped</strong>; there is no general global ban/account-termination control, but the reserved “anonymous” username pattern is blocked</li>
+              <li>🛡️ <strong>Admin rights are room-scoped</strong>: an owner/admin can add members, kick, or ban <em>inside their own room</em> (and can reverse it). There is no global ban/account-termination control, but the reserved “anonymous” username pattern is blocked</li>
+              <li>🔔 <strong>Notifications</strong> are opt-in (Edit Profile → Appearance) and delivered by the service worker, so they can appear outside the app; they can show sender, room and a short message preview on your lock screen</li>
               <li>📄 Read the <a href="terms.html" target="_blank" rel="noopener noreferrer">Terms of Use</a> and <a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacy Policy</a>; they cover the 13+ rule, uploads, safe links, link-safety limits, Client-ID requests, and account deletion</li>
               <li>☎️ <strong>Contact</strong> is available from the header: WhatsApp, Instagram, YouTube, and GitHub links are the official operator channels</li>
             </ul>

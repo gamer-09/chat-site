@@ -31,7 +31,6 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | Unique usernames | Server enforces no two users share the same name |
 | Auto avatars | DiceBear avatars generated from your username, or supply your own URL |
 | Room roles | Requires migrations `032` **and** `033` (the app tells you if they are missing). Add a member/admin by **Client ID (full or the shortened form shown in the UI) or username** — resolved server-side to every identity that person owns. The People ⋮ menu shows **Kick** only for someone actually in this room (never for the owner, admins or yourself) — everyone else just gets profile / request-ID. **Banning and un-bans live in Room settings**: ban anyone by Client ID or username, and press ↩ Allow rejoin to let a kicked person back in. Admins can also claim a room whose owner row is an orphaned browser session. Every action reports success or the exact reason |
-033_room_roles_followups.sql` (the app tells you if it is missing). Add a member/admin by **Client ID or username** — resolved server-side to every identity that person owns, so private-room access actually works. Owner/admins can **kick** (removes membership + admin rights and bans them from re-entering), and an admin can claim a room whose owner row is an orphaned browser session. Every action reports success or the exact reason |
 | Room ownership | Rooms are owned by the **browser auth uid** (what the room RLS/RPCs check), while the owner **name** shown comes from that identity's `users` row, which is kept in sync with the signed-in account. Switching accounts on one device therefore shows the current account as owner and never locks the owner out of their own room; the UI also accepts either id as "me" (`identityAliases`) |
 | Admin tools | Rename, clear, delete, transfer ownership, manage admins and users |
 | Inbox | Received + sent Client-ID requests, realtime badge/popup notifications, approval/denial status, and Stop sharing controls |
@@ -40,7 +39,7 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | Jump to newest | Floating ↓ button above the composer appears whenever you scroll up (PC, tablet, phone); it shows a count of messages that arrived while you were reading and returns you to the newest message |
 | System notifications | Notifications are sent through the **service worker**, so they appear outside the app (background tab, minimised window, locked phone) for new messages in other rooms, mentions of you and inbox requests. Toggle in Edit Profile → Appearance; permission is requested on enable |
 | Appearance settings | Edit Profile holds the Glass UI switch and the live-backdrop motion switch; both apply instantly and are remembered per browser (no profile save needed) |
-| Glass UI | Available to **every account**: a normal appearance setting in **Edit Profile → Appearance** (🫧 Glass UI + a live-backdrop motion switch). Frosted-glass panels + composer over a **live animated backdrop** — `glass-backdrop.js` draws flowing colour-wave bands, drifting orbs and bokeh on a `<canvas>` (no images, no network). The still JPEGs (`glass-backdrop-dark.jpg` / `glass-backdrop-light.jpg`) paint the instant first frame the canvas crossfades over. Dark/light palettes follow the theme and ⏸ Still / ▶ Animate freezes it (honours `prefers-reduced-motion`). The glass level is **fixed at the final 15%** for everyone — no per-browser control: chrome panels, strips, composer and message layers sit at ~15% opacity with a 6.4px blur via the `--gb-*` variables, so the waves stay clearly visible. Content stays readable on purpose: message bubbles are opaque (dark `#111827` / light `#ffffff`, own-message gradient), the typing strip is transparent, dialogs are at 30% with the whole-page scrim lightened so the backdrop shows through, and the 13+/Terms gates stay near-solid for their legal copy. An auto-lite tier drops render scale/frame rate on slow devices. An auto-lite tier drops render scale/frame rate on slow devices, and the engine only runs while glass mode is on. Turning it off returns the plain solid UI instantly |
+| Glass UI | Available to **every account**: a normal appearance setting in **Edit Profile → Appearance** (🫧 Glass UI + a live-backdrop motion switch). Frosted-glass panels + composer over a **live animated backdrop** — `glass-backdrop.js` draws flowing colour-wave bands, drifting orbs and bokeh on a `<canvas>` (no images, no network). The still JPEGs (`glass-backdrop-dark.jpg` / `glass-backdrop-light.jpg`) paint the instant first frame the canvas crossfades over. Dark/light palettes follow the theme and ⏸ Still / ▶ Animate freezes it (honours `prefers-reduced-motion`). The glass level is **fixed at the final 15%** for everyone — no per-browser control: chrome panels, strips, composer and message layers sit at ~15% opacity with a 6.4px blur via the `--gb-*` variables, so the waves stay clearly visible. Content stays readable on purpose: message bubbles are opaque (dark `#111827` / light `#ffffff`, own-message gradient), the typing strip is transparent, dialogs are at 30% with the whole-page scrim lightened so the backdrop shows through, and the 13+/Terms gates stay near-solid for their legal copy. An auto-lite tier drops render scale/frame rate on slow devices, and the engine only runs while glass mode is on. Turning it off returns the plain solid UI instantly |
 | Resilience | Self-hosted Supabase lib, versioned assets, network-first service worker, and a **build-freshness guard**: every deploy stamps the commit id into `index.html` and writes `version.json`, and the app reloads once if the open document is older than the deployed build (GitHub Pages caches HTML for ~10 minutes, which used to hide new releases) |
 | Message search | Highlights every match in the room, shows a live **match counter** (`2/6`, plus `+N older` when older messages also match), steps through matches with ↑/↓ (Enter / Shift+Enter on desktop) and a **✕ cancel** that clears the highlights and restores your view |
 | @mentions | Type `@` in the composer for a filtered user list (online first, then offline) — arrows + Enter/Tab or click to insert. Mentioned users see a highlighted `@name` chip, an in-app toast, and a system notification |
@@ -64,10 +63,16 @@ Chatting_updated/
 │   ├── store.js         # JSON data layer (rooms, messages, users)
 │   └── db.json          # Persistent store — auto-created on first run
 ├── public/
-│   ├── index.html       # Main chat UI
-│   ├── client.js        # Frontend Socket.io logic
-│   ├── mobile.css       # Mobile styles
-│   └── sw.js            # Service worker
+│   ├── index.html       # Main chat UI (all styles inline)
+│   ├── client.js        # Frontend app logic (sockets, rooms, messages, gates)
+│   ├── chat-ux.js       # Search with counters/navigation, @mentions, system notifications
+│   ├── glass-backdrop.js# Live animated glass backdrop (canvas waves; opt-in Glass UI)
+│   ├── supabase-client.js # Data layer used by the GitHub Pages build
+│   ├── mobile.css       # Mobile/tablet styles
+│   ├── version.json      # Build stamp written by the deploy workflow
+│   ├── terms.html       # Terms of Use
+│   ├── privacy.html     # Privacy Policy
+│   └── sw.js            # Service worker (notifications, offline shell, freshness)
 └── uploads/             # Self-hosted uploads — auto-created on first run
 ```
 
@@ -137,9 +142,10 @@ For the GitHub Pages + Supabase deployment, run the SQL files in `supabase/` in 
 030_room_ownership.sql
 031_room_owner_identity_fix.sql
 032_room_roles_and_kick.sql
+033_room_roles_followups.sql
 ```
 
-`011_security_hardening.sql` enforces account-session binding, stricter RLS, upload type/size limits, and safer message payload checks on the server side. Then run `supabase/012_safe_links.sql` to enforce safe-link validation in Supabase too. Run `supabase/013_inbox_badge_fix.sql` to enable realtime inbox badge updates, `supabase/014_stop_client_id_sharing.sql` to allow approved Client-ID sharing to be stopped, then `supabase/015_age_gate_signup.sql` to enforce the 13+ signup gate server-side, then `supabase/016_existing_account_age_verification.sql` so existing accounts are prompted and can store their confirmation, then `supabase/017_legacy_age_login_fix.sql` so legacy sessions that predate account sessions are forced through fresh login/verification instead of being skipped, then `supabase/018_terms_acceptance_signup.sql` so Terms acceptance is stored and enforced server-side at signup, then `supabase/019_markdown_safe_links.sql` so Markdown-style pasted links are parsed safely instead of rejected incorrectly, then `supabase/020_safe_link_regex_fix.sql` to correct the PostgreSQL regex used by the RLS safe-link check, then `supabase/021_login_avatar_fallback.sql` so older accounts restore avatars saved in the profile table, then `supabase/022_backfill_account_avatars.sql` to copy existing profile avatars into the account table, then `supabase/023_account_profile_terms_sync.sql` so future avatar and Terms changes sync back to the account record, then `supabase/024_ban_anonymous_usernames.sql` to reserve any username containing “anonymous”, then `supabase/025_block_reserved_account_login.sql` to block legacy accounts using that reserved pattern from logging in, then `supabase/026_existing_account_terms_gate.sql` so every existing account must accept Terms/Privacy before entering, then `supabase/027_cleanup_reserved_presence.sql` to remove stale Anonymous/reserved People-panel presence rows, then `supabase/028_upload_extension_mime_fix.sql` so allowed file extensions still work when MIME metadata is generic, then `supabase/029_upload_policy_and_message_fix.sql` to align Storage and message RLS upload checks, then `supabase/032_room_roles_and_kick.sql` (room roles server-side: add member/admin by Client ID **or** username, kick + ban list, ownership claim for rooms orphaned by an old browser session) and `supabase/033_room_roles_followups.sql` (accepts the shortened Client ID the UI displays, reversible kicks via `room_unban`/`room_list_bans`, and a membership check so Kick only appears for people actually in the room), then `supabase/030_room_ownership.sql`, then **`supabase/031_room_owner_identity_fix.sql`** which is the important one: room ownership lives in the browser auth-uid space (that is what `rooms` RLS and the room RPCs such as `delete_room`/`rename_room` check), so 031 moves any room that 030 re-pointed at an account id back to that account's auth uid and writes the account's current name/avatar onto that identity row. That is what makes the owner see the right name AND keep full admin rights on their own room.
+`011_security_hardening.sql` enforces account-session binding, stricter RLS, upload type/size limits, and safer message payload checks on the server side. Then run `supabase/012_safe_links.sql` to enforce safe-link validation in Supabase too. Run `supabase/013_inbox_badge_fix.sql` to enable realtime inbox badge updates, `supabase/014_stop_client_id_sharing.sql` to allow approved Client-ID sharing to be stopped, then `supabase/015_age_gate_signup.sql` to enforce the 13+ signup gate server-side, then `supabase/016_existing_account_age_verification.sql` so existing accounts are prompted and can store their confirmation, then `supabase/017_legacy_age_login_fix.sql` so legacy sessions that predate account sessions are forced through fresh login/verification instead of being skipped, then `supabase/018_terms_acceptance_signup.sql` so Terms acceptance is stored and enforced server-side at signup, then `supabase/019_markdown_safe_links.sql` so Markdown-style pasted links are parsed safely instead of rejected incorrectly, then `supabase/020_safe_link_regex_fix.sql` to correct the PostgreSQL regex used by the RLS safe-link check, then `supabase/021_login_avatar_fallback.sql` so older accounts restore avatars saved in the profile table, then `supabase/022_backfill_account_avatars.sql` to copy existing profile avatars into the account table, then `supabase/023_account_profile_terms_sync.sql` so future avatar and Terms changes sync back to the account record, then `supabase/024_ban_anonymous_usernames.sql` to reserve any username containing “anonymous”, then `supabase/025_block_reserved_account_login.sql` to block legacy accounts using that reserved pattern from logging in, then `supabase/026_existing_account_terms_gate.sql` so every existing account must accept Terms/Privacy before entering, then `supabase/027_cleanup_reserved_presence.sql` to remove stale Anonymous/reserved People-panel presence rows, then `supabase/028_upload_extension_mime_fix.sql` so allowed file extensions still work when MIME metadata is generic, then `supabase/029_upload_policy_and_message_fix.sql` to align Storage and message RLS upload checks, then `supabase/030_room_ownership.sql`, then **`supabase/031_room_owner_identity_fix.sql`** which is the important one: room ownership lives in the browser auth-uid space (that is what `rooms` RLS and the room RPCs such as `delete_room`/`rename_room` check), so 031 moves any room that 030 re-pointed at an account id back to that account's auth uid and writes the account's current name/avatar onto that identity row. That is what makes the owner see the right name AND keep full admin rights on their own room. Finally run `supabase/032_room_roles_and_kick.sql` and `supabase/033_room_roles_followups.sql`: they move room roles server-side (add a member/admin by **Client ID or username**, resolved to every identity that person owns), add **kick** with a room-scoped **ban list** plus **Allow rejoin**, accept the *shortened* Client ID the sidebar displays, and let an admin claim a room whose owner row is an orphaned browser session. Without 032/033 the role buttons report “Room roles need the database update”.
 
 ---
 
@@ -245,19 +251,42 @@ Before a message is saved, the browser and Supabase RLS check the link. The app 
 
 Click the room name and enter the passkey when prompted. The passkey is checked against the server — it is not stored in your browser.
 
+### Searching a room
+
+The search box in the room bar highlights **every** match, shows a live counter (`3/12`, plus `+N older` when older messages are not loaded), and steps through them with the ↑ / ↓ buttons (or Enter / Shift+Enter in the box). **✕** cancels, clears the highlights and returns you to where you were reading. On phones the same controls live behind the 🔍 button.
+
+### Mentions
+
+Type `@` in the composer for a filtered list of users — online first, then offline. Use ↑/↓ and Enter/Tab (or click) to insert. The mentioned person sees a highlighted `@name` chip, an in-app toast, and a system notification.
+
+### Jumping to the newest message
+
+When you scroll up, a floating **↓** button appears above the composer with a badge counting messages that arrived while you were reading. Click it to return to the newest message.
+
+### Notifications outside the app
+
+Open **Edit Profile → Appearance** and switch on **🔔 Notifications outside the app**. Your browser asks for permission once. Notifications are delivered by the service worker, so they appear when the tab is in the background, the window is minimised, or the phone is locked — for messages in other rooms, mentions of you, and inbox requests. On iPhone, add the site to the Home Screen first (iOS requirement).
+
+### Appearance (Glass UI)
+
+**Edit Profile → Appearance** also holds **🫧 Glass UI** (frosted, see-through panels over a live animated backdrop) and the **live backdrop animation** switch to freeze the waves. Both apply instantly and are remembered on that browser.
+
 ### Editing or deleting messages
 
 Hover over one of your own messages and click the **edit** or **delete** icon. Editing is only available within the time window set by the server.
 
-### Admin actions (room owner)
+### Admin actions (room owner / room admin)
 
-Room owners have a settings panel with:
+Room owners and room admins have a settings panel for **that room only**:
 
-- Rename the room
-- Clear all messages
-- Delete the room
-- Transfer ownership to another user
-- Add or remove admins and members
+- Rename the room, change privacy, set or clear the passkey
+- **Add a member** (private-room access) or **add an admin** — paste a **Client ID (full or the shortened form shown in the sidebar) or a username**; the server resolves it to every identity that person owns
+- **Kick** — offered in the People ⋮ menu only for someone actually in this room (never the owner, an admin, or yourself)
+- **Ban / Allow rejoin** — *Room settings → Banned from this room*: ban anyone by Client ID or username, and press **↩** to let them back in. A banned person cannot rejoin, even with the passkey
+- Clear all messages, delete the room
+- If the room's owner row belongs to a dead browser session, an admin is offered **claim ownership** so management works again
+
+The owner is counted as an admin in the room banner and wears a 👑 in the admin list.
 
 ---
 
@@ -285,6 +314,9 @@ Room owners have a settings panel with:
 | `edit-message` | `{ room, id, text, clientId }` | Edit a sent message |
 | `delete-message` | `{ room, id, clientId }` | Delete a message |
 | `list-users` | — | Request list of all users |
+| `add-room-members` / `add-room-admins` | `{ room, identifier }` | Add a member/admin by Client ID or username (server-resolved) |
+| `kick-room-user` | `{ room, identifier }` | Kick + room-ban; reverse it with the ban list |
+| `get-room-meta` | `{ room }` | Room owner/admins/members/passkey (manager view only) |
 
 ### WebSocket events (server → client)
 
@@ -317,7 +349,7 @@ The GitHub Pages + Supabase deployment is tuned to reduce Supabase egress:
 
 - Room history loads the latest 50 messages by default.
 - Reactions/read receipts are fetched only for the currently loaded history messages, not the whole room.
-- Message search is limited to recent messages.
+- Message search is limited to recent messages (150 results) and history to the latest 50.
 - Presence heartbeat/pruning intervals are less aggressive than the original realtime prototype.
 - Upload size/type limits keep large media from consuming storage/egress unexpectedly.
 
@@ -331,7 +363,7 @@ Running a public chat platform makes you the operator. These steps protect you:
 
 ### Included Terms and Privacy pages
 
-The app already includes `public/terms.html` (Terms of Service / Terms of Use) and `public/privacy.html`, linked from the header, Contact modal, and Help guide. They now describe the 13+ age requirement, account gates, uploads, safe links, Client-ID requests/Stop sharing, account deletion, private-room limits, and operator contact.
+The app already includes `public/terms.html` (Terms of Service / Terms of Use) and `public/privacy.html`, linked from the header, Contact modal, and Help guide. They now describe the 13+ age requirement, account gates, uploads, safe links, Client-ID requests/Stop sharing, account deletion, private-room limits, **room-level kick/ban by room owners and admins (with an allow-rejoin path)**, **opt-in service-worker notifications** (including that a preview can appear on a locked screen), and operator contact.
 
 ### Remaining operator responsibilities
 
@@ -346,12 +378,12 @@ The app already includes `public/terms.html` (Terms of Service / Terms of Use) a
 | File | Purpose |
 |---|---|
 | `Chatting_updated/supabase/schema.sql` | Base schema (rooms, messages, presence, receipts, reactions, room RPCs) |
+| *(inline in chat)* | `purge_user(name)` — full operator purge of a username |
 | `supabase/001_id_requests.sql` | Client-ID request inbox table + participant-only RLS |
 | `supabase/002_rls_fix.sql` | Own-message edit/delete by any of your identities; reactions sender-only |
 | `supabase/004_username_available.sql` | One-call availability check + orphan reclaim |
 | `supabase/005_reserve_anonymous.sql` | Reserves "anonymous" |
 | `supabase/007…/008_backfill…sql` | Backfill user rows from every activity source |
-| *(inline in chat)* | `purge_user(name)` — full operator purge of a username |
 | `supabase/009_accounts.sql` | Hardened accounts: no client-facing table policies, peppered bcrypt, rate limiting, anti-enumeration |
 | `supabase/010_delete_account.sql` | `delete_account(acct, pass)` — password-verified SECURITY DEFINER full erase |
 | `supabase/011_security_hardening.sql` | Account-session binding, stricter RLS, upload type/size limits |
@@ -367,11 +399,13 @@ The app already includes `public/terms.html` (Terms of Service / Terms of Use) a
 | `supabase/021_login_avatar_fallback.sql` | Restores avatars for older accounts whose avatar is stored in `users` instead of `accounts` |
 | `supabase/022_backfill_account_avatars.sql` | Backfills blank `accounts.avatar` values from saved `users.avatar` rows |
 | `supabase/023_account_profile_terms_sync.sql` | Saves future avatar updates and Terms acceptance to the account record |
-| `supabase/024_ban_anonymous_usernames.sql` | Reserves any username containing “anonymous” case-insensitively |
-| `supabase/025_block_reserved_account_login.sql` | Blocks legacy accounts containing “anonymous” from logging in/continuing use |
-| `supabase/026_existing_account_terms_gate.sql` | Forces existing accounts to accept Terms/Privacy before app access |
-| `supabase/027_cleanup_reserved_presence.sql` | Removes stale Anonymous/reserved presence rows from the People panel |
-| `supabase/028_upload_extension_mime_fix.sql` | Lets allowed file extensions upload when browser/Supabase MIME is generic |
-| `supabase/029_upload_policy_and_message_fix.sql` | Aligns Storage and messages RLS so allowed uploads can post successfully |
-| `supabase/031_room_owner_identity_fix.sql` | Repairs room ownership after 030: moves account-id-owned rooms back to the owning account's auth uid (so `delete_room`/`rename_room`/admin RLS keep working), syncs the owner name onto that identity row, and re-defines `claim_browser_rooms()` as a name-sync only. `operator_reassign_room()` assigns a room to an account's browser identity |
+| `supabase/024_ban_anonymous_usernames.sql` | Reserves any username containing “anonymous” |
+| `supabase/025_block_reserved_account_login.sql` | Blocks legacy reserved-pattern accounts from logging in |
+| `supabase/026_existing_account_terms_gate.sql` | Forces existing accounts through the Terms gate before entering |
+| `supabase/027_cleanup_reserved_presence.sql` | Removes stale Anonymous/reserved presence rows |
+| `supabase/028_upload_extension_mime_fix.sql` | Lets allow-listed extensions through when MIME metadata is generic |
+| `supabase/029_upload_policy_and_message_fix.sql` | Aligns Storage + message RLS so allowed uploads post successfully |
 | `supabase/030_room_ownership.sql` | Superseded by 031 — kept for history |
+| `supabase/031_room_owner_identity_fix.sql` | Moves rooms back to the owning account's auth uid and syncs the owner name (keeps `delete_room`/`rename_room` working) |
+| `supabase/032_room_roles_and_kick.sql` | Server-side room roles: `resolve_identities`, `room_add_member/admin`, `room_kick` + ban list, `room_claim_ownership`, ban-aware `join_room` |
+| `supabase/033_room_roles_followups.sql` | Accepts the shortened Client ID shown in the UI, adds `room_unban` + `room_list_bans` (reversible kicks) and `room_is_member` for the Kick gate |

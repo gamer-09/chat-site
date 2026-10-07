@@ -102,6 +102,7 @@
         <li><strong>Room data:</strong> room name, public/private setting, owner, administrators, members, creation time, and any room passkey.</li>
         <li><strong>Content:</strong> messages, replies, edit state, timestamps, reactions, read receipts, files, images, original filenames, MIME type, and file size.</li>
         <li><strong>Link processing:</strong> messages are checked for ordinary and Markdown-style links so unsafe protocols, private/local destinations, credential-obfuscated URLs, punycode look-alikes, risky downloads, and link spam can be blocked before storage. The app does not perform a full third-party malware or phishing reputation scan of destination sites.</li>
+        <li><strong>Room moderation records:</strong> a room's owner/admin list, member list, and (if used) that room's ban list of account/browser identifiers.</li>
         <li><strong>Presence and activity:</strong> current room, online status, typing signals, unread counts, and notification events. Stale presence records are designed to be pruned after a short period.</li>
         <li><strong>Browser data:</strong> profile preferences, terms acceptance, generated client identifiers, saved room passkeys, unread counts, theme, Supabase authentication session, and service-worker cache.</li>
         <li><strong>Technical request data:</strong> hosting and infrastructure providers may process IP address, user agent, request time, referrer, and diagnostic/security logs when your browser connects.</li>
@@ -115,7 +116,7 @@
         <li>Deliver messages and media, synchronize rooms, and show presence, typing, reactions, and read receipts.</li>
         <li>Enforce room membership, ownership, administration, passkeys, and row-level access controls.</li>
         <li>Remember local preferences and reconnect the browser to previously joined rooms.</li>
-        <li>Operate, troubleshoot, secure, moderate, and prevent abuse of the Service.</li>
+        <li>Operate, troubleshoot, secure, moderate, and prevent abuse of the Service — including room-level moderation by room owners/admins (adding members, kicking or banning someone from their own room).</li>
         <li>Comply with applicable legal obligations and valid legal requests.</li>
       </ul>
       <p>There is currently no dedicated advertising or behavioral-analytics integration in the application, and we do not sell personal information.</p>
@@ -159,7 +160,8 @@
 
     <section class="section">
       <h2>8. Browser notifications and local choices</h2>
-      <p>The Service may ask for browser notification permission. Notifications can contain the room name, sender name, and a message preview, which may appear on a locked screen or be visible to other device users. You can deny or revoke permission in browser settings.</p>
+      <p>The Service may ask for browser notification permission, and only when you switch notifications on in Edit Profile → Appearance. Notification permission is optional and never required to use the chat. Notifications are delivered through the service worker, so they can appear while the app is in the background, minimised, or on a locked phone. They can contain the room name, sender name, and a short message preview, which may be visible to other device users. You can turn notifications off in the app or revoke permission in your browser settings at any time.</p>
+      <p><strong>Room-level bans:</strong> when a room owner or admin kicks or bans someone from their room, the Service stores that person’s account/browser identifiers in that room’s ban list so they cannot rejoin until the owner or an admin allows them back. The list is visible only to that room’s owner and admins, and removing the entry (or the room) deletes it.</p>
       <p>You can clear local storage, cookies, service-worker data, and notification permissions through your browser. Doing so may sign you out, remove saved passkeys, or make the same local browser session unrecoverable.</p>
     </section>
 
