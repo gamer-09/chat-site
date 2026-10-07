@@ -2813,6 +2813,11 @@
             <span class="settings-label">Users:</span>
             <div id="room-members-list" style="display:flex; gap:6px; flex-wrap:wrap; flex:1"></div>
           </div>
+          <div class="settings-section" id="room-bans-section" style="display:none">
+            <h3>Banned from this room</h3>
+            <div id="room-bans-list" style="display:flex; gap:6px; flex-wrap:wrap"></div>
+            <div style="font-size:11.5px;color:var(--text-dim);margin-top:6px">Banned people cannot rejoin (not even with the passkey). Press ↩ to allow someone back in.</div>
+          </div>
           <div class="settings-row" id="add-member-row" style="display:none; align-items:center; gap:6px">
             <span class="settings-label"></span>
             <input id="add-member-input" type="text" placeholder="Client ID of the user to add" style="flex:1; font-size:0.8rem">

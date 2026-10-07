@@ -657,7 +657,10 @@
       const avatarUrl = avatar || `${CONSTANTS.DEFAULT_AVATAR}${seed}`;
       if (elements.userAvatarPreview) elements.userAvatarPreview.src = avatarUrl;
       if (elements.userUsername) elements.userUsername.textContent = username || 'Anonymous';
-      if (elements.userClientId) elements.userClientId.textContent = clientId ? `ID: ${clientId.slice(0, 16)}…` : 'Not connected';
+      if (elements.userClientId) {
+        elements.userClientId.textContent = clientId ? `ID: ${clientId.slice(0, 16)}…` : 'Not connected';
+        elements.userClientId.title = clientId ? `Full Client ID: ${clientId} — open Edit Profile to copy it` : '';
+      }
       if (elements.editUsername) elements.editUsername.value = username || '';
       if (elements.editAvatar) elements.editAvatar.value = avatar || '';
       if (elements.mobileUsername) elements.mobileUsername.value = username || '';
@@ -964,6 +967,8 @@
           else socket.emit('remove-room-member', { room: state.currentRoom, memberId: btn.dataset.id });
         });
       });
+
+      try { window.PTR29RoomRoles && window.PTR29RoomRoles.refreshBans(); } catch (e) {}
 
       // Show add-admin / add-member rows only for managers
       const mgr = state.canManageCurrentRoom && state.currentRoom !== 'general';
@@ -2121,11 +2126,49 @@
       if (!val) return;
       if (!confirm('Kick ' + val + ' from #' + state.currentRoom + '? They lose membership and admin rights, and cannot rejoin.')) return;
       const res = await window.ChatAPI.roomKick(state.currentRoom, val).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-      if (res && res.ok) showToast(val + ' was kicked from this room.', 'success');
+      if (res && res.ok) showToast(val + ' was kicked. You can let them back in from “Banned from this room”.', 'success');
       else showToast(roleErrorText(res && res.error), 'error');
       rooms.fetchMeta(state.currentRoom);
+      refreshBans();
     }
-    window.PTR29RoomRoles = { addRoomMember, addRoomAdmin, kickRoomUser };
+    async function banRoomUser(idVal) {
+      const val = String(idVal || '').trim();
+      if (!val) return;
+      if (!confirm('Ban ' + val + ' from #' + state.currentRoom + '? They cannot join until you allow them again.')) return;
+      const res = await window.ChatAPI.roomKick(state.currentRoom, val).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+      if (res && res.ok) showToast(val + ' is banned from this room. Use “Allow rejoin” to reverse it.', 'success');
+      else showToast(roleErrorText(res && res.error), 'error');
+      rooms.fetchMeta(state.currentRoom);
+      refreshBans();
+    }
+    async function unbanRoomUser(idVal) {
+      const val = String(idVal || '').trim();
+      if (!val) return;
+      const res = await window.ChatAPI.roomUnban(state.currentRoom, val).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+      if (res && res.ok) showToast(val + ' may rejoin this room again.', 'success');
+      else showToast(roleErrorText(res && res.error), 'error');
+      refreshBans();
+    }
+    async function refreshBans() {
+      const box = document.getElementById('room-bans-list');
+      const sec = document.getElementById('room-bans-section');
+      if (!box || !sec) return;
+      if (!state.canManageCurrentRoom || state.currentRoom === 'general') { sec.style.display = 'none'; return; }
+      const res = await window.ChatAPI.roomListBans(state.currentRoom).catch(() => null);
+      if (!res || !res.ok) { sec.style.display = 'none'; return; }
+      const bans = res.bans || [];
+      sec.style.display = 'block';
+      box.innerHTML = bans.length ? bans.map(b => {
+        const label = utils.escapeHtml(b.username || b.identifier);
+        return '<span class="chip member-chip" title="' + utils.escapeHtml(b.identifier) + '">' + label +
+               '<button class="chip-remove" data-unban="' + utils.escapeHtml(b.identifier) + '" title="Allow rejoin">↩</button></span>';
+      }).join('') : '<span style="color:var(--text-dim)">Nobody is banned</span>';
+      box.querySelectorAll('[data-unban]').forEach(btn => btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        unbanRoomUser(btn.dataset.unban);
+      }));
+    }
+    window.PTR29RoomRoles = { addRoomMember, addRoomAdmin, kickRoomUser, banRoomUser, unbanRoomUser, refreshBans };
 
     const addAdminBtn   = document.getElementById('add-admin-btn');
     const addAdminInput = document.getElementById('add-admin-input');
@@ -3286,9 +3329,18 @@
         const row = (state.lastPresenceUsers || state.currentRoomPresence || [])
           .find(u => String(u.username || '').toLowerCase() === String(name || '').toLowerCase());
         const rowId = row && (row.clientId || row.uid);
+        // Kick only makes sense for someone who is actually part of this room
+        const meta = state.currentRoomMeta || {};
+        const roomIds = [meta.ownerId].concat(meta.admins || [], meta.members || []).filter(Boolean).map(String);
+        const inRoom = !!(rowId && roomIds.indexOf(String(rowId)) !== -1)
+          || !!(row && row.room && String(row.room) === String(state.currentRoom));
         menu.innerHTML = '<button type="button" data-act="profile">👤 View profile</button>' +
                          '<button type="button" data-act="req">🔑 Request Client ID</button>' +
-                         (canManage && rowId ? '<button type="button" data-act="kick">🚪 Kick from #' + utils.escapeHtml(state.currentRoom) + '</button>' : '');
+                         (canManage && rowId && inRoom
+                           ? '<button type="button" data-act="kick">🚪 Kick from #' + utils.escapeHtml(state.currentRoom) + '</button>'
+                           : (canManage && rowId
+                               ? '<button type="button" data-act="ban">⛔ Ban from #' + utils.escapeHtml(state.currentRoom) + '</button>'
+                               : ''));
         const r = btn.getBoundingClientRect();
         menu.style.top = Math.min(r.bottom + 6, innerHeight - 110) + 'px';
         menu.style.right = Math.max(8, innerWidth - r.right) + 'px';
@@ -3297,6 +3349,12 @@
           closeMenu();
           if (act === 'profile') userProfile.open(name);
           if (act === 'req') userProfile.open(name, { focusRequest: true });
+          if (act === 'ban') {
+            const target = (state.lastPresenceUsers || state.currentRoomPresence || [])
+              .find(u => String(u.username || '').toLowerCase() === String(name || '').toLowerCase());
+            const idVal = (target && (target.clientId || target.uid)) || name;
+            if (window.PTR29RoomRoles) window.PTR29RoomRoles.banRoomUser(idVal);
+          }
           if (act === 'kick') {
             const target = (state.lastPresenceUsers || state.currentRoomPresence || [])
               .find(u => String(u.username || '').toLowerCase() === String(name || '').toLowerCase());

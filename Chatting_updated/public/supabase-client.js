@@ -669,6 +669,21 @@
         .then(function (r) { return r.error ? null : !!r.data; })
         .catch(function () { return null; });
     },
+    roomUnban: function (room, identifier) {
+      return sb.rpc('room_unban', { room_name: sanitizeRoom(room), identifier: String(identifier || '') })
+        .then(function (r) {
+          if (r.error) return { ok: false, error: r.error.message || 'failed' };
+          return r.data || { ok: false, error: 'failed' };
+        });
+    },
+    roomListBans: function (room) {
+      return sb.rpc('room_list_bans', { room_name: sanitizeRoom(room) })
+        .then(function (r) {
+          if (r.error) return { ok: false, error: r.error.message || 'failed' };
+          return r.data || { ok: false, error: 'failed' };
+        })
+        .catch(function (e) { return { ok: false, error: String(e && e.message || e) }; });
+    },
     roomClaimOwnership: function (room) {
       return sb.rpc('room_claim_ownership', { room_name: sanitizeRoom(room) })
         .then(function (r) {
