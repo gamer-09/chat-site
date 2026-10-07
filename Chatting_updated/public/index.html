@@ -355,9 +355,15 @@
       padding: 2px 10px;
       font-size: 0.75rem;
       cursor: pointer;
-      color: var(--accent);
+      /* --accent (#2563eb) on the dark panel reads as near-invisible blue;
+         dark mode uses a light blue, light mode a deep blue */
+      color: #93c5fd;
+      border-color: rgba(147,197,253,.45);
+      font-weight: 600;
     }
-    .banner-view-btn:hover { background: var(--accent); color: white; }
+    .banner-view-btn:hover { background: #2563eb; color: #ffffff; border-color: #2563eb; }
+    html.ptr29-light-theme .banner-view-btn { color: #1d4ed8; border-color: rgba(29,78,216,.40); }
+    html.ptr29-light-theme .banner-view-btn:hover { background: #1d4ed8; color: #ffffff; border-color: #1d4ed8; }
     
     .username-hint { font-size: 11px; margin-top: 3px; min-height: 15px; transition: color 0.2s; }
     .username-hint.available { color: #27ae60; }
@@ -369,7 +375,7 @@
     
     #typing {
       min-height: 24px;
-      color: var(--accent);
+      color: #93c5fd;
       font-size: 13px;
       padding: 4px 16px;
       font-style: italic;
@@ -386,7 +392,7 @@
     }
     
     .sys {
-      color: var(--accent);
+      color: #93c5fd;
       font-size: 12px;
       opacity: 0.85;
       text-align: center;
@@ -2646,6 +2652,7 @@
       color: #516278 !important;
     }
     html.ptr29-light-theme .sys { color: #1d4ed8 !important; }
+    html.ptr29-light-theme #typing { color: #1d4ed8 !important; }
     html.ptr29-light-theme .room {
       background: #f8fafc !important;
       border-color: #e2e8f0 !important;

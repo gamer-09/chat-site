@@ -250,8 +250,9 @@
         case 'get-room-meta':        api.getRoomMeta(p.room || api._currentRoom).then(respond); break;
         case 'remove-room-admin':    api.updateRoomArray(p.room, 'admins',  'remove', p.adminId); break;
         case 'remove-room-member':   api.updateRoomArray(p.room, 'members', 'remove', p.memberId); break;
-        case 'add-room-admins':      api.updateRoomArray(p.room, 'admins',  'add', p.admins || []); break;
-        case 'add-room-members':     api.updateRoomArray(p.room, 'members', 'add', p.members || []); break;
+        case 'add-room-admins':      api.roomAddAdmin(p.room, p.identifier || (p.admins || [])[0]).then(respond); break;
+        case 'add-room-members':     api.roomAddMember(p.room, p.identifier || (p.members || [])[0]).then(respond); break;
+        case 'kick-room-user':       api.roomKick(p.room, p.identifier || p.userId).then(respond); break;
         case 'rename-room':          api.renameRoom(p.room, p.newName).then(respond); break;
         case 'set-room-privacy':     api.setRoomPrivacy(p.room, !!p.isPrivate).then(respond); break;
         case 'set-room-passkey':     api.setRoomPasskey(p.room, p.passkey).then(respond); break;
@@ -633,6 +634,51 @@
         });
     },
 
+    // ── Room roles: resolved + manager-checked server-side ───────────────────
+    // The UI may hand us a Client ID, an auth uid or a username; the server
+    // resolves every identity that person owns, so membership actually works.
+    roomAddMember: function (room, identifier) {
+      return sb.rpc('room_add_member', { room_name: sanitizeRoom(room), identifier: String(identifier || '') })
+        .then(function (r) {
+          if (r.error) return { ok: false, error: r.error.message || 'failed' };
+          var out = r.data || { ok: false, error: 'failed' };
+          if (out.ok) { api.getRoomMeta(room).then(function (m) { if (m) dispatch('room-meta', { room: room, meta: m }); }); api.refreshRooms(); }
+          return out;
+        });
+    },
+    roomAddAdmin: function (room, identifier) {
+      return sb.rpc('room_add_admin', { room_name: sanitizeRoom(room), identifier: String(identifier || '') })
+        .then(function (r) {
+          if (r.error) return { ok: false, error: r.error.message || 'failed' };
+          var out = r.data || { ok: false, error: 'failed' };
+          if (out.ok) { api.getRoomMeta(room).then(function (m) { if (m) dispatch('room-meta', { room: room, meta: m }); }); api.refreshRooms(); }
+          return out;
+        });
+    },
+    roomKick: function (room, identifier) {
+      return sb.rpc('room_kick', { room_name: sanitizeRoom(room), identifier: String(identifier || '') })
+        .then(function (r) {
+          if (r.error) return { ok: false, error: r.error.message || 'failed' };
+          var out = r.data || { ok: false, error: 'failed' };
+          if (out.ok) { api.getRoomMeta(room).then(function (m) { if (m) dispatch('room-meta', { room: room, meta: m }); }); api.refreshRooms(); }
+          return out;
+        });
+    },
+    roomIsManager: function (room) {
+      return sb.rpc('room_is_manager', { room_name: sanitizeRoom(room) })
+        .then(function (r) { return r.error ? null : !!r.data; })
+        .catch(function () { return null; });
+    },
+    roomClaimOwnership: function (room) {
+      return sb.rpc('room_claim_ownership', { room_name: sanitizeRoom(room) })
+        .then(function (r) {
+          if (r.error) return { ok: false, error: r.error.message || 'failed' };
+          var out = r.data || { ok: false, error: 'failed' };
+          if (out.ok) { api.getRoomMeta(room).then(function (m) { if (m) dispatch('room-meta', { room: room, meta: m }); }); api.refreshRooms(); }
+          return out;
+        });
+    },
+
     updateRoomArray: function (room, col, op, value) {
       if (!api.uid) return;
       var r = sanitizeRoom(room);
@@ -644,7 +690,10 @@
           ? cur.filter(function (x) { return vals.indexOf(x) === -1; })
           : uni(cur.concat(vals));
         return sb.from('rooms').update({ [col]: next }).eq('name', r).then(function (ures) {
-          if (ures.error) return;
+          if (ures.error) {
+            dispatch('system', { type: 'error', message: 'Could not update this room: ' + (ures.error.message || 'permission denied') });
+            return;
+          }
           api.getRoomMeta(r).then(function (meta) {
             if (meta) dispatch('room-meta', { room: r, meta: meta });
           });

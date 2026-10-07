@@ -929,7 +929,8 @@
         elements.roomAdminsList.querySelectorAll('.chip-remove[data-action="remove-admin"]').forEach(btn => {
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (confirm('Remove admin access from this user?'))
+            if (window.PTR29RoomRoles) window.PTR29RoomRoles.kickRoomUser(btn.dataset.id);
+            else if (confirm('Remove admin access from this user?'))
               socket.emit('remove-room-admin', { room: state.currentRoom, adminId: btn.dataset.id });
           });
         });
@@ -959,13 +960,32 @@
       elements.roomMembersList.querySelectorAll('.chip-remove[data-action="remove-member"]').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (confirm('Remove this member from the room?'))
-            socket.emit('remove-room-member', { room: state.currentRoom, memberId: btn.dataset.id });
+          if (window.PTR29RoomRoles) window.PTR29RoomRoles.kickRoomUser(btn.dataset.id);
+          else socket.emit('remove-room-member', { room: state.currentRoom, memberId: btn.dataset.id });
         });
       });
 
       // Show add-admin / add-member rows only for managers
       const mgr = state.canManageCurrentRoom && state.currentRoom !== 'general';
+      // If the client thinks I manage this room, verify it server-side: rooms
+      // owned by an orphaned browser id are refused by RLS, which used to make
+      // every role button do nothing at all.
+      if (mgr && !isOwnerByIdentity(meta) && !state.claimChecked) {
+        state.claimChecked = true;
+        window.ChatAPI.roomIsManager && window.ChatAPI.roomIsManager(state.currentRoom).then((ok) => {
+          if (ok === false) {
+            showToast('This room is owned by an old browser session, so changes are blocked. Claiming ownership…', 'info');
+            window.ChatAPI.roomClaimOwnership(state.currentRoom).then((res) => {
+              if (res && res.ok) {
+                showToast('Ownership claimed — you can manage this room now.', 'success');
+                rooms.fetchMeta(state.currentRoom);
+              } else if (res && res.error === 'owner_still_active') {
+                showToast('The current owner still uses this room, so it cannot be claimed.', 'error');
+              }
+            });
+          }
+        }).catch(() => {});
+      }
       document.getElementById('add-admin-row')?.style.setProperty('display', mgr ? 'flex' : 'none');
       document.getElementById('add-member-row')?.style.setProperty('display', mgr ? 'flex' : 'none');
 
@@ -1001,7 +1021,9 @@
 
       // "Users" = live presence (people currently in this room)
       const usersInRoom = state.currentRoomPresence.length;
-      const adminCount = (meta.adminsInfo || []).length;
+      // the owner is an admin in practice: count them once, and show them
+      const adminIdList = [meta.ownerId].concat(meta.admins || []).filter(Boolean);
+      const adminCount = new Set(adminIdList.map(String)).size;
 
       banner.innerHTML = `
         <span class="banner-item" id="banner-owner">👑 <strong>Owner:</strong> ${utils.escapeHtml(ownerName)}</span>
@@ -2053,25 +2075,56 @@
     elements.clearBtn.addEventListener('click', rooms.clear);
 
     // Add admin / member
+    // ── Room roles: every action reports back (the old code failed silently) ──
+    const roleErrorText = (code) => ({
+      forbidden: 'Only the room owner or an admin can change this room.',
+      no_such_user: 'No user found for that Client ID or username.',
+      room_not_found: 'That room no longer exists.',
+      cannot_kick_owner: "The owner can't be kicked.",
+      not_authenticated: 'Please sign in again.',
+      banned: 'That user is banned from this room.'
+    }[code] || ('Could not do that: ' + code));
+
+    async function addRoomMember(idVal) {
+      const val = String(idVal || '').trim();
+      if (!val) return;
+      const res = await window.ChatAPI.roomAddMember(state.currentRoom, val).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+      if (res && res.ok) showToast('Added ' + val + ' to this private room.', 'success');
+      else showToast(roleErrorText(res && res.error), 'error');
+      rooms.fetchMeta(state.currentRoom);
+    }
+    async function addRoomAdmin(idVal) {
+      const val = String(idVal || '').trim();
+      if (!val) return;
+      const res = await window.ChatAPI.roomAddAdmin(state.currentRoom, val).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+      if (res && res.ok) showToast(val + ' is now an admin of this room.', 'success');
+      else showToast(roleErrorText(res && res.error), 'error');
+      rooms.fetchMeta(state.currentRoom);
+    }
+    async function kickRoomUser(idVal) {
+      const val = String(idVal || '').trim();
+      if (!val) return;
+      if (!confirm('Kick ' + val + ' from #' + state.currentRoom + '? They lose membership and admin rights, and cannot rejoin.')) return;
+      const res = await window.ChatAPI.roomKick(state.currentRoom, val).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+      if (res && res.ok) showToast(val + ' was kicked from this room.', 'success');
+      else showToast(roleErrorText(res && res.error), 'error');
+      rooms.fetchMeta(state.currentRoom);
+    }
+    window.PTR29RoomRoles = { addRoomMember, addRoomAdmin, kickRoomUser };
+
     const addAdminBtn   = document.getElementById('add-admin-btn');
     const addAdminInput = document.getElementById('add-admin-input');
     if (addAdminBtn && addAdminInput) {
-      addAdminBtn.addEventListener('click', () => {
-        const val = addAdminInput.value.trim();
-        if (!val) return;
-        socket.emit('add-room-admins', { room: state.currentRoom, admins: [val] });
-        addAdminInput.value = '';
-      });
+      const go = () => { addRoomAdmin(addAdminInput.value); addAdminInput.value = ''; };
+      addAdminBtn.addEventListener('click', go);
+      addAdminInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
     }
     const addMemberBtn   = document.getElementById('add-member-btn');
     const addMemberInput = document.getElementById('add-member-input');
     if (addMemberBtn && addMemberInput) {
-      addMemberBtn.addEventListener('click', () => {
-        const val = addMemberInput.value.trim();
-        if (!val) return;
-        socket.emit('add-room-members', { room: state.currentRoom, members: [val] });
-        addMemberInput.value = '';
-      });
+      const go = () => { addRoomMember(addMemberInput.value); addMemberInput.value = ''; };
+      addMemberBtn.addEventListener('click', go);
+      addMemberInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
     }
 
     // Room settings panel
@@ -3214,8 +3267,13 @@
         const menu = document.createElement('div');
         menu.className = 'online-menu';
         menu._for = name;
+        const canManage = state.canManageCurrentRoom && state.currentRoom !== 'general';
+        const row = (state.lastPresenceUsers || state.currentRoomPresence || [])
+          .find(u => String(u.username || '').toLowerCase() === String(name || '').toLowerCase());
+        const rowId = row && (row.clientId || row.uid);
         menu.innerHTML = '<button type="button" data-act="profile">👤 View profile</button>' +
-                         '<button type="button" data-act="req">🔑 Request Client ID</button>';
+                         '<button type="button" data-act="req">🔑 Request Client ID</button>' +
+                         (canManage && rowId ? '<button type="button" data-act="kick">🚪 Kick from #' + utils.escapeHtml(state.currentRoom) + '</button>' : '');
         const r = btn.getBoundingClientRect();
         menu.style.top = Math.min(r.bottom + 6, innerHeight - 110) + 'px';
         menu.style.right = Math.max(8, innerWidth - r.right) + 'px';
@@ -3224,6 +3282,12 @@
           closeMenu();
           if (act === 'profile') userProfile.open(name);
           if (act === 'req') userProfile.open(name, { focusRequest: true });
+          if (act === 'kick') {
+            const target = (state.lastPresenceUsers || state.currentRoomPresence || [])
+              .find(u => String(u.username || '').toLowerCase() === String(name || '').toLowerCase());
+            const idVal = (target && (target.clientId || target.uid)) || name;
+            if (window.PTR29RoomRoles) window.PTR29RoomRoles.kickRoomUser(idVal);
+          }
         });
         document.body.appendChild(menu);
         openMenu = menu;
@@ -3548,6 +3612,9 @@
     return out;
   }
   function isMine(id) { const v = String(id || '').trim(); return !!v && myIds().includes(v); }
+  function isOwnerByIdentity(meta) {
+    return !!(meta && isMine(meta.ownerId));
+  }
   function isMineAny(ids) { return Array.isArray(ids) && ids.some((x) => isMine(x)); }
 
   // One-time repair: rooms created on this browser before the identity fix were
