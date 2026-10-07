@@ -43,7 +43,8 @@ A real-time multi-room chat app. The deployed site runs on GitHub Pages + Supaba
 | Resilience | Self-hosted Supabase lib, versioned assets, network-first service worker, and a **build-freshness guard**: every deploy stamps the commit id into `index.html` and writes `version.json`, and the app reloads once if the open document is older than the deployed build (GitHub Pages caches HTML for ~10 minutes, which used to hide new releases) |
 | Message search | Highlights every match in the room, shows a live **match counter** (`2/6`, plus `+N older` when older messages also match), steps through matches with ↑/↓ (Enter / Shift+Enter on desktop) and a **✕ cancel** that clears the highlights and restores your view |
 | @mentions | Type `@` in the composer for a filtered user list (online first, then offline) — arrows + Enter/Tab or click to insert. Mentioned users see a highlighted `@name` chip, an in-app toast, and a system notification |
-| Built-in help | Slide-by-slide help guide accessible from the toolbar |
+| Built-in help | Slide-by-slide help guide (9 slides) covering accounts, rooms, messaging, search, mentions, room settings/roles, people, privacy and limits — plus a guided tour and a Contact-the-operator modal |
+| Docs | `README.md` (features, API, migrations, deploy, legal), `Chatting_updated/SETUP.md` (fresh Supabase + Pages install), `public/terms.html` and `public/privacy.html` (effective October 7, 2026) |
 | Mobile layout | Responsive design with a dedicated mobile sidebar |
 | PWA | Service worker included for offline caching |
 | Safe links | Plain and Markdown-style http/https links are clickable after validation; unsafe protocols, private/local links, credential-obfuscated links, punycode look-alikes, risky downloads, and link spam are blocked. This is allow-list validation, not a full malware scan of the remote site. |
@@ -94,6 +95,8 @@ npm start
 ```
 
 Open `http://localhost:3000` in your browser. The deployed GitHub Pages version uses `public/supabase-client.js` and Supabase; the Node server is the self-hosted fallback.
+
+> **Setting up the hosted build?** Follow [`Chatting_updated/SETUP.md`](Chatting_updated/SETUP.md) — it walks through `schema.sql`, **every numbered migration (011 → 033)**, anonymous sign-ins and GitHub Pages, and explains why 030–033 matter.
 
 **Feature parity:** the UI, search, @mentions, jump-to-newest, themes and Glass UI are shared by both builds. The **room-role commands (add member/admin by Client ID or username, kick, ban / allow rejoin)** and **out-of-app system notifications** are implemented against Supabase (migrations 032/033) and are therefore only active on the hosted build; the self-hosted Node server keeps the original room tools (rename, clear, delete, admins/members) and its own socket-based notifications.
 

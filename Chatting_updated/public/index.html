@@ -2249,7 +2249,7 @@
     }
 
     /* Glass mode: panels inside the layout (sidebar footer, chat banner, settings)
-       were still hard-coded opaque, so they ignored the thickness slider. */
+       were still hard-coded opaque, so they ignored the glass level. */
     /* These sat ON TOP of an already-frosted parent, so giving them a frost of
        their own just stacked more haze. Let the parent's glass show instead. */
     body.ptr29-glass-ui #join-by-passkey,
@@ -2468,7 +2468,7 @@
     }
 
     /* ── Glass mode: dialogs and menus stay readable ─────────────────── */
-    /* Popovers are content, not chrome: the thickness slider must not make
+    /* Popovers are content, not chrome: the fixed glass level must not make
        them see-through, or labels/inputs vanish into the backdrop. */
     body.ptr29-glass-ui .modal,
     body.ptr29-glass-ui .help-modal-inner,
