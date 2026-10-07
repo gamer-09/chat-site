@@ -561,7 +561,10 @@
   }
   // ── glass thickness: one slider drives every translucent surface ──────────
   const GLASS_ALPHA_BASE = {
-    dark:  { panel: .42,  item: .075, strip: .34, msgsA: .24, msgsB: .12, scrimA: .11, scrimB: .24 },
+    // Dark theme is tuned for readability over the live backdrop: panels get a
+    // steadier tint (no near-black spots where the image is darkest), items get
+    // a clearly lighter frost so rooms/inputs/buttons read as separate surfaces.
+    dark:  { panel: .52,  item: .16, strip: .46, msgsA: .30, msgsB: .20, scrimA: .14, scrimB: .28 },
     light: { panel: .40,  item: .52,  strip: .36, msgsA: .22, msgsB: .10, scrimA: .02, scrimB: .10 },
   };
   // The level is fixed for everyone at CONSTANTS.GLASS_LEVEL; there is no
@@ -569,8 +572,9 @@
   function applyGlassLevel() {
     const light = document.documentElement.classList.contains('ptr29-light-theme');
     const base = light ? GLASS_ALPHA_BASE.light : GLASS_ALPHA_BASE.dark;
-    // n = 1 is the final shipped level: panels ~15% opaque, blur 6.4px, so the
-    // live backdrop always stays clearly visible through the chrome.
+    // n = 1 is the final shipped level: dark panels ~19% opaque with 8.6px blur
+    // so the live backdrop stays visible while text stays readable; light is a
+    // touch lighter. Alphas/blur are constants — no per-browser control exists.
     const n = CONSTANTS.GLASS_LEVEL / CONSTANTS.GLASS_LEVEL;
     const k = 0.14 + n * 0.222;
     const a = (x) => Math.min(0.96, Math.max(0.015, x)).toFixed(3);
@@ -582,8 +586,15 @@
     r.setProperty('--gb-msgs-b',  a(base.msgsB   * k));
     r.setProperty('--gb-scrim-a', a(base.scrimA  * k));
     r.setProperty('--gb-scrim-b', a(base.scrimB  * k));
-    r.setProperty('--gb-blur',    (4 + n * 2.4).toFixed(1) + 'px');
-    r.setProperty('--gb-blur-sm', (3 + n * 1.8).toFixed(1) + 'px');
+    // Dark glass blurs a little harder so the waves smear into a clean haze
+    // instead of sharp feature edges fighting the text.
+    if (light) {
+      r.setProperty('--gb-blur',    (4 + n * 2.4).toFixed(1) + 'px');
+      r.setProperty('--gb-blur-sm', (3 + n * 1.8).toFixed(1) + 'px');
+    } else {
+      r.setProperty('--gb-blur',    (6 + n * 2.6).toFixed(1) + 'px');
+      r.setProperty('--gb-blur-sm', (4 + n * 2.0).toFixed(1) + 'px');
+    }
   }
   function glassBackdropMotion() {
     const gb = window.PTR29GlassBackdrop;

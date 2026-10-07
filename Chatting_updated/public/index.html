@@ -2127,6 +2127,17 @@
       /* the backdrop now lives in #glass-backdrop (z-index: -1) so a canvas can animate under the UI */
       background: transparent !important;
     }
+    /* Dark glass metadata (timestamps, "last seen", hints) was --text-dim
+       (#7a8594) on an almost-black frosted panel — too faint. Lift both muted
+       tiers inside dark glass only; light glass keeps its own darker values. */
+    body.ptr29-glass-ui {
+      --text-dim: #9aa7b8;
+      --text-muted: #c7d0dd;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui {
+      --text-dim: #5b6b81;
+      --text-muted: #3f4c60;
+    }
     #glass-backdrop {
       position: fixed; inset: 0; z-index: -1; display: none;
       pointer-events: none; overflow: hidden; contain: strict;
@@ -2159,7 +2170,7 @@
     body.ptr29-glass-ui .online-menu,
     body.ptr29-glass-ui .inbox-popup {
       background: rgba(15, 23, 42, var(--gb-panel, .42)) !important;
-      border-color: rgba(148, 163, 184, .28) !important;
+      border-color: rgba(148, 163, 184, .34) !important;
       box-shadow: 0 18px 54px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.08) !important;
       backdrop-filter: blur(var(--gb-blur, 18px)) saturate(1.18);
       -webkit-backdrop-filter: blur(var(--gb-blur, 18px)) saturate(1.18);
@@ -2177,7 +2188,7 @@
     body.ptr29-glass-ui .reaction-pill,
     body.ptr29-glass-ui .link-preview-card {
       background: rgba(255,255,255, var(--gb-item, .075)) !important;
-      border-color: rgba(203,213,225,.20) !important;
+      border-color: rgba(203,213,225,.34) !important;
       box-shadow: 0 10px 30px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.08) !important;
       backdrop-filter: blur(var(--gb-blur-sm, 14px)) saturate(1.15);
       -webkit-backdrop-filter: blur(var(--gb-blur-sm, 14px)) saturate(1.15);
@@ -2218,7 +2229,7 @@
     .ui-choice.muted { opacity: .6; }
     body.ptr29-glass-ui .ui-choice,
     html.ptr29-light-theme body.ptr29-glass-ui .ui-choice {
-      background: rgba(255,255,255,.06) !important;
+      background: rgba(255,255,255, var(--gb-item, .16)) !important;
     }
     html.ptr29-light-theme body.ptr29-glass-ui .ui-choice {
       background: rgba(255,255,255,.55) !important;
@@ -2232,7 +2243,7 @@
     body.ptr29-glass-ui #room-bar,
     body.ptr29-glass-ui #chat-form {
       background: rgba(15,23,42, var(--gb-strip, .34)) !important;
-      border-color: rgba(148,163,184,.26) !important;
+      border-color: rgba(148,163,184,.34) !important;
       box-shadow: none !important;
       backdrop-filter: blur(var(--gb-blur-sm, 14px)) saturate(1.25) !important;
       -webkit-backdrop-filter: blur(var(--gb-blur-sm, 14px)) saturate(1.25) !important;
@@ -2256,7 +2267,7 @@
     body.ptr29-glass-ui #user-section,
     body.ptr29-glass-ui #room-info-banner {
       background: transparent !important;
-      border-color: rgba(148,163,184,.24) !important;
+      border-color: rgba(148,163,184,.34) !important;
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
     }
@@ -2264,7 +2275,7 @@
     body.ptr29-glass-ui .chip,
     body.ptr29-glass-ui #user-avatar-preview {
       background: rgba(255,255,255, var(--gb-item, .075)) !important;
-      border-color: rgba(148,163,184,.24) !important;
+      border-color: rgba(148,163,184,.34) !important;
     }
     html.ptr29-light-theme body.ptr29-glass-ui #join-by-passkey,
     html.ptr29-light-theme body.ptr29-glass-ui #user-section,
@@ -2480,7 +2491,7 @@
     body.ptr29-glass-ui .modal,
     body.ptr29-glass-ui .help-modal-inner,
     body.ptr29-glass-ui .inbox-popup {
-      background: rgba(11,18,33, var(--gb-dialog-a, .30)) !important;
+      background: rgba(11,18,33, var(--gb-dialog-a, .66)) !important;
       border-color: rgba(148,163,184,.34) !important;
       color: var(--text) !important;
       box-shadow: 0 24px 64px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.10) !important;
@@ -2548,8 +2559,8 @@
     body.ptr29-glass-ui .modal button.secondary,
     body.ptr29-glass-ui .context-menu button,
     body.ptr29-glass-ui .online-menu button {
-      background: rgba(255,255,255,.10) !important;
-      border-color: rgba(203,213,225,.28) !important;
+      background: rgba(255,255,255,.14) !important;
+      border-color: rgba(203,213,225,.42) !important;
       color: var(--text) !important;
     }
     html.ptr29-light-theme body.ptr29-glass-ui .modal input,
@@ -2585,7 +2596,7 @@
     /* placeholder text was near-invisible against the frosted inputs */
     body.ptr29-glass-ui input::placeholder,
     body.ptr29-glass-ui textarea::placeholder {
-      color: var(--text-dim) !important;
+      color: var(--text-muted) !important;
       opacity: 1 !important;
     }
     html.ptr29-light-theme body.ptr29-glass-ui input::placeholder,
