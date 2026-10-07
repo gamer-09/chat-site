@@ -378,6 +378,14 @@ The app already includes `public/terms.html` (Terms of Service / Terms of Use) a
 - Keep `.env`, `data/db.json`, runtime logs, and user uploads out of GitHub.
 - If you later add email marketing, payments/subscriptions, analytics, ads, Google Fonts, or session replay, update the Terms/Privacy before launch.
 
+### Copyright, ownership, and copying this project
+
+This project is the proprietary work of **gamer-09** — **Copyright © 2026, All Rights Reserved**. It is **not open source**, and this repository being public grants no rights to anyone. The full terms are in [`LICENSE`](LICENSE).
+
+- **It is legally mine.** The sole copyright holder is the owner of this repository. All code, design, documentation, and content are their exclusive property; unlicensed use is copyright infringement.
+- **Don't copy it.** You may not copy, reproduce, clone for redistribution, mirror, re-host, modify, build derivative works from, sell, or reuse this project or any substantial part of it — in source or compiled form — nor may you use it to train machine-learning models or build a similar product or service. Existing forks are unaffiliated copies made without permission and are not licensed.
+- Unauthorised copies or mirrors of this work can be reported through GitHub's DMCA process and pursued under copyright law.
+
 ## Database migrations (Supabase SQL Editor)
 
 | File | Purpose |
