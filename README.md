@@ -95,6 +95,8 @@ npm start
 
 Open `http://localhost:3000` in your browser. The deployed GitHub Pages version uses `public/supabase-client.js` and Supabase; the Node server is the self-hosted fallback.
 
+**Feature parity:** the UI, search, @mentions, jump-to-newest, themes and Glass UI are shared by both builds. The **room-role commands (add member/admin by Client ID or username, kick, ban / allow rejoin)** and **out-of-app system notifications** are implemented against Supabase (migrations 032/033) and are therefore only active on the hosted build; the self-hosted Node server keeps the original room tools (rename, clear, delete, admins/members) and its own socket-based notifications.
+
 For development with auto-reload:
 
 ```bash
@@ -326,7 +328,7 @@ The owner is counted as an admin in the room banner and wears a 👑 in the admi
 
 ## Data Storage
 
-The deployed GitHub Pages app stores data in Supabase tables/storage. The self-hosted Node server stores data in `Chatting_updated/data/db.json` plus local `uploads/`; back those up if you run the Node version. Do not commit runtime data or uploads to GitHub.
+The deployed GitHub Pages app stores data in Supabase tables/storage — including each room's owner/admin/member lists, its **ban list** (`rooms.banned`, used by kick/ban with allow-rejoin) and a build stamp in `public/version.json`. The self-hosted Node server stores data in `Chatting_updated/data/db.json` plus local `uploads/`; back those up if you run the Node version. Do not commit runtime data or uploads to GitHub.
 
 ---
 
