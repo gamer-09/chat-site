@@ -698,12 +698,21 @@
       font-style: italic;
     }
 
+    /* Links must stay readable on every bubble and in both themes. The old
+       single accent colour disappeared against dark bubbles / own-message
+       gradients, so each context gets its own tone. */
     .msg-content a.safe-link {
-      color: var(--accent);
+      color: #93c5fd;
       text-decoration: underline;
       text-underline-offset: 2px;
       word-break: break-all;
+      font-weight: 500;
     }
+    .msg.me .msg-content a.safe-link { color: #e0f2fe; }
+    html.ptr29-light-theme .msg-content a.safe-link { color: #1d4ed8; }
+    html.ptr29-light-theme .msg.me .msg-content a.safe-link { color: #1e3a8a; }
+    .msg-content a.safe-link:hover { color: #bfdbfe; }
+    html.ptr29-light-theme .msg-content a.safe-link:hover { color: #1e40af; }
 
     .msg-content a.safe-link::after {
       content: " ↗";
@@ -711,6 +720,82 @@
       opacity: .8;
     }
     
+    /* ── Search: match counter, navigation and highlights ─────────────── */
+    .search-count {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      padding: 0 2px;
+    }
+    .search-nav { padding: 4px 8px; font-size: 12px; line-height: 1; }
+    .search-nav.search-cancel { font-weight: 700; }
+    mark.search-hit {
+      background: #fde68a;
+      color: #111827;
+      border-radius: 3px;
+      padding: 0 1px;
+    }
+    mark.search-hit.active {
+      background: #f59e0b;
+      box-shadow: 0 0 0 2px rgba(245,158,11,.55);
+    }
+    html.ptr29-light-theme mark.search-hit { background: #fde68a; color: #111827; }
+    html.ptr29-light-theme mark.search-hit.active { background: #f59e0b; }
+
+    /* ── @mention autocomplete ────────────────────────────────────────── */
+    .mention-menu {
+      position: fixed;
+      z-index: 12000;
+      min-width: 190px;
+      max-width: min(300px, 90vw);
+      max-height: 240px;
+      overflow-y: auto;
+      background: var(--panel2);
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      box-shadow: 0 18px 44px rgba(0,0,0,.45);
+      padding: 6px;
+    }
+    .mention-menu .mention-head {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--text-dim);
+      padding: 4px 8px 6px;
+    }
+    .mention-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 8px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .mention-item.active,
+    .mention-item:hover { background: var(--border); }
+    .mention-item img { width: 22px; height: 22px; border-radius: 50%; flex: 0 0 auto; }
+    .mention-item .mi-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mention-item .mi-dot { margin-left: auto; font-size: 10px; color: #34d399; }
+    .mention-item.offline .mi-name { color: var(--text-muted); }
+    .mention-empty { padding: 8px; font-size: 12.5px; color: var(--text-dim); }
+
+    /* mention chips inside messages */
+    .mention {
+      color: #93c5fd;
+      background: rgba(147,197,253,.14);
+      border-radius: 6px;
+      padding: 0 4px;
+      font-weight: 600;
+    }
+    .msg.me .mention { color: #e0f2fe; background: rgba(255,255,255,.18); }
+    .mention.mention-me { color: #fef3c7; background: rgba(245,158,11,.24); }
+    .msg.me .mention.mention-me { color: #fff7ed; background: rgba(255,255,255,.28); }
+    html.ptr29-light-theme .mention { color: #1d4ed8; background: rgba(29,78,216,.10); }
+    html.ptr29-light-theme .msg.me .mention { color: #1e3a8a; background: rgba(30,58,138,.12); }
+    html.ptr29-light-theme .mention.mention-me { color: #92400e; background: rgba(245,158,11,.22); }
+
     .emoji-picker-popup {
       position: absolute;
       bottom: 70px;
@@ -2067,6 +2152,7 @@
     .ui-choice-body { display: block; line-height: 1.45; }
     .ui-choice-body b { display: block; }
     .ui-choice-body small { display: block; color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+    .ui-choice.muted { opacity: .6; }
     body.ptr29-glass-ui .ui-choice,
     html.ptr29-light-theme body.ptr29-glass-ui .ui-choice {
       background: rgba(255,255,255,.06) !important;
@@ -2622,6 +2708,10 @@
         </div>
         <div style="display:flex; gap:8px; align-items:center">
           <input type="text" id="search-messages-input" placeholder="Search..." style="padding:4px 8px; font-size:12px; width:120px;" autocomplete="off">
+          <span class="search-count" hidden></span>
+          <button type="button" class="secondary search-nav search-prev" hidden title="Previous match (Shift+Enter)">↑</button>
+          <button type="button" class="secondary search-nav search-next" hidden title="Next match (Enter)">↓</button>
+          <button type="button" class="secondary search-nav search-cancel" hidden title="Cancel search (Esc)">✕</button>
           <button type="button" id="mobile-search-btn" class="secondary mobile-only" title="Search messages">🔍</button>
           <button type="button" id="tablet-people-btn" class="secondary" title="People">👥</button>
           <button id="room-settings-btn" class="secondary">⚙️ <span>Settings</span></button>
@@ -2633,7 +2723,10 @@
       <!-- Mobile-only collapsible search bar (shown/hidden by JS only) -->
       <div id="mobile-search-bar" style="display:none">
         <input id="mobile-search-input" type="text" placeholder="Search messages…" autocomplete="off">
-        <button type="button" id="mobile-search-close-btn" class="secondary">×</button>
+        <span class="search-count" hidden></span>
+        <button type="button" class="secondary search-nav search-prev" hidden title="Previous match">↑</button>
+        <button type="button" class="secondary search-nav search-next" hidden title="Next match">↓</button>
+        <button type="button" id="mobile-search-close-btn" class="secondary search-cancel" title="Cancel search">✕</button>
       </div>
       
       <div id="room-settings-panel">
@@ -3222,6 +3315,13 @@
               <small>Frosted, see-through panels over a live animated backdrop (flowing waves). Turn it off for the plain solid look — the choice is remembered on this browser.</small>
             </span>
           </label>
+          <label class="ui-choice" for="edit-notify">
+            <input type="checkbox" id="edit-notify">
+            <span class="ui-choice-body">
+              <b>🔔 Notifications outside the app</b>
+              <small>Show system notifications for new messages in other rooms, mentions of you and inbox requests — even when this tab is in the background or minimised. Your browser will ask for permission. On iPhone, add the site to your Home Screen first.</small>
+            </span>
+          </label>
           <label class="ui-choice" for="edit-glass-motion">
             <input type="checkbox" id="edit-glass-motion">
             <span class="ui-choice-body">
@@ -3267,6 +3367,7 @@
     document.write('<link rel="stylesheet" href="mobile.css?t=' + Date.now() + '" media="(max-width: 768px)">');
     document.write('<script src="glass-backdrop.js?t=' + Date.now() + '"><\/script>');
     document.write('<script src="supabase-client.js?t=' + Date.now() + '"><\/script>');
+    document.write('<script src="chat-ux.js?t=' + Date.now() + '"><\/script>');
     document.write('<script src="client.js?t=' + Date.now() + '"><\/script>');
   </script>
 <!-- © 2026 gamer-09. All rights reserved. Code is proprietary. -->

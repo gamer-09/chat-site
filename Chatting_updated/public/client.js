@@ -109,6 +109,7 @@
     editProfileBtn:   document.getElementById('edit-profile-btn'),
     editGlassUi:      document.getElementById('edit-glass-ui'),
     editGlassMotion:  document.getElementById('edit-glass-motion'),
+    editNotify:       document.getElementById('edit-notify'),
     glassMotionToggle:document.getElementById('glass-motion-toggle'),
     cancelEditProfileBtn:document.getElementById('cancel-edit-profile'),
     imageBtn:         document.getElementById('image-btn'),
@@ -1193,6 +1194,7 @@
         : msg.type === 'file'
           ? `<a class="file-attachment" href="${msg.fileUrl || '#'}" download="${utils.escapeHtml(msg.message || 'file')}" target="_blank" rel="noopener noreferrer"><span>📎</span><span>${utils.escapeHtml(msg.message || 'File')}</span>${msg.fileSize ? `<span style="color:var(--text-dim);font-size:11px">${utils.formatFileSize(msg.fileSize)}</span>` : ''}</a>`
           : utils.renderTextBody(msg.message || '');
+      const bodyIsText = !(msg.type === 'image' || fileIsImage || msg.type === 'file');
 
       const reactionEntries = msg.reactions ? Object.entries(msg.reactions).filter(([,u]) => u.length > 0) : [];
       const reactionsHtml = reactionEntries.length > 0
@@ -1229,6 +1231,11 @@
         ${receiptsHtml}`;
 
       el.innerHTML = content;
+
+      // @mentions get highlighted inside the rendered text
+      if (bodyIsText) {
+        try { window.PTR29Chat && window.PTR29Chat.mentions.decorate(el, state.myUsername); } catch (e) {}
+      }
 
       // Resolve storage-backed media to signed URLs (Supabase)
       if (msg.storagePath && window.PtrMedia) {
@@ -1487,6 +1494,8 @@
           return true;
         });
         const pq2 = (state.peopleQuery || '').toLowerCase();
+        state.lastOfflineUsers = arr;
+        try { window.PTR29Chat && window.PTR29Chat.mentions.refreshNames(); } catch (e) {}
         const arrShown = pq2 ? arr.filter(u => (u.username || '').toLowerCase().includes(pq2)) : arr;
         const fb = document.getElementById('show-offline-btn');
         if (!arrShown.length) {
@@ -1578,6 +1587,12 @@
   document.addEventListener('click', handlePeopleToggleEvent, true);
 
   // ── Online users ───────────────────────────────────────────────────────────
+  // state the chat-ux module needs: who is online, who is offline
+  window.PTR29HostState = {
+    presence: () => (state.currentRoomPresence || state.lastPresenceUsers || []),
+    offline:  () => (state.lastOfflineUsers || [])
+  };
+
   const online = {
     update: (users) => {
       if (!elements.onlineList) return;
@@ -1668,6 +1683,18 @@
 
     'chat-message': (data) => {
       if (document.querySelector(`[data-id="${data.id}"]`)) return; // dedupe (realtime + optimistic)
+      const fromMe = isMine(data.clientId) || String(data.username || '').toLowerCase() === String(state.myUsername || '').toLowerCase();
+      const mentioned = !fromMe && window.PTR29Chat && window.PTR29Chat.mentions.mentionedMe(data.message || '', state.myUsername);
+      if (!fromMe) {
+        // mention of me, or a message in a room I am not looking at:
+        // always tell me outside the app, plus an in-app toast
+        if (mentioned) {
+          showToast(`@${data.username || 'Someone'} mentioned you in #${data.room}`, 'info');
+          notifyOS(`You were mentioned in #${data.room}`, `${data.username || 'Someone'}: ${String(data.message || '').slice(0, 150)}`, { room: data.room, renotify: true });
+        } else if (data.room !== state.currentRoom || !document.hasFocus()) {
+          notifyOS(`New message in #${data.room}`, `${data.username || 'Someone'}: ${String(data.message || '').slice(0, 150)}`, { room: data.room });
+        }
+      }
       if (data.room === state.currentRoom) {
         messages.render(data);
         if (!isMine(data.clientId) && data.clientId !== state.myClientId)
@@ -1683,7 +1710,10 @@
       const msgEl = document.querySelector(`[data-id="${data.id}"]`);
       if (!msgEl) return;
       const bodyEl = msgEl.querySelector('.body');
-      if (bodyEl) bodyEl.innerHTML = utils.renderTextBody(data.message || '');
+      if (bodyEl) {
+        bodyEl.innerHTML = utils.renderTextBody(data.message || '');
+        try { window.PTR29Chat && window.PTR29Chat.mentions.decorate(bodyEl, state.myUsername); } catch (e) {}
+      }
       if (!msgEl.querySelector('.edited')) {
         msgEl.querySelector('.time')?.insertAdjacentHTML('afterend', '<span class="edited">(edited)</span>');
       }
@@ -1705,7 +1735,10 @@
       }
     },
 
-    'presence-all': (data) => online.update(data.users),
+    'presence-all': (data) => {
+      online.update(data.users);
+      try { window.PTR29Chat && window.PTR29Chat.mentions.refreshNames(); } catch (e) {}
+    },
 
     'inbox-changed': () => {
       refreshInboxBadge({ notify: true });
@@ -1885,6 +1918,22 @@
         socket.emit('typing', { isTyping: true });
         clearTimeout(state.typingTimer);
         state.typingTimer = setTimeout(() => socket.emit('typing', { isTyping: false }), 2000);
+      });
+    }
+
+    // @mention autocomplete in the composer
+    if (elements.text && window.PTR29Chat) {
+      elements.text.addEventListener('input', () => {
+        try { window.PTR29Chat.mentions.composerInput(elements.text); } catch (e) {}
+      });
+      elements.text.addEventListener('click', () => {
+        try { window.PTR29Chat.mentions.close(); } catch (e) {}
+      });
+      elements.text.addEventListener('keydown', (e) => {
+        try { if (window.PTR29Chat.mentions.composerKey(e)) e.stopImmediatePropagation(); } catch (err) {}
+      }, true);
+      elements.text.addEventListener('blur', () => {
+        setTimeout(() => { try { window.PTR29Chat.mentions.close(); } catch (e) {} }, 150);
       });
     }
 
@@ -2106,6 +2155,22 @@
         try { localStorage.setItem(CONSTANTS.GLASS_UI_KEY, on ? '1' : '0'); } catch {}
       });
     }
+    if (elements.editNotify) {
+      elements.editNotify.addEventListener('change', async () => {
+        const on = !!elements.editNotify.checked;
+        const res = await window.PTR29Chat.notify.setPref(on, true);
+        if (on && res !== 'granted') {
+          elements.editNotify.checked = false;
+          showToast(res === 'denied'
+            ? 'Notifications are blocked for this site — allow them in your browser settings, then try again.'
+            : 'This browser cannot show system notifications. On iPhone, add the site to your Home Screen first.', 'error');
+        } else if (on) {
+          showToast('🔔 Notifications on — you will be told about mentions, other rooms and inbox requests.', 'success');
+        } else {
+          showToast('Notifications off.', 'info');
+        }
+      });
+    }
     if (elements.editGlassMotion) {
       elements.editGlassMotion.addEventListener('change', () => {
         const on = !!elements.editGlassMotion.checked;
@@ -2129,6 +2194,14 @@
       elements.editClientId.textContent = state.myClientId || '';
       if (elements.editGlassUi) elements.editGlassUi.checked = document.body.classList.contains('ptr29-glass-ui');
       if (elements.editGlassMotion) elements.editGlassMotion.checked = glassBackdropMotion();
+      if (elements.editNotify) {
+        const n = window.PTR29Chat && window.PTR29Chat.notify;
+        elements.editNotify.checked = !!(n && n.pref() && n.permission() !== 'denied');
+        if (n && n.permission() === 'denied') {
+          elements.editNotify.disabled = true;
+          elements.editNotify.closest('.ui-choice')?.classList.add('muted');
+        }
+      }
       const data = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
       document.querySelector('#edit-profile-modal h3').textContent = data.username ? 'Edit Profile' : 'Create Account';
       const termsCheckbox = document.getElementById('edit-terms');
@@ -2347,43 +2420,20 @@
 
     // ── Search messages ─────────────────────────────────────────────────────
     const searchInput = document.getElementById('search-messages-input');
-    if (searchInput) {
-      let searchTimer = null;
-      searchInput.addEventListener('input', () => {
-        clearTimeout(searchTimer);
-        const q = searchInput.value.trim();
-        if (!q) { document.querySelectorAll('.msg').forEach(m => m.style.display = ''); return; }
-        searchTimer = setTimeout(async () => {
-          try {
-            const data = await window.ChatAPI.searchMessages(state.currentRoom, q);
-            if (!data || !data.results) return;
-            const matchIds = new Set((data.results || []).map(m => m.id));
-            document.querySelectorAll('.msg').forEach(m => {
-              m.style.display = matchIds.has(m.dataset.id) ? '' : 'none';
-            });
-          } catch {}
-        }, 300);
-      });
-      searchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          searchInput.value = '';
-          document.querySelectorAll('.msg').forEach(m => m.style.display = '');
-        }
+    if (searchInput && window.PTR29Chat) {
+      window.PTR29Chat.search.attach(searchInput, document.getElementById('room-bar'), {
+        room: () => state.currentRoom
       });
     }
 
-    // ── Browser notifications ───────────────────────────────────────────────
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
+    // ── System notifications ────────────────────────────────────────────────
+    // Sent through the service worker so they also appear when this tab is in
+    // the background / the phone is locked (the old code used the page-scoped
+    // Notification constructor, which mobile browsers ignore).
     socket.on('system', (data) => {
       if (data.type !== 'notify') return;
       if (document.hasFocus()) return;
-      if (Notification.permission !== 'granted') return;
-      try {
-        const n = new Notification('ptr_29 Chat', { body: data.message, icon: 'icon-192.png' });
-        setTimeout(() => n.close(), 5000);
-      } catch {}
+      notifyOS('ptr_29 Chat', data.message, { room: data.room || '' });
     });
   };
 
@@ -2633,6 +2683,7 @@
     const mobileSearchCloseBtn  = document.getElementById('mobile-search-close-btn');
 
     const clearMobileSearch = () => {
+      try { if (window.PTR29Chat) window.PTR29Chat.search.cancel(); } catch (e) {}
       if (mobileSearchInput) mobileSearchInput.value = '';
       if (mobileSearchBar)   mobileSearchBar.style.display = 'none';
       document.querySelectorAll('.msg').forEach(m => m.style.display = '');
@@ -2653,26 +2704,12 @@
         mobileSearchCloseBtn.addEventListener('click', clearMobileSearch);
       }
 
-      let mobileSearchTimer = null;
-      mobileSearchInput.addEventListener('input', () => {
-        clearTimeout(mobileSearchTimer);
-        const q = mobileSearchInput.value.trim();
-        if (!q) { document.querySelectorAll('.msg').forEach(m => m.style.display = ''); return; }
-        mobileSearchTimer = setTimeout(async () => {
-          try {
-            const data = await window.ChatAPI.searchMessages(state.currentRoom, q);
-            if (!data || !data.results) return;
-            const matchIds = new Set((data.results || []).map(m => m.id));
-            document.querySelectorAll('.msg').forEach(m => {
-              m.style.display = matchIds.has(m.dataset.id) ? '' : 'none';
-            });
-          } catch {}
-        }, 300);
-      });
-
-      mobileSearchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') clearMobileSearch();
-      });
+      if (window.PTR29Chat) {
+        window.PTR29Chat.search.attach(mobileSearchInput, mobileSearchBar, {
+          room: () => state.currentRoom,
+          onCancel: () => { mobileSearchBar.style.display = 'none'; }
+        });
+      }
     }
 
     // Unified rooms.join wrapper: clear search AND switch to chat view
@@ -2881,19 +2918,15 @@
     badge.textContent = n > 9 ? '9+' : String(n);
   }
 
-  function notifyBrowser(title, body) {
-    if (!('Notification' in window)) return;
-    const fire = () => {
-      try {
-        const n = new Notification(title, { body, icon: 'icon-192.png' });
-        n.onclick = () => { try { window.focus(); inboxUI.open(); } catch {} n.close(); };
-        setTimeout(() => n.close(), 8000);
-      } catch {}
-    };
-    if (Notification.permission === 'granted') fire();
-    else if (Notification.permission === 'default') {
-      try { Notification.requestPermission().then(p => { if (p === 'granted') fire(); }); } catch {}
-    }
+  function notifyBrowser(title, body) { notifyOS(title, body, {}); }
+
+  // One entry point for every out-of-app notification.
+  function notifyOS(title, body, opts) {
+    try {
+      if (!window.PTR29Chat || !window.PTR29Chat.notify) return;
+      if (!window.PTR29Chat.notify.pref()) return;      // user turned them off
+      window.PTR29Chat.notify.fire(title, body, opts || {});
+    } catch {}
   }
 
   function showInboxPopup(row) {

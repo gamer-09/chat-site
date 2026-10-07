@@ -6,7 +6,7 @@
 // ── Network-first shell: always serve fresh same-origin assets ─────────────
 // GitHub Pages sends max-age=600; this SW bypasses the HTTP cache so deploys
 // reach users instantly, with cache fallback only when the network is dead.
-const CACHE = 'ptr29-shell-v3';
+const CACHE = 'ptr29-shell-v4';
 
 // Take over immediately the moment a newer sw.js arrives — no user is ever
 // stranded on a stale build behind an old worker.
@@ -44,9 +44,9 @@ self.addEventListener('fetch', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const data = event.notification && event.notification.data || {};
+  const data = (event.notification && event.notification.data) || {};
   const room = (data && data.room) ? String(data.room) : '';
-  const url = room ? `?room=${encodeURIComponent(room)}` : '.';
+  const url = room ? `?room=${encodeURIComponent(room)}` : ((data && data.url) || '.');
   event.waitUntil((async () => {
     try {
       const allClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
