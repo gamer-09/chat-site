@@ -2076,14 +2076,29 @@
 
     // Add admin / member
     // ── Room roles: every action reports back (the old code failed silently) ──
-    const roleErrorText = (code) => ({
-      forbidden: 'Only the room owner or an admin can change this room.',
-      no_such_user: 'No user found for that Client ID or username.',
-      room_not_found: 'That room no longer exists.',
-      cannot_kick_owner: "The owner can't be kicked.",
-      not_authenticated: 'Please sign in again.',
-      banned: 'That user is banned from this room.'
-    }[code] || ('Could not do that: ' + code));
+    const roleErrorText = (code) => {
+      const c = String(code || '');
+      // The role RPCs live in migration 032. If it has not been run, Supabase
+      // answers "function not found" — say that plainly instead of failing quietly.
+      if (/PGRST202|Could not find the function|schema cache|does not exist/i.test(c)) {
+        return 'Room roles need the database update: run supabase/032_room_roles_and_kick.sql in Supabase, then try again.';
+      }
+      return {
+        forbidden: 'Only the room owner or an admin can change this room.',
+        no_such_user: 'No user found for that Client ID or username.',
+        room_not_found: 'That room no longer exists.',
+        cannot_kick_owner: "The owner can't be kicked.",
+        not_authenticated: 'Please sign in again.',
+        banned: 'That user is banned from this room.'
+      }[c] || ('Could not do that: ' + c);
+    };
+    // Surface the same hint once at startup so it is obvious what is missing.
+    (function warnIfRolesMissing() {
+      if (!window.ChatAPI || !window.ChatAPI.roomIsManager) return;
+      window.ChatAPI.roomIsManager(state.currentRoom || 'general').then((ok) => {
+        if (ok === null) showToast('Room roles need the database update: run supabase/032_room_roles_and_kick.sql in Supabase.', 'error');
+      }).catch(() => {});
+    })();
 
     async function addRoomMember(idVal) {
       const val = String(idVal || '').trim();
