@@ -107,7 +107,8 @@
     avatarUploadBtn:  document.getElementById('avatar-upload-btn'),
     avatarFile:       document.getElementById('avatar-file'),
     editProfileBtn:   document.getElementById('edit-profile-btn'),
-    glassUiToggle:    document.getElementById('glass-ui-toggle'),
+    editGlassUi:      document.getElementById('edit-glass-ui'),
+    editGlassMotion:  document.getElementById('edit-glass-motion'),
     glassMotionToggle:document.getElementById('glass-motion-toggle'),
     cancelEditProfileBtn:document.getElementById('cancel-edit-profile'),
     imageBtn:         document.getElementById('image-btn'),
@@ -534,15 +535,11 @@
     closeAll: ()  => document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open')),
   };
 
-  function canUseGlassUi(username) {
-    return String(username || '').trim().toLowerCase() === 'wenny';
-  }
   function setGlassUiEnabled(enabled) {
     document.body.classList.toggle('ptr29-glass-ui', !!enabled);
-    if (elements.glassUiToggle) {
-      elements.glassUiToggle.textContent = enabled ? '↩ Normal UI' : '🫧 Glass UI';
-      elements.glassUiToggle.title = enabled ? 'Return to normal UI' : 'Try glass UI';
-    }
+    // keep the Edit Profile control in step with the live state
+    if (elements.editGlassUi) elements.editGlassUi.checked = !!enabled;
+    if (elements.editGlassMotion) elements.editGlassMotion.checked = !!glassBackdropMotion();
     if (elements.glassMotionToggle) {
       elements.glassMotionToggle.style.display = enabled ? '' : 'none';
       elements.glassMotionToggle.textContent = glassBackdropMotion() ? '⏸ Still' : '▶ Animate';
@@ -588,14 +585,9 @@
     if (gb) return gb.motionOn();
     try { return localStorage.getItem(CONSTANTS.GLASS_MOTION_KEY) !== '0'; } catch { return true; }
   }
-  function syncGlassUiAccess(username) {
-    const allowed = canUseGlassUi(username);
-    if (elements.glassUiToggle) elements.glassUiToggle.style.display = allowed ? '' : 'none';
-    if (!allowed) {
-      setGlassUiEnabled(false);
-      try { localStorage.removeItem(CONSTANTS.GLASS_UI_KEY); } catch {}
-      return;
-    }
+  // Glass UI is available to every account (it is a normal appearance setting
+  // now, toggled from Edit Profile). This only applies the saved preference.
+  function syncGlassUiAccess() {
     let enabled = false;
     try { enabled = localStorage.getItem(CONSTANTS.GLASS_UI_KEY) === '1'; } catch {}
     setGlassUiEnabled(enabled);
@@ -666,7 +658,7 @@
       if (elements.editUsername) elements.editUsername.value = username || '';
       if (elements.editAvatar) elements.editAvatar.value = avatar || '';
       if (elements.mobileUsername) elements.mobileUsername.value = username || '';
-      syncGlassUiAccess(username || '');
+      syncGlassUiAccess();
     },
 
     // Debounced live username availability checker
@@ -2105,17 +2097,26 @@
     elements.confirmDeleteUserBtn.addEventListener('click', profile.delete);
 
     // Edit profile
-    if (elements.glassUiToggle) {
-      elements.glassUiToggle.addEventListener('click', () => {
-        if (!canUseGlassUi(state.myUsername)) return;
-        const next = !document.body.classList.contains('ptr29-glass-ui');
-        setGlassUiEnabled(next);
-        try { localStorage.setItem(CONSTANTS.GLASS_UI_KEY, next ? '1' : '0'); } catch {}
+    // Appearance controls live in Edit Profile. They apply immediately and are
+    // remembered per browser, so no profile save is needed.
+    if (elements.editGlassUi) {
+      elements.editGlassUi.addEventListener('change', () => {
+        const on = !!elements.editGlassUi.checked;
+        setGlassUiEnabled(on);
+        try { localStorage.setItem(CONSTANTS.GLASS_UI_KEY, on ? '1' : '0'); } catch {}
+      });
+    }
+    if (elements.editGlassMotion) {
+      elements.editGlassMotion.addEventListener('change', () => {
+        const on = !!elements.editGlassMotion.checked;
+        const gb = window.PTR29GlassBackdrop;
+        if (gb) gb.setMotion(on);
+        else { try { localStorage.setItem(CONSTANTS.GLASS_MOTION_KEY, on ? '1' : '0'); } catch {} }
+        setGlassUiEnabled(document.body.classList.contains('ptr29-glass-ui'));
       });
     }
     if (elements.glassMotionToggle) {
       elements.glassMotionToggle.addEventListener('click', () => {
-        if (!canUseGlassUi(state.myUsername)) return;
         const gb = window.PTR29GlassBackdrop;
         const next = !glassBackdropMotion();
         if (gb) gb.setMotion(next);
@@ -2126,6 +2127,8 @@
 
     elements.editProfileBtn.addEventListener('click', () => {
       elements.editClientId.textContent = state.myClientId || '';
+      if (elements.editGlassUi) elements.editGlassUi.checked = document.body.classList.contains('ptr29-glass-ui');
+      if (elements.editGlassMotion) elements.editGlassMotion.checked = glassBackdropMotion();
       const data = utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {});
       document.querySelector('#edit-profile-modal h3').textContent = data.username ? 'Edit Profile' : 'Create Account';
       const termsCheckbox = document.getElementById('edit-terms');

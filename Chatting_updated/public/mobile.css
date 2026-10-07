@@ -1311,6 +1311,3 @@ body.ptr29-mobile.ptr29-glass-ui {
   backdrop-filter: blur(var(--gb-blur-sm, 14px)) saturate(1.1);
   -webkit-backdrop-filter: blur(var(--gb-blur-sm, 14px)) saturate(1.1);
 }
-.ptr29-mobile.ptr29-glass-ui #glass-ui-toggle {
-  min-width: 0;
-}

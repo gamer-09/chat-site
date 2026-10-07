@@ -1974,7 +1974,7 @@
     .link-preview-card:hover { border-color: var(--accent); }
 
 
-    /* ── Optional Wenny-only glass UI test mode ─────────────────────── */
+    /* ── Glass UI (appearance mode; toggled in Edit Profile) ─────────── */
     body.ptr29-glass-ui {
       /* the backdrop now lives in #glass-backdrop (z-index: -1) so a canvas can animate under the UI */
       background: transparent !important;
@@ -2051,9 +2051,28 @@
       background: linear-gradient(135deg, rgba(37,99,235,.62), rgba(124,58,237,.42)) !important;
       color: #fff !important;
     }
-    body.ptr29-glass-ui #glass-ui-toggle {
-      border-color: rgba(125,211,252,.45) !important;
-      color: #bfdbfe !important;
+    .ui-choice {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel2);
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .ui-choice input[type="checkbox"] { margin-top: 2px; flex: 0 0 auto; }
+    .ui-choice-body { display: block; line-height: 1.45; }
+    .ui-choice-body b { display: block; }
+    .ui-choice-body small { display: block; color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+    body.ptr29-glass-ui .ui-choice,
+    html.ptr29-light-theme body.ptr29-glass-ui .ui-choice {
+      background: rgba(255,255,255,.06) !important;
+    }
+    html.ptr29-light-theme body.ptr29-glass-ui .ui-choice {
+      background: rgba(255,255,255,.55) !important;
     }
 
 
@@ -2118,7 +2137,7 @@
       -webkit-text-fill-color: #0b1526 !important;
     }
 
-    /* ── Light mode surface correction: normal + Wenny glass test ────── */
+    /* ── Light mode surface correction: normal + glass ───────────────── */
     html.ptr29-light-theme #messages {
       background:
         radial-gradient(circle at 20% 0%, rgba(37,99,235,.045), transparent 34%),
@@ -2226,11 +2245,7 @@
       background: linear-gradient(135deg, rgba(59,130,246,.76), rgba(124,58,237,.58)) !important;
       color: #ffffff !important;
     }
-    html.ptr29-light-theme body.ptr29-glass-ui #glass-ui-toggle {
-      border-color: rgba(37,99,235,.35) !important;
-      color: #1d4ed8 !important;
-      background: rgba(219,234,254,.68) !important;
-    }
+
 
 
     /* ── Glass mode: content must stay readable ──────────────────────── */
@@ -2538,7 +2553,7 @@
   </style>
 </head>
 <body>
-  <!-- Live glass backdrop (Wenny glass UI test): still image first paint, canvas waves on top, theme scrim above -->
+  <!-- Live glass backdrop: still image first paint, canvas waves on top, theme scrim above -->
   <div id="glass-backdrop" aria-hidden="true">
     <div id="gb-static"></div>
     <canvas id="gb-canvas"></canvas>
@@ -2590,7 +2605,6 @@
         </div>
         <div class="user-actions">
           <button id="edit-profile-btn" class="secondary">Edit Profile</button>
-          <button id="glass-ui-toggle" class="secondary" style="display:none" title="Toggle glass UI test">🫧 Glass UI</button>
           <button id="glass-motion-toggle" class="secondary" style="display:none" title="Pause or play the live backdrop">⏸ Still</button>
           <button id="delete-user-btn" class="danger">Delete Account</button>
           <button id="logout-btn" class="secondary">Logout</button>
@@ -3068,8 +3082,8 @@
             <ul class="help-tips">
               <li>🆔 <strong>Your identity follows your account</strong> — log in on any device and your content is there; signup and existing-account access require 13+ confirmation plus Terms/Privacy acceptance; passwords are SHA-256-salted on-device, then bcrypt + pepper server-side</li>
               <li>🌙 <strong>Theme</strong> — switch dark/light with the 🌙/☀️ toolbar button; your choice is remembered</li>
-              <li>🫧 <strong>Glass UI test (Wenny only)</strong> — the 🫧 Glass UI button swaps the flat panels for frosted glass floating over a <strong>live backdrop</strong>: flowing colour waves drawn on the spot, with dark and light palettes that follow your theme</li>
-              <li>⏸ <strong>Motion</strong> — the ⏸ Still / ▶ Animate button freezes or resumes the backdrop (handy on battery saver or slow devices); the choice is remembered per browser, and the app also honours your system "reduce motion" setting by starting still. Both controls disappear with the normal UI, and the backdrop never runs for anyone else</li>
+              <li>🫧 <strong>Glass UI (everyone)</strong> — turn it on in <strong>Edit Profile → Appearance</strong> to swap the flat panels for frosted glass floating over a <strong>live backdrop</strong>: flowing colour waves drawn on the spot, with dark and light palettes that follow your theme. It applies immediately and is remembered on this browser</li>
+              <li>⏸ <strong>Motion</strong> — freeze or resume the waves with the ⏸ Still / ▶ Animate button in the sidebar, or the "Live backdrop animation" switch in Edit Profile (handy on battery saver or slow devices). The app also honours your system "reduce motion" setting by starting still</li>
               <li>🫧 <strong>Glass level</strong> — fixed at the final <strong>15%</strong> for everyone (panels ~15% opaque with a light 6.4px blur, so the live backdrop always shows through). Dialogs sit at 30% and the 13+/Terms gates stay near-solid so their legal copy is always readable; message bubbles are deliberately opaque so text never fights the waves</li>
               <li>🔒 <strong>Private rooms are not end-to-end encrypted</strong>; authorized participants and infrastructure providers may technically access content</li>
               <li>🗑️ <strong>Delete Account</strong> (password-verified) erases account + user + every message/reaction/receipt + presence + owned rooms; renames wipe the old name; the operator can purge any username</li>
@@ -3198,6 +3212,23 @@
             <span style="font-size:12px; color:var(--text-dim)">mobile & desktop — cropped to a square automatically</span>
           </div>
           <input type="file" id="avatar-file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none">
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="display:block; margin-bottom:8px; color:var(--text-muted); font-size:13px">Appearance</label>
+          <label class="ui-choice" for="edit-glass-ui">
+            <input type="checkbox" id="edit-glass-ui">
+            <span class="ui-choice-body">
+              <b>🫧 Glass UI</b>
+              <small>Frosted, see-through panels over a live animated backdrop (flowing waves). Turn it off for the plain solid look — the choice is remembered on this browser.</small>
+            </span>
+          </label>
+          <label class="ui-choice" for="edit-glass-motion">
+            <input type="checkbox" id="edit-glass-motion">
+            <span class="ui-choice-body">
+              <b>Live backdrop animation</b>
+              <small>Uncheck to freeze the waves. Motion is off automatically if your device asks for reduced motion.</small>
+            </span>
+          </label>
         </div>
         <div style="margin-bottom:16px">
           <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size: 13px;">
