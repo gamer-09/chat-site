@@ -262,6 +262,7 @@
       display: flex;
       flex-direction: column;
       min-width: 0;
+      position: relative;   /* anchors the jump-to-newest button */
       background: 
         radial-gradient(1200px 60% at 100% 0%, rgba(37,99,235,0.06), transparent 60%),
         radial-gradient(900px 50% at 0% 100%, rgba(124,58,237,0.05), transparent 60%);
@@ -514,6 +515,62 @@
       color: var(--text-dim);
       overflow-wrap: anywhere;
     }
+    /* On your own bubble the background is a blue→violet gradient, so the
+       default dim grey vanished. Give each context its own readable tone. */
+    .msg.me .receipts { color: rgba(255,255,255,.85); }
+    html.ptr29-light-theme .msg.me .receipts { color: #1e3a8a !important; }
+    html.ptr29-light-theme .receipts { color: #46586f; }
+    /* ── Jump-to-newest button ─────────────────────────────────────────── */
+    .msg.me .receipts-more {
+      background: rgba(255,255,255,.24) !important;
+      color: #ffffff !important;
+    }
+    html.ptr29-light-theme .msg.me .receipts-more {
+      background: rgba(30,58,138,.18) !important;
+      color: #1e3a8a !important;
+    }
+    #scroll-bottom {
+      position: absolute;
+      right: 18px;
+      bottom: calc(var(--ptr29-composer-h, 74px) + 14px);
+      z-index: 45;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      line-height: 1;
+      box-shadow: 0 10px 26px rgba(0,0,0,.35);
+    }
+    #scroll-bottom.show { display: inline-flex; }
+    #scroll-bottom-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 9px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 10.5px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,.35);
+    }
+    #scroll-bottom-badge[hidden] { display: none; }
+    .ptr29-mobile #scroll-bottom {
+      right: 12px;
+      bottom: calc(var(--ptr29-composer-h, 74px) + var(--mobile-nav-h, 56px) + 12px);
+      width: 40px;
+      height: 40px;
+    }
+
     .receipts-more {
       display: inline-block;
       margin-left: 4px;
@@ -2629,7 +2686,7 @@
       border-color: #d7e0eb !important;
       box-shadow: 0 8px 20px rgba(15,23,42,.14) !important;
     }
-    html.ptr29-light-theme .receipts { color: #516278 !important; }
+    html.ptr29-light-theme .receipts { color: #46586f !important; }
     html.ptr29-light-theme #people-search,
     html.ptr29-light-theme #search-messages-input,
     html.ptr29-light-theme #passkey-join-input { background: #ffffff !important; }
@@ -2791,6 +2848,9 @@
       </div>
       
       <div id="typing"></div>
+      <button type="button" id="scroll-bottom" title="Jump to the newest messages" aria-label="Jump to the newest messages">
+        ↓<span id="scroll-bottom-badge" hidden></span>
+      </button>
       <div id="messages"></div>
       
       <div id="input-area">

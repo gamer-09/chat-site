@@ -115,6 +115,8 @@
     imageBtn:         document.getElementById('image-btn'),
     imageFile:        document.getElementById('image-file'),
     toastContainer:   document.getElementById('toast-container'),
+    scrollBottom:     document.getElementById('scroll-bottom'),
+    scrollBottomBadge:document.getElementById('scroll-bottom-badge'),
   };
 
   // Check for critical missing elements
@@ -1299,7 +1301,14 @@
       }
 
       prepend ? elements.messages.prepend(el) : elements.messages.appendChild(el);
-      elements.messages.scrollTop = elements.messages.scrollHeight;
+      // If the reader is scrolled up (and this is not their own message and not
+      // a backfill), stay where they are and let the jump button count it.
+      const stick = prepend || scrollCtl.near() || isMe;
+      if (stick) {
+        elements.messages.scrollTop = elements.messages.scrollHeight;
+        if (!prepend) scrollCtl.pending = 0;
+      }
+      try { scrollCtl.refresh(); } catch (e) {}
 
       if (!isMe && !state.readSent.has(msg.id)) {
         socket.emit('mark-read', { room: state.currentRoom, messageId: msg.id });
@@ -1697,6 +1706,7 @@
       }
       if (data.room === state.currentRoom) {
         messages.render(data);
+        scrollCtl.incoming(data);
         if (!isMine(data.clientId) && data.clientId !== state.myClientId)
           socket.emit('mark-read', { room: state.currentRoom, messageId: data.id });
       } else {
@@ -2507,6 +2517,7 @@
     setTimeout(refreshInboxBadge, 800);
     bindEvents();
     setupComposerViewportSync();
+    setupScrollToBottom();
     const roomFromUrl = new URLSearchParams(window.location.search).get('room');
     if (roomFromUrl) state.currentRoom = roomFromUrl;
 
@@ -2916,6 +2927,62 @@
     }
     badge.hidden = false;
     badge.textContent = n > 9 ? '9+' : String(n);
+  }
+
+  // ── Jump to newest ─────────────────────────────────────────────────────────
+  const scrollCtl = {
+    atBottom: true,
+    pending: 0,
+    el: () => document.getElementById('messages'),
+    near() {
+      const m = this.el();
+      if (!m) return true;
+      return (m.scrollHeight - m.scrollTop - m.clientHeight) < 140;
+    },
+    refresh() {
+      const m = this.el();
+      const btn = elements.scrollBottom;
+      if (!m || !btn) return;
+      this.atBottom = this.near();
+      if (this.atBottom) this.pending = 0;
+      btn.classList.toggle('show', !this.atBottom);
+      const badge = elements.scrollBottomBadge;
+      if (badge) {
+        badge.hidden = this.pending <= 0;
+        badge.textContent = this.pending > 9 ? '9+' : String(this.pending);
+      }
+    },
+    // a new message arrived: count it when the reader is scrolled up
+    incoming(msg) {
+      if (!this.el()) return;
+      const mine = msg && (isMine(msg.clientId) || String(msg.username || '').toLowerCase() === String(state.myUsername || '').toLowerCase());
+      if (this.near() || mine) { this.atBottom = true; this.pending = 0; this.refresh(); return; }
+      this.pending += 1;
+      this.refresh();
+    },
+    toBottom(smooth = true) {
+      const m = this.el();
+      if (!m) return;
+      try { m.scrollTo({ top: m.scrollHeight, behavior: smooth ? 'smooth' : 'auto' }); }
+      catch (e) { m.scrollTop = m.scrollHeight; }
+      this.pending = 0;
+      this.atBottom = true;
+      this.refresh();
+    }
+  };
+
+  function setupScrollToBottom() {
+    const m = scrollCtl.el();
+    const btn = elements.scrollBottom;
+    if (!m || !btn || btn.dataset.bound === '1') return;
+    btn.dataset.bound = '1';
+    m.addEventListener('scroll', () => scrollCtl.refresh(), { passive: true });
+    btn.addEventListener('click', () => scrollCtl.toBottom());
+    window.addEventListener('resize', () => setTimeout(() => scrollCtl.refresh(), 120));
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => setTimeout(() => scrollCtl.refresh(), 120));
+    }
+    scrollCtl.refresh();
   }
 
   function notifyBrowser(title, body) { notifyOS(title, body, {}); }
