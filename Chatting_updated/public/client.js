@@ -29,6 +29,8 @@
       clearRoom: function () { return Promise.resolve({ ok: false, error: 'offline' }); },
       deleteUser: function () { return Promise.resolve(false); },
       purgeMessagesFor: function () { return Promise.resolve({ ok: false }); },
+      accountRename: function () { return Promise.resolve({ ok: false, error: 'offline' }); },
+      purgeIdentityName: function () { return Promise.resolve({ ok: false, error: 'offline' }); },
       updateProfile: function () { return Promise.resolve(); },
       setClientId: function () {},
     };
@@ -722,12 +724,16 @@
       const newU = String(newUsername || '').trim();
       if (!oldU || !newU || oldU === newU) return true;
       return window.confirm(
-        'Username change warning:\n\n' +
-        'Saving this username will create a brand-new Client ID.\n' +
-        'If you later change back to a previous username, your Client ID will still change again. Old Client IDs are not reused.\n\n' +
+        'Username change warning — this is permanent:\n\n' +
+        'Saving a different username will DELETE everything tied to "' + oldU + '":\n' +
+        '• all messages, reactions and read receipts sent under that name\n' +
+        '• presence/online history and the profile row for that name\n' +
+        '• every room you own (created under that name)\n\n' +
+        'A brand-new Client ID is issued and old Client IDs are never reused.\n' +
+        'If you later change back to a previous username, that name is treated like any other new identity.\n\n' +
         'Current username: ' + oldU + '\n' +
         'New username: ' + newU + '\n\n' +
-        'Continue saving?'
+        'Press OK to permanently erase the old identity and rename, or Cancel to keep "' + oldU + '" unchanged.'
       );
     },
 
@@ -766,12 +772,29 @@
           return resolve(false);
         }
         const done = () => { profile.save(val, avatar, termsAgreed); resolve(true); };
-        if (willRename && window.ChatAPI.purgeMessagesFor) {
-          // full wipe of the old name happens while it is still "you" (RLS)
-          window.ChatAPI.purgeMessagesFor(oldU).then(
-            () => { showToast('Old identity wiped — every message under "' + oldU + '" removed', 'info'); done(); },
-            () => done()
-          );
+        if (willRename) {
+          const real = !!(window.ChatAPI && (window.ChatAPI.uid || window.ChatAPI.sb));
+          if (!real) {
+            // Mock/offline backend — nothing real to wipe, rename locally only.
+            showToast('Identity wipe skipped (offline) — artifacts under "' + oldU + '" stay.', 'info');
+            done();
+          } else {
+            const sess = (typeof getAccountSession === 'function' && getAccountSession()) || null;
+            const wipe = (sess && sess.id && window.ChatAPI.accountRename)
+              ? window.ChatAPI.accountRename(sess.id, val).then((r) => { if (r && r.ok) return r; throw new Error((r && r.error) || 'rename denied'); })
+              : window.ChatAPI.purgeIdentityName(oldU).then((r) => { if (r && r.ok) return r; throw new Error((r && r.error) || 'identity purge denied'); });
+            wipe.then(
+              () => { showToast('Old identity wiped — messages, reactions, presence and owned rooms under "' + oldU + '" removed', 'info'); done(); },
+              (e) => {
+                if (elements.editUsername) elements.editUsername.value = oldU;
+                if (elements.username) elements.username.value = oldU;
+                if (elements.mobileUsername) elements.mobileUsername.value = oldU;
+                profile.updateUsernameChangeWarning(oldU);
+                showToast('Rename cancelled — "' + oldU + '" stays unchanged (' + (e && e.message ? e.message : 'wipe failed') + ').', 'error');
+                resolve(false);
+              }
+            );
+          }
         } else done();
       });
     }),

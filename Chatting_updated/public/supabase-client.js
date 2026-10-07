@@ -1145,6 +1145,17 @@
     accountDelete: function (id, hash) {
       return sb.rpc('delete_account', { acct: id, pass: hash }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
     },
+    accountRename: function (id, newName) {
+      var acct = String(id || '').trim();
+      var n = String(newName || '').trim();
+      if (!acct || !n) return Promise.resolve({ ok: false, error: 'missing' });
+      return sb.rpc('rename_account', { acct: acct, new_un: n }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
+    },
+    purgeIdentityName: function (oldName) {
+      var n = String(oldName || '').trim();
+      if (!n || !api.uid) return Promise.resolve({ ok: false });
+      return sb.rpc('purge_identity', { un: n }).then(function (r) { return r.data || { ok: false, error: (r.error && r.error.message) || 'failed' }; });
+    },
     accountLogout: function (id) {
       return sb.rpc('logout_account', { acct: id || null }).then(function (r) { return r.data || { ok: !r.error }; }).catch(function () { return { ok: true }; });
     },
