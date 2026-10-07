@@ -2633,7 +2633,21 @@
     if (window.ChatAPI._offline) setTimeout(() => showToast('Backend unreachable — offline mode. Check your connection and reload.', 'error'), 600);
     profile.load();
     state.unreadCounts = utils.loadFromStorage(CONSTANTS.UNREAD_KEY, {});
-    Object.entries(socketHandlers).forEach(([event, handler]) => socket.on(event, handler));
+    // 'connect' is a one-shot handshake and must run exactly once. ChatAPI
+    // dispatches it the instant its init() resolves — which can be before this
+    // init() registers the handler — so replay it when we missed it.
+    let connectHandled = false;
+    Object.entries(socketHandlers).forEach(([event, handler]) => {
+      if (event === 'connect') {
+        socket.on(event, (...args) => { if (connectHandled) return; connectHandled = true; return handler(...args); });
+      } else {
+        socket.on(event, handler);
+      }
+    });
+    if (window.ChatAPI && window.ChatAPI._connected && !connectHandled) {
+      connectHandled = true;
+      socketHandlers.connect();
+    }
     setTimeout(refreshInboxBadge, 800);
     bindEvents();
     setupComposerViewportSync();
@@ -4094,6 +4108,16 @@
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js?v=260831b').catch(() => {});
+      // One-time takeover reload once a fresh worker is fully controlling the
+      // tab. Reloading from inside the worker's activate() — or the instant
+      // 'controllerchange' fires — races a still-'activating' worker and stalls
+      // the navigation, so wait for activation to commit (ready) first.
+      let refreshed = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshed) return;
+        refreshed = true;
+        navigator.serviceWorker.ready.then(() => location.reload()).catch(() => { refreshed = false; });
+      });
     });
   }
 })();

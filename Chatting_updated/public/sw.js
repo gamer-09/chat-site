@@ -19,12 +19,11 @@ self.addEventListener('activate', (event) => {
     const keys = await caches.keys();
     await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
     await self.clients.claim();
-    // One-time takeover reload: frees any tab pinned to a stale build by an
-    // ancient worker. Runs once per SW version (activate fires once).
-    try {
-      const wins = await self.clients.matchAll({ type: 'window' });
-      await Promise.all(wins.map((w) => w.navigate(w.url).catch(() => {})));
-    } catch (e) {}
+    // NOTE: no w.navigate() here. Navigating from inside activate() routes the
+    // navigation to the still-activating worker, which never commits -> the
+    // activation stalls and the tab hangs on a phantom pending load. The
+    // take-over reload is driven from the page instead (see the
+    // 'controllerchange' listener in client.js).
   })());
 });
 

@@ -303,9 +303,11 @@
           api.heartbeat(true);
         }, 90000);
         api.ready = true;
+        api._connected = true;
         dispatch('connect');
       }).catch(function (e) {
         console.error('ChatAPI init failed:', e);
+        api._connected = true;
         dispatch('system', { type: 'error', message: 'Sign-in failed. Make sure "Anonymous sign-ins" are enabled in Supabase (Authentication → Sign In / Providers → Anonymous).' });
         dispatch('connect');
       });
@@ -341,16 +343,13 @@
       var av = sanitizeAvatarUrl(avatar) || defaultAvatar(un);
       api._username = un;
       api._avatar = av;
-      var row = function (cid) {
-        return sb.from('users').upsert({
-          client_id: cid, username: un, avatar: av, last_seen: Date.now()
-        }, { onConflict: 'client_id' });
-      };
-      // RLS only permits rows keyed by the auth uid — fall back to it
-      return row(api._clientId || api.uid).then(function (res) {
-        if (res && res.error && api._clientId && api._clientId !== api.uid) return row(api.uid);
-        return res;
-      }).then(function () {
+      // users rows are RLS-keyed to the auth uid (users_insert/users_update only
+      // permit client_id = auth.uid()), so always upsert with the uid. Trying
+      // the browser clientId first was rejected every time (409) and the
+      // fallback merely repeated the same write.
+      return sb.from('users').upsert({
+        client_id: api.uid, username: un, avatar: av, last_seen: Date.now()
+      }, { onConflict: 'client_id' }).then(function () {
         // the room owner is stored as this browser's uid, so that row must carry
         // the CURRENT account's name or rooms show the previous account's name
         return api.syncIdentityRow();
