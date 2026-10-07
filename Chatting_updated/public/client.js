@@ -473,8 +473,7 @@
       const meta = known[key] || {};
       const title = meta.title || (labelPath ? `${host} — ${labelPath}` : host);
       const desc = meta.desc || `Preview for ${host}${labelPath ? ' · ' + labelPath : ''}`;
-      const favicon = `${url.origin}/favicon.ico`;
-      return { href: url.href, host, title, desc, favicon };
+      return { href: url.href, host, title, desc };
     },
 
     renderLinkPreviews: (text) => {
@@ -486,7 +485,7 @@
         return `<a class="link-preview-card safe-link" href="${utils.escapeHtml(p.href)}" data-url="${utils.escapeHtml(p.href)}" target="_blank" rel="noopener noreferrer nofollow ugc">
           <div class="link-preview-top">${utils.escapeHtml(p.href)}</div>
           <div class="link-preview-main">
-            <div class="link-preview-thumb"><img src="${utils.escapeHtml(p.favicon)}" alt="" loading="lazy" onerror="this.style.display='none'"></div>
+            <div class="link-preview-thumb"><span class="link-preview-glyph">🔗</span></div>
             <div class="link-preview-copy">
               <div class="link-preview-title">${utils.escapeHtml(p.title)}</div>
               <div class="link-preview-desc">${utils.escapeHtml(p.desc)}</div>

@@ -21,13 +21,39 @@
   // ── Config (Supabase project) ──────────────────────────────────────────────
   var SUPABASE_URL = 'https://vjrnabnawhegjdsvbyrc.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_4fjpMTduDSiC5JaYJfwDGg_z_Ha2k-0';
+  var AUTH_STORAGE_KEY = 'ptrsb::session::v1';
 
   if (!window.supabase) {
     console.error('supabase-js not loaded — add the CDN script before supabase-client.js');
     return;
   }
 
-  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  function supabaseRef() { return SUPABASE_URL.replace(/^https?:\/\//, '').split('.')[0]; }
+  function legacyAuthKey() { return 'sb-' + supabaseRef() + '-auth-token'; }
+
+  function migrateAuthStorage() {
+    try {
+      var lk = window.localStorage;
+      if (lk && !lk.getItem(AUTH_STORAGE_KEY) && lk.getItem(legacyAuthKey())) {
+        lk.setItem(AUTH_STORAGE_KEY, lk.getItem(legacyAuthKey()));
+      }
+    } catch (e) {}
+  }
+
+  function clearLegacyAuthToken() {
+    try {
+      var lk = window.localStorage;
+      if (lk && lk.getItem(AUTH_STORAGE_KEY) && lk.getItem(legacyAuthKey())) {
+        lk.removeItem(legacyAuthKey());
+      }
+    } catch (e) {}
+  }
+
+  migrateAuthStorage();
+
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { storageKey: AUTH_STORAGE_KEY, persistSession: true, autoRefreshToken: true }
+  });
   var DEFAULT_AVATAR = 'https://api.dicebear.com/7.x/thumbs/svg?seed=';
   var MAX_IMAGE_BYTES = 5 * 1024 * 1024;
   var MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -304,6 +330,7 @@
         }, 90000);
         api.ready = true;
         api._connected = true;
+        clearLegacyAuthToken();
         dispatch('connect');
       }).catch(function (e) {
         console.error('ChatAPI init failed:', e);

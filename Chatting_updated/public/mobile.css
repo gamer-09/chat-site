@@ -1225,7 +1225,7 @@ html.ptr29-light-theme.ptr29-mobile #image-btn {
   flex-basis: 46px;
   border-radius: 12px;
 }
-.ptr29-mobile .link-preview-thumb img { width: 26px; height: 26px; }
+.ptr29-mobile .link-preview-thumb .link-preview-glyph { font-size: 22px; line-height: 1; }
 .ptr29-mobile .link-preview-title { font-size: 12.5px; }
 .ptr29-mobile .link-preview-desc { font-size: 11.5px; }
 
