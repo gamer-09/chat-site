@@ -53,6 +53,19 @@
   height: 36px;
   min-width: 36px;
 }
+/* On ~320px screens the fixed-width action buttons used to push the last
+   button off-screen because the brand refused to shrink. Let the brand yield
+   space (its name truncates) so every button stays tappable. */
+.ptr29-mobile header .brand {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+.ptr29-mobile header .brand-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* ── Main container ───────────────────────────────────────────────────── */
 .ptr29-mobile main {
@@ -207,6 +220,12 @@
 .ptr29-mobile #search-messages-input { display: none !important; }
 .ptr29-mobile #clear-room-btn { display: none !important; }
 .ptr29-mobile #leave-btn      { display: none !important; }
+/* The generic `.ptr29-mobile #room-bar button { display:flex }` rule below
+   outranks the UA `[hidden]` style, so JS-toggled hidden buttons (the inline
+   desktop search nav) and the tablet-only people button leaked into the
+   mobile room bar — squeezing the room name to ~28px. Keep them hidden. */
+.ptr29-mobile #room-bar button[hidden] { display: none !important; }
+.ptr29-mobile #room-bar #tablet-people-btn { display: none !important; }
 
 /* ── Mobile collapsible search bar ───────────────────────────────────── */
 #mobile-search-bar {
@@ -1171,9 +1190,9 @@ html.ptr29-light-theme.ptr29-mobile #image-btn {
 .ptr29-mobile.ptr29-view-chat #messages {
   padding-bottom: calc(var(--ptr29-composer-h, 64px) + 14px) !important;
 }
-.ptr29-mobile.ptr29-view-chat #typing {
-  margin-bottom: var(--ptr29-composer-h, 64px);
-}
+/* #input-area is position:fixed, so #messages already reserves the composer
+   height via its own padding-bottom. Reserving it again here pushed #messages
+   ~64px down, leaving a dead band under the typing line. */
 @media (max-width: 768px) and (orientation: landscape) {
   .ptr29-mobile.ptr29-view-chat #input-area {
     bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px) + var(--ptr29-keyboard-offset, 0px));
