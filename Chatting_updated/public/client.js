@@ -2610,27 +2610,58 @@
     syncComposerViewport = () => {
       const root = document.documentElement;
       const inputArea = document.getElementById('input-area');
-      if (inputArea) root.style.setProperty('--ptr29-composer-h', Math.ceil(inputArea.getBoundingClientRect().height || 64) + 'px');
+      if (!inputArea) return;
+      const rect = inputArea.getBoundingClientRect();
+      root.style.setProperty('--ptr29-composer-h', (Math.ceil(rect.height) || 64) + 'px');
+
       let keyboardOffset = 0;
+      let vvHeight = window.innerHeight;
+      let vvOffsetTop = 0;
       if (window.visualViewport) {
-        const vv = window.visualViewport;
-        keyboardOffset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
-        root.style.setProperty('--ptr29-keyboard-offset', keyboardOffset + 'px');
-      } else {
-        root.style.setProperty('--ptr29-keyboard-offset', '0px');
+        vvHeight = window.visualViewport.height;
+        vvOffsetTop = window.visualViewport.offsetTop;
+        keyboardOffset = Math.max(0, Math.round(window.innerHeight - vvHeight - vvOffsetTop));
       }
-      // Anchor the composer to the real bottom tab bar by measuring it, so it
-      // always sits exactly on top of the tab bar instead of trusting a
-      // CSS/safe-area calculation that can drift on mobile browsers.
+      root.style.setProperty('--ptr29-keyboard-offset', keyboardOffset + 'px');
+
       const keyboardOpen = keyboardOffset > 60;
-      const nav = document.getElementById('mobile-nav');
-      const navVisible = !!nav && getComputedStyle(nav).display !== 'none';
-      const navReserve = (keyboardOpen || !navVisible) ? 0 : Math.round(nav.getBoundingClientRect().height);
-      root.style.setProperty('--ptr29-nav-reserve', navReserve + 'px');
-      // While the on-screen keyboard is up, the bottom tab bar hides behind it
-      // on iOS (fixed to the layout viewport); hide the bar so the composer
-      // hugs the keyboard instead of floating a full nav-height above it.
       document.body.classList.toggle('ptr29-keyboard-open', keyboardOpen);
+
+      const nav = document.getElementById('mobile-nav');
+      const navShown = !!nav && getComputedStyle(nav).display !== 'none' && nav.getBoundingClientRect().height > 0;
+      if (navShown) root.style.setProperty('--ptr29-nav-reserve', Math.round(nav.getBoundingClientRect().height) + 'px');
+
+      // Closed loop, not a formula: keep the composer's bottom edge pressed
+      // exactly onto the top of the bottom tab bar by measuring the actual
+      // gap between the two rendered elements every pass and nudging the
+      // composer until the gap is zero. This adapts to any browser chrome,
+      // safe-area inset or zoom level without trusting height math at all.
+      if (keyboardOpen) {
+        inputArea.style.bottom = keyboardOffset + 'px';
+      } else if (navShown && getComputedStyle(inputArea).position === 'fixed') {
+        const css = getComputedStyle(inputArea);
+        const curBottom = parseFloat(css.bottom) || 56;
+        const navTop = nav.getBoundingClientRect().top;
+        const gap = Math.round(navTop - rect.bottom);
+        if (Math.abs(gap) >= 1) inputArea.style.bottom = Math.round(curBottom + (rect.bottom - navTop)) + 'px';
+      } else if (inputArea.style.bottom) {
+        inputArea.style.bottom = '';
+      }
+
+      if (ptr29DiagMode) {
+        updatePtr29Diag(
+          'ptr29 | ' + document.body.className +
+          '\ncomposer pos=' + getComputedStyle(inputArea).position +
+            ' bottom=' + getComputedStyle(inputArea).bottom +
+            ' rectBottom=' + Math.round(inputArea.getBoundingClientRect().bottom) +
+          '\nnav shown=' + navShown +
+            ' top=' + (navShown ? Math.round(nav.getBoundingClientRect().top) : '-') +
+            ' h=' + (navShown ? Math.round(nav.getBoundingClientRect().height) : '-') +
+            ' gap=' + Math.round((navShown ? nav.getBoundingClientRect().top : rect.bottom) - inputArea.getBoundingClientRect().bottom) +
+          '\nkbd offset=' + keyboardOffset + ' open=' + keyboardOpen +
+          '\nview innerH=' + window.innerHeight + ' vvH=' + Math.round(vvHeight) + ' vvOff=' + Math.round(vvOffsetTop) + ' dpr=' + window.devicePixelRatio
+        );
+      }
     };
     syncComposerViewport();
     window.addEventListener('resize', syncComposerViewport);
@@ -2649,6 +2680,38 @@
       window.visualViewport.addEventListener('resize', onViewportChange);
       window.visualViewport.addEventListener('scroll', onViewportChange);
     }
+    const composerInput = document.getElementById('text');
+    if (composerInput) {
+      composerInput.addEventListener('focus', () => setTimeout(syncComposerViewport, 120));
+      composerInput.addEventListener('blur', () => setTimeout(syncComposerViewport, 120));
+    }
+  }
+
+  const ptr29DiagMode = typeof location === 'object' && /\bdiag=1\b/.test(String(location.search));
+  let ptr29DiagStarted = false;
+  function updatePtr29Diag(text) {
+    let el = document.getElementById('ptr29-diag');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'ptr29-diag';
+      el.style.cssText = 'position:fixed;top:6px;right:6px;z-index:2147483647;' +
+        'background:rgba(0,0,0,.82);color:#0f0;font:10px/1.45 ui-monospace,monospace;' +
+        'padding:6px 8px;border-radius:6px;white-space:pre;pointer-events:none;' +
+        'max-width:94vw;max-height:80vh;overflow:auto;';
+      document.body.appendChild(el);
+    }
+    if (el.textContent !== text) el.textContent = text;
+  }
+  // Self-adjust loop: even if no resize/viewport event ever fires on the
+  // device, keep re-aligning and re-verifying the composer so a wrong height
+  // cannot persist. Cheap no-op when the composer/tab-bar aren't in a fixed
+  // chat layout.
+  const ptr29AutoAlign = () => { if (typeof syncComposerViewport === 'function') syncComposerViewport(); };
+  if (!ptr29DiagStarted) {
+    ptr29DiagStarted = true;
+    setInterval(ptr29AutoAlign, 400);
+    window.addEventListener('load', ptr29AutoAlign);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) ptr29AutoAlign(); });
   }
 
   // ── Init ───────────────────────────────────────────────────────────────────
