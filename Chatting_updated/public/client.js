@@ -2610,13 +2610,19 @@
       const root = document.documentElement;
       const inputArea = document.getElementById('input-area');
       if (inputArea) root.style.setProperty('--ptr29-composer-h', Math.ceil(inputArea.getBoundingClientRect().height || 64) + 'px');
+      let keyboardOffset = 0;
       if (window.visualViewport) {
         const vv = window.visualViewport;
-        const keyboardOffset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+        keyboardOffset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
         root.style.setProperty('--ptr29-keyboard-offset', keyboardOffset + 'px');
       } else {
         root.style.setProperty('--ptr29-keyboard-offset', '0px');
       }
+      // While the on-screen keyboard is up, the bottom tab bar hides behind it
+      // on iOS (fixed to the layout viewport) and would otherwise leave the
+      // composer floating a full nav-height above the keyboard. Drop the nav
+      // reserve and hide the bar so the composer hugs the keyboard.
+      document.body.classList.toggle('ptr29-keyboard-open', keyboardOffset > 60);
     };
     syncComposerViewport();
     window.addEventListener('resize', syncComposerViewport);
