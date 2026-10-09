@@ -2604,10 +2604,10 @@
   // on mobile/tablet and when the on-screen keyboard changes VisualViewport.
   let composerViewportSyncReady = false;
   let syncComposerViewport = null;
-  // Keyboard-closed visual-viewport height, re-tracked on the device. The
-  // keyboard offset is measured as the shrink from this baseline, so browser
-  // chrome (address bar etc.) never leaks into the number.
-  let ptr29KeyBaseVVH = null;
+  // Keyboard-closed viewport heights, re-tracked on the device. The keyboard
+  // offset is derived from these so browser chrome never leaks into it.
+  let ptr29KeyBaseVVH = null;      // visual-viewport height while keyboard closed
+  let ptr29KeyBaseLayoutH = null;  // layout-viewport height while keyboard closed
   function setupComposerViewportSync() {
     if (composerViewportSyncReady) return;
     composerViewportSyncReady = true;
@@ -2619,25 +2619,41 @@
       root.style.setProperty('--ptr29-composer-h', (Math.ceil(rect.height) || 64) + 'px');
 
       let keyboardOffset = 0;
-      let vvHeight = window.innerHeight;
+      const layoutH = document.documentElement.clientHeight || window.innerHeight;
+      let vvHeight = layoutH;
       let vvOffsetTop = 0;
       if (window.visualViewport) {
         vvHeight = window.visualViewport.height;
         vvOffsetTop = window.visualViewport.offsetTop;
-        // The keyboard's top edge always sits at the visual viewport's bottom.
-        // Measure only the shrink the keyboard causes relative to the
-        // keyboard-closed baseline (tracked on this device), instead of using
-        // window.innerHeight — the difference between innerHeight and the
-        // visual height also includes the browser's own address bar, and that
-        // leftover is exactly the gap that reappears above the keyboard.
-        if (!ptr29KeyBaseVVH || ptr29KeyBaseVVH <= 0) ptr29KeyBaseVVH = vvHeight;
-        keyboardOffset = Math.max(0, Math.round(ptr29KeyBaseVVH - vvHeight));
+      }
+      if (!ptr29KeyBaseLayoutH || ptr29KeyBaseLayoutH <= 0) ptr29KeyBaseLayoutH = layoutH;
+      if (!ptr29KeyBaseVVH || ptr29KeyBaseVVH <= 0) ptr29KeyBaseVVH = vvHeight;
+      // Two ways browsers raise the keyboard, detected on the device itself:
+      //  - RESIZE model (modern iOS/Chrome "resizes content"): the layout
+      //    viewport shrinks, so position:fixed bottom:0 elements already lift
+      //    up with it. Adding a keyboard offset here would double-count the
+      //    keyboard height and shove the bar far above it.
+      //  - OVERLAY model (older iOS, resize-disabled): the layout stays put and
+      //    the visual viewport shrinks instead; fixed bottom:0 elements fall
+      //    behind the keyboard and need offsetting by the covered distance.
+      const layoutShrunk = ptr29KeyBaseLayoutH - layoutH;
+      const vvShrunk = ptr29KeyBaseVVH - vvHeight;
+      const keyboardOpen = layoutShrunk > 60 || vvShrunk > 60;
+      if (keyboardOpen && window.visualViewport) {
+        // Seat the composer's bottom edge exactly on the visual viewport's
+        // bottom (the keyboard's top). With a resizing layout clientHeight
+        // already shrank, so the offset stays small; with an overlaying
+        // keyboard it matches the full covered distance. Both states measured,
+        // not assumed.
+        keyboardOffset = Math.max(0, Math.round(layoutH - (vvOffsetTop + vvHeight)));
+      } else {
+        // Keyboard closed: retrack baselines so chrome resize doesn't stick.
+        if (window.visualViewport) ptr29KeyBaseVVH = vvHeight;
+        ptr29KeyBaseLayoutH = layoutH;
+        keyboardOffset = 0;
       }
       root.style.setProperty('--ptr29-keyboard-offset', keyboardOffset + 'px');
-
-      const keyboardOpen = keyboardOffset > 60;
       document.body.classList.toggle('ptr29-keyboard-open', keyboardOpen);
-      if (!keyboardOpen && window.visualViewport) ptr29KeyBaseVVH = vvHeight;
 
       const nav = document.getElementById('mobile-nav');
       const navShown = !!nav && getComputedStyle(nav).display !== 'none' && nav.getBoundingClientRect().height > 0;
@@ -2670,8 +2686,8 @@
             ' top=' + (navShown ? Math.round(nav.getBoundingClientRect().top) : '-') +
             ' h=' + (navShown ? Math.round(nav.getBoundingClientRect().height) : '-') +
             ' gap=' + Math.round((navShown ? nav.getBoundingClientRect().top : rect.bottom) - inputArea.getBoundingClientRect().bottom) +
-          '\nkbd offset=' + keyboardOffset + ' open=' + keyboardOpen + ' baseVVH=' + Math.round(ptr29KeyBaseVVH || 0) +
-          '\nview innerH=' + window.innerHeight + ' vvH=' + Math.round(vvHeight) + ' vvOff=' + Math.round(vvOffsetTop) + ' dpr=' + window.devicePixelRatio
+          '\nkbd offset=' + keyboardOffset + ' open=' + keyboardOpen + ' baseVVH=' + Math.round(ptr29KeyBaseVVH || 0) + ' baseLayoutH=' + Math.round(ptr29KeyBaseLayoutH || 0) +
+          '\nview innerH=' + window.innerHeight + ' clientH=' + Math.round(layoutH) + ' vvH=' + Math.round(vvHeight) + ' vvOff=' + Math.round(vvOffsetTop) + ' | layoutShrunk=' + Math.round(layoutShrunk) + ' vvShrunk=' + Math.round(vvShrunk) + ' dpr=' + window.devicePixelRatio
         );
       }
     };
@@ -2719,7 +2735,7 @@
   // cannot persist. Cheap no-op when the composer/tab-bar aren't in a fixed
   // chat layout.
   const ptr29AutoAlign = () => { if (typeof syncComposerViewport === 'function') syncComposerViewport(); };
-  const ptr29ResetBaseline = () => { ptr29KeyBaseVVH = null; ptr29AutoAlign(); };
+  const ptr29ResetBaseline = () => { ptr29KeyBaseVVH = null; ptr29KeyBaseLayoutH = null; ptr29AutoAlign(); };
   if (!ptr29DiagStarted) {
     ptr29DiagStarted = true;
     setInterval(ptr29AutoAlign, 400);
