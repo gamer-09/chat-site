@@ -2603,10 +2603,11 @@
   // ── Composer viewport sync: keeps lower input bar in the visible screen
   // on mobile/tablet and when the on-screen keyboard changes VisualViewport.
   let composerViewportSyncReady = false;
+  let syncComposerViewport = null;
   function setupComposerViewportSync() {
     if (composerViewportSyncReady) return;
     composerViewportSyncReady = true;
-    const syncComposerViewport = () => {
+    syncComposerViewport = () => {
       const root = document.documentElement;
       const inputArea = document.getElementById('input-area');
       if (inputArea) root.style.setProperty('--ptr29-composer-h', Math.ceil(inputArea.getBoundingClientRect().height || 64) + 'px');
@@ -2618,11 +2619,18 @@
       } else {
         root.style.setProperty('--ptr29-keyboard-offset', '0px');
       }
+      // Anchor the composer to the real bottom tab bar by measuring it, so it
+      // always sits exactly on top of the tab bar instead of trusting a
+      // CSS/safe-area calculation that can drift on mobile browsers.
+      const keyboardOpen = keyboardOffset > 60;
+      const nav = document.getElementById('mobile-nav');
+      const navVisible = !!nav && getComputedStyle(nav).display !== 'none';
+      const navReserve = (keyboardOpen || !navVisible) ? 0 : Math.round(nav.getBoundingClientRect().height);
+      root.style.setProperty('--ptr29-nav-reserve', navReserve + 'px');
       // While the on-screen keyboard is up, the bottom tab bar hides behind it
-      // on iOS (fixed to the layout viewport) and would otherwise leave the
-      // composer floating a full nav-height above the keyboard. Drop the nav
-      // reserve and hide the bar so the composer hugs the keyboard.
-      document.body.classList.toggle('ptr29-keyboard-open', keyboardOffset > 60);
+      // on iOS (fixed to the layout viewport); hide the bar so the composer
+      // hugs the keyboard instead of floating a full nav-height above it.
+      document.body.classList.toggle('ptr29-keyboard-open', keyboardOpen);
     };
     syncComposerViewport();
     window.addEventListener('resize', syncComposerViewport);
@@ -2768,6 +2776,9 @@
       online.update(state.lastPresenceUsers || []);
       setPeopleView(state.peopleView === 'offline');
     }
+    // Re-measure the tab bar now that the view changed so the composer stays
+    // anchored exactly on top of it.
+    if (syncComposerViewport) syncComposerViewport();
   };
 
   const loadMobileStyles = () => new Promise((resolve) => {

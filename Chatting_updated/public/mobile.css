@@ -1176,11 +1176,13 @@ html.ptr29-light-theme.ptr29-mobile #image-btn {
 :root {
   --ptr29-keyboard-offset: 0px;
   --ptr29-composer-h: 64px;
-  --ptr29-nav-reserve: calc(var(--mobile-nav-h, 56px) + env(safe-area-inset-bottom, 0px));
+  /* Real height of the bottom tab bar, measured in JS so the composer always
+     sits exactly on top of it (env()/safe-area values are unreliable when
+     combined across rules on mobile browsers). */
+  --ptr29-nav-reserve: 56px;
 }
-/* Keyboard open: the tab bar is behind the keyboard, so stop reserving its
-   height and hide it — the composer then sits directly on the keyboard. */
-body.ptr29-keyboard-open { --ptr29-nav-reserve: 0px; }
+/* Keyboard open: the tab bar hides behind the keyboard and JS zeroes the
+   reserve, so the composer sits directly on the keyboard. */
 body.ptr29-keyboard-open #mobile-nav { display: none !important; }
 .ptr29-mobile.ptr29-view-chat #input-area {
   position: fixed !important;
