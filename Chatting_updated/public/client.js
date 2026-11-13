@@ -2048,6 +2048,21 @@
       try { window.PTR29Chat && window.PTR29Chat.mentions.refreshNames(); } catch (e) {}
     },
 
+    // Cross-room unread + notice, from the once-a-minute ChatAPI poll.
+    'room-activity': (data) => {
+      if (!data || !data.room || data.room === state.currentRoom) return;
+      const n = Number(data.count) || 0;
+      if (n <= 0) return;
+      state.unreadCounts[data.room] = n;
+      utils.saveToStorage(CONSTANTS.UNREAD_KEY, state.unreadCounts);
+      rooms.render();
+      const m = data.message || null;
+      if (!m || isMine(m.clientId)) return;
+      const snippet = m.type === 'image' ? '[image]' : (m.type === 'file' ? '[file]' : String(m.message || '').slice(0, 60));
+      showToast(`🔔 ${n} new in #${data.room}` + (m.username ? ' from ' + m.username : '') + (snippet ? ': ' + snippet : ''), 'info');
+      notifyOS(`New message in #${data.room}`, `${m.username || 'Someone'}: ${String(m.message || '').slice(0, 150)}`, { room: data.room });
+    },
+
     'inbox-changed': () => {
       refreshInboxBadge({ notify: true });
       if (window.__ptrRefreshInboxUI) window.__ptrRefreshInboxUI();
@@ -4246,6 +4261,7 @@
           age_required: 'You must confirm you are at least 13 years old to create an account.',
           terms_required: 'You must agree to the Terms and Conditions and Privacy Policy to create an account.',
           request_failed: 'The server could not complete that request. Please try again in a moment.',
+          server_misconfigured: 'Sign-ups are temporarily unavailable. Please try again later.',
         };
         err.textContent = (map[res && res.error]) || (res && res.error) || 'Failed.';
         return;

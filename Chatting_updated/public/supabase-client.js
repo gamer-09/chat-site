@@ -22,6 +22,7 @@
   var SUPABASE_URL = 'https://vjrnabnawhegjdsvbyrc.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_4fjpMTduDSiC5JaYJfwDGg_z_Ha2k-0';
   var AUTH_STORAGE_KEY = 'ptrsb::session::v1';
+  var ROOM_SEEN_KEY = 'ptrsb::room-seen::v1';
 
   if (!window.supabase) {
     console.error('supabase-js not loaded — add the CDN script before supabase-client.js');
@@ -77,6 +78,29 @@
   var SEARCH_LIMIT = 150;
   var PEOPLE_LIMIT = 120;
 
+  // ── Message payload size control ───────────────────────────────────────────
+  // Every message row historically stored a copy of the sender's avatar, and
+  // avatars are inline base64 PNGs (35–46 KB each). A single screen of history
+  // was therefore several megabytes of egress and 10–50s to load. History now
+  // selects only the text-sized payload fields (LIGHT_COLUMNS) and avatars are
+  // resolved once per username from the `users` row, then cached.
+  var AVATAR_CACHE_KEY = 'ptrsb::avatars::v1';
+  var AVATAR_CACHE_MAX = 60;          // usernames kept in localStorage
+  var AVATAR_MAX_CHARS = 200000;      // ignore anything absurd
+  var INLINE_AVATAR_LIMIT = 1024;     // data: URLs are dropped from messages
+  var LIGHT_COLUMNS = [
+    'id', 'room',
+    'p_id:payload->>id', 'p_room:payload->>room', 'p_userId:payload->>userId',
+    'p_clientId:payload->>clientId', 'p_username:payload->>username',
+    'p_message:payload->>message', 'p_timestamp:payload->>timestamp',
+    'p_type:payload->>type', 'p_imageUrl:payload->>imageUrl',
+    'p_fileName:payload->>fileName', 'p_fileSize:payload->>fileSize',
+    'p_fileUrl:payload->>fileUrl', 'p_mimeType:payload->>mimeType',
+    'p_storagePath:payload->>storagePath', 'p_edited:payload->>edited',
+    'p_reactions:payload->reactions', 'p_readBy:payload->readBy',
+    'p_replyTo:payload->replyTo'
+  ].join(',');
+
   // ── Event dispatch ─────────────────────────────────────────────────────────
   var handlers = {};
   function dispatch(ev, data) {
@@ -98,6 +122,32 @@
   }
   function defaultAvatar(name) {
     return DEFAULT_AVATAR + encodeURIComponent(String(name || 'Anonymous'));
+  }
+  // Keep small avatar URLs in a message payload, drop inline base64 copies.
+  function lightAvatar(a) {
+    var s = String(a || '');
+    return s.length <= INLINE_AVATAR_LIMIT ? s : '';
+  }
+  // Rebuild a message payload from the aliased LIGHT_COLUMNS row.
+  function rowToPayload(row) {
+    var p = {
+      id: row.p_id || row.id,
+      room: row.p_room || row.room,
+      userId: row.p_userId || '',
+      clientId: row.p_clientId || '',
+      username: row.p_username || 'Anonymous',
+      message: row.p_message || '',
+      timestamp: Number(row.p_timestamp) || 0
+    };
+    ['type', 'imageUrl', 'fileName', 'fileSize', 'fileUrl', 'mimeType', 'storagePath', 'edited']
+      .forEach(function (k) {
+        var v = row['p_' + k];
+        if (v !== null && v !== undefined && v !== '') p[k] = v;
+      });
+    if (row.p_reactions) p.reactions = row.p_reactions;
+    if (row.p_readBy) p.readBy = row.p_readBy;
+    if (row.p_replyTo) p.replyTo = row.p_replyTo;
+    return p;
   }
   function isReservedUsername(name) { return String(name || '').trim().toLowerCase().indexOf('anonymous') !== -1; }
   function isDisplayableUsername(name) {
@@ -254,11 +304,17 @@
     _currentRoom: null,
     _joined: false,
     _heartbeatTimer: null,
-    _pruneTimer: null,
     _typingChannel: null,
+    _syncChannel: null,
+    _roomChannel: null,
+    _presenceChannel: null,
+    _activityTimer: null,
+    _roomSeen: {},    // room -> epoch-ms cursor of the newest message already seen
+    _activityPrimed: false,
     _reactions: {},   // room -> messageId -> { emoji: [{userId, username}] }
     _receipts: {},    // room -> messageId -> [{userId, username, at}]
     _presence: {},    // uid -> row
+    _avatarCache: {}, // username(lower) -> avatar (resolved once, persisted)
     _urlCache: {},
     _urlPromises: {},
 
@@ -320,7 +376,10 @@
         api._avatar = (session.user.user_metadata && session.user.user_metadata.avatar) || api._avatar || '';
         return sb.rpc('seed_general');
       }).then(function () {
+        api.loadRoomSeen();
+        api.loadAvatars();
         api.subscribeRealtime();
+        api.subscribePresence();
         api._typingChannel = sb.channel('typing-broadcast');
         api._typingChannel
           .on('broadcast', { event: 'typing' }, function (msg) {
@@ -328,11 +387,17 @@
             if (pl.room === api._currentRoom) dispatch('typing', pl);
           })
           .subscribe();
-        api._heartbeatTimer = setInterval(function () { api.heartbeat(false); }, 45000);
-        api._pruneTimer = setInterval(function () {
-          sb.rpc('prune_stale_presence', { older_than_ms: 120000 }).then(function () {}, function () {});
-          api.heartbeat(true);
-        }, 90000);
+        // Unread badges for rooms you are NOT in: one cheap RPC per minute
+        // instead of pushing every message in every room to every client.
+        api._activityTimer = setInterval(function () { api.pollActivity(); }, 60000);
+        if (typeof document !== 'undefined' && document.addEventListener) {
+          document.addEventListener('visibilitychange', function () {
+            if (document.hidden) return;
+            api.trackPresence();
+            api.pollActivity();
+            api.refreshRooms();
+          });
+        }
         api.ready = true;
         api._connected = true;
         clearLegacyAuthToken();
@@ -375,6 +440,7 @@
       var av = sanitizeAvatarUrl(avatar) || defaultAvatar(un);
       api._username = un;
       api._avatar = av;
+      api.cacheAvatar(un, av);
       // users rows are RLS-keyed to the auth uid (users_insert/users_update only
       // permit client_id = auth.uid()), so always upsert with the uid. Trying
       // the browser clientId first was rejected every time (409) and the
@@ -575,6 +641,8 @@
         }
         api._currentRoom = room;
         api._joined = true;
+        api.subscribeRoom(room);
+        api.markRoomSeen(room);
         var username = String(p.username || '').trim() || api._username || 'Anonymous';
         var avatar = sanitizeAvatarUrl(p.avatar) || api._avatar || defaultAvatar(username);
           api.upsertProfile(username, avatar);
@@ -609,6 +677,8 @@
 
     doLeave: function (room) {
       if (!api.uid) return;
+      if (room || api._currentRoom) api.markRoomSeen(room || api._currentRoom);
+      api.unsubscribeRoom();
       api._joined = false;
       api._currentRoom = null;
       // tab is still open -> stay online, just no room
@@ -618,21 +688,24 @@
 
     goOffline: function () {
       if (!api.uid) return;
+      if (api._presenceChannel) {
+        try { api._presenceChannel.untrack(); } catch (e) {}
+      }
       sb.from('presence').delete().eq('uid', api.uid)
         .then(function () {}).catch(function () {});
     },
 
     offlineUsers: function () {
-      return Promise.all([
-        sb.from('users').select('username,avatar,last_seen').limit(PEOPLE_LIMIT),
-        sb.from('presence').select('username').limit(PEOPLE_LIMIT)
-      ]).then(function (rs) {
-        var on = {};
-        (rs[1].data || []).forEach(function (x) { on[String(x.username || '').toLowerCase()] = true; });
-        return (rs[0].data || []).filter(function (u) {
-          return !on[String(u.username || '').toLowerCase()];
-        });
-      }).catch(function () { return []; });
+      var on = {};
+      api.presenceAll().forEach(function (x) {
+        on[String(x.username || '').toLowerCase()] = true;
+      });
+      return sb.from('users').select('username,avatar,last_seen').limit(PEOPLE_LIMIT)
+        .then(function (res) {
+          return (res.data || []).filter(function (u) {
+            return !on[String(u.username || '').toLowerCase()];
+          });
+        }).catch(function () { return []; });
     },
 
     renameRoom: function (from, to) {
@@ -787,48 +860,124 @@
 
     // ── Messages ─────────────────────────────────────────────────────────────
     getHistory: function (room, limit) {
-      var r = sanitizeRoom(room);
       var lim = Math.max(1, Math.min(Number(limit || HISTORY_LIMIT) || HISTORY_LIMIT, 100));
-      return sb.from('messages').select('id, room, payload').eq('room', r)
-        .order('payload->>timestamp', { ascending: false }).limit(lim)
-        .then(function (res) {
-          var msgs = (res.data || [])
-            .map(function (row) { return row.payload; })
-            .filter(Boolean)
-            .sort(function (a, b) { return (a.timestamp || 0) - (b.timestamp || 0); })
-            .slice(-lim);
-          var ids = msgs.map(function (m) { return m && m.id; }).filter(Boolean);
-          return api.loadMetaTables(r, ids).then(function () {
-            return msgs.map(function (m) { return api.mergeMeta(r, m); });
-          });
-        });
+      return api.fetchHistory(sanitizeRoom(room), null, lim);
     },
 
     // Older page of history for the "Load older messages" control.
     // `before` is the timestamp of the oldest message currently on screen;
     // everything strictly older than it comes back, newest-first internally
-    // then re-sorted ascending for rendering. Deliberately a separate method
-    // from getHistory() so the egress-tuned initial load is untouched.
+    // then re-sorted ascending for rendering.
     getHistoryBefore: function (room, before, limit) {
-      var r = sanitizeRoom(room);
       var lim = Math.max(1, Math.min(Number(limit || HISTORY_PAGE) || HISTORY_PAGE, 100));
       var cur = Number(before);
       if (!cur || !isFinite(cur)) return Promise.resolve([]);
-      return sb.from('messages').select('id, room, payload').eq('room', r)
-        .lt('payload->>timestamp', String(Math.floor(cur)))
-        .order('payload->>timestamp', { ascending: false }).limit(lim)
-        .then(function (res) {
-          var msgs = (res.data || [])
-            .map(function (row) { return row.payload; })
-            .filter(Boolean)
-            .filter(function (m) { return Number(m.timestamp) < cur; })
-            .sort(function (a, b) { return (a.timestamp || 0) - (b.timestamp || 0); })
-            .slice(-lim);
-          var ids = msgs.map(function (m) { return m && m.id; }).filter(Boolean);
-          return api.loadMetaTables(r, ids).then(function () {
-            return msgs.map(function (m) { return api.mergeMeta(r, m); });
+      return api.fetchHistory(sanitizeRoom(room), Math.floor(cur), lim);
+    },
+
+    fetchHistory: function (room, beforeMs, lim) {
+      return api.fetchHistoryRows(room, beforeMs, lim).then(function (msgs) {
+        msgs.sort(function (a, b) { return (a.timestamp || 0) - (b.timestamp || 0); });
+        var page = msgs.slice(-lim);
+        var ids = page.map(function (m) { return m.id; }).filter(Boolean);
+        return api.loadMetaTables(room, ids)
+          .then(function () { return api.fillAvatars(page); })
+          .then(function () {
+            return page.map(function (m) { return api.mergeMeta(room, m); });
           });
+      });
+    },
+
+    // Preferred path is the indexed RPC from 040_scale_indexes_and_search.sql.
+    // Without it, the same data comes back through an aliased select that
+    // never downloads the inline avatar copies.
+    fetchHistoryRows: function (room, beforeMs, lim) {
+      var viaSelect = function () {
+        var q = sb.from('messages').select(LIGHT_COLUMNS).eq('room', room);
+        if (beforeMs) q = q.lt('payload->>timestamp', String(beforeMs));
+        return q.order('payload->>timestamp', { ascending: false }).limit(lim)
+          .then(function (res) {
+            return (res.data || []).map(rowToPayload)
+              .filter(function (m) { return !beforeMs || Number(m.timestamp) < beforeMs; });
+          }, function () { return []; });
+      };
+      var params = { room_name: room, lim: lim };
+      if (beforeMs) params.before_ts = new Date(beforeMs).toISOString();
+      return sb.rpc('get_room_history', params).then(function (res) {
+        if (res.error || !Array.isArray(res.data)) return viaSelect();
+        return res.data.filter(Boolean).map(function (p) {
+          return typeof p === 'string' ? JSON.parse(p) : p;
         });
+      }, viaSelect);
+    },
+
+    // ── Avatar cache (avoids shipping base64 avatars with every message) ─────
+    loadAvatars: function () {
+      try {
+        var raw = window.localStorage.getItem(AVATAR_CACHE_KEY);
+        var data = raw ? JSON.parse(raw) : null;
+        api._avatarCache = (data && typeof data === 'object') ? data : {};
+      } catch (e) { api._avatarCache = {}; }
+    },
+
+    _saveAvatars: function () {
+      try {
+        var keys = Object.keys(api._avatarCache);
+        if (keys.length > AVATAR_CACHE_MAX) {
+          keys.slice(0, keys.length - AVATAR_CACHE_MAX)
+            .forEach(function (k) { delete api._avatarCache[k]; });
+        }
+        window.localStorage.setItem(AVATAR_CACHE_KEY, JSON.stringify(api._avatarCache));
+      } catch (e) {}
+    },
+
+    cacheAvatar: function (username, avatar) {
+      var un = String(username || '').trim().toLowerCase();
+      var av = String(avatar || '');
+      if (!un || !av || av.length > AVATAR_MAX_CHARS) return;
+      if (api._avatarCache[un] === av) return;
+      api._avatarCache[un] = av;
+      api._saveAvatars();
+    },
+
+    // Fill in avatars for a page of history: one lookup per distinct author
+    // that is not cached yet (capped, so a busy room cannot balloon egress).
+    fillAvatars: function (msgs) {
+      var list = msgs || [];
+      if (!list.length) return Promise.resolve(list);
+      var missing = {};
+      list.forEach(function (m) {
+        var un = String(m.username || '').toLowerCase();
+        if (!un) return;
+        if (m.avatar) { api.cacheAvatar(m.username, m.avatar); return; }
+        if (!api._avatarCache[un]) missing[m.username] = true;
+      });
+      var names = Object.keys(missing).slice(0, 8);
+      if (!names.length) {
+        list.forEach(function (m) {
+          var un = String(m.username || '').toLowerCase();
+          if (!m.avatar && api._avatarCache[un]) m.avatar = api._avatarCache[un];
+        });
+        return Promise.resolve(list);
+      }
+      return sb.from('users').select('username,avatar').in('username', names)
+        .then(function (res) {
+          (res.data || []).forEach(function (u) { api.cacheAvatar(u.username, u.avatar); });
+        }).catch(function () {})
+        .then(function () {
+          list.forEach(function (m) {
+            var un = String(m.username || '').toLowerCase();
+            if (!m.avatar && api._avatarCache[un]) m.avatar = api._avatarCache[un];
+          });
+          return list;
+        });
+    },
+
+    // Drop inline base64 avatars from a live payload, keeping the cache warm.
+    lightMessage: function (p) {
+      if (!p) return p;
+      api.cacheAvatar(p.username, p.avatar);
+      return lightAvatar(p.avatar) === String(p.avatar || '') ? p : Object.assign({}, p, { avatar: '' });
     },
 
     loadMetaTables: function (room, messageIds) {
@@ -859,6 +1008,9 @@
       var copy = Object.assign({}, msg);
       copy.reactions = (api._reactions[room] && api._reactions[room][msg.id]) || {};
       copy.readBy = (api._receipts[room] && api._receipts[room][msg.id]) || [];
+      if (!copy.avatar) {
+        copy.avatar = api._avatarCache[String(msg.username || '').toLowerCase()] || '';
+      }
       return copy;
     },
 
@@ -878,7 +1030,7 @@
         userId: api.uid,
         clientId: api._clientId || api.uid,
         username: api._username || 'Anonymous',
-        avatar: api._avatar || defaultAvatar(api._username),
+        avatar: lightAvatar(api._avatar),
         message: text.slice(0, 2000),
         timestamp: Date.now(),
         reactions: {},
@@ -1008,18 +1160,27 @@
 
     searchMessages: function (room, q) {
       var r = sanitizeRoom(room);
-      var query = String(q || '').trim().toLowerCase();
+      var query = String(q || '').trim();
       if (!query) return Promise.resolve({ results: [] });
-      return sb.from('messages').select('id, room, payload').eq('room', r).limit(SEARCH_LIMIT)
+      // Runs in Postgres (040_scale_indexes_and_search.sql) so the browser no
+      // longer downloads a window of payloads and filters them locally.
+      return sb.rpc('search_room_messages', { room_name: r, q: query, lim: SEARCH_LIMIT })
         .then(function (res) {
-          var out = (res.data || [])
-            .map(function (row) { return row.payload; })
-            .filter(Boolean)
-            .filter(function (m) {
-              return (m.message || '').toLowerCase().indexOf(query) !== -1 ||
-                     (m.username || '').toLowerCase().indexOf(query) !== -1;
+          if (!res.error) return { results: (res.data || []).filter(Boolean) };
+          // Migration 040 not applied yet: keep search working the old way,
+          // but never download the inline avatar copies.
+          var lc = query.toLowerCase();
+          return sb.from('messages').select(LIGHT_COLUMNS).eq('room', r)
+            .order('payload->>timestamp', { ascending: false }).limit(SEARCH_LIMIT)
+            .then(function (r2) {
+              var out = (r2.data || [])
+                .map(rowToPayload)
+                .filter(function (m) {
+                  return (m.message || '').toLowerCase().indexOf(lc) !== -1 ||
+                         (m.username || '').toLowerCase().indexOf(lc) !== -1;
+                });
+              return { results: out };
             });
-          return { results: out };
         });
     },
 
@@ -1051,7 +1212,7 @@
               userId: api.uid,
               clientId: api._clientId || api.uid,
               username: api._username || 'Anonymous',
-              avatar: api._avatar || defaultAvatar(api._username),
+              avatar: lightAvatar(api._avatar),
               message: kind === 'file' ? displayName : '',
               type: kind,
               storagePath: path,
@@ -1215,7 +1376,16 @@
       });
     },
     accountRegister: function (un, hash, ageConfirmed, termsAccepted) {
-      return sb.rpc('register_account', { un: un, pass: hash, age_confirmed: !!ageConfirmed, terms_accepted: !!termsAccepted }).then(function (r) { return r.data || { ok: false, error: 'request_failed' }; });
+      return sb.rpc('register_account', { un: un, pass: hash, age_confirmed: !!ageConfirmed, terms_accepted: !!termsAccepted }).then(function (r) {
+        if (r.data) return r.data;
+        // 038 fails closed when the Vault pepper is missing, so every signup
+        // raises instead of returning a code. Never surface the raw Postgres
+        // error — map it to a stable code the UI can explain.
+        if (r.error && /pepper|vault/i.test(String(r.error.message || ''))) {
+          return { ok: false, error: 'server_misconfigured' };
+        }
+        return { ok: false, error: 'request_failed' };
+      });
     },
     accountAgeStatus: function (id) {
       return sb.rpc('account_age_status', { acct: id }).then(function (r) { return r.data || { ok: false, error: 'request_failed' }; });
@@ -1345,19 +1515,68 @@
     },
 
     // ── Presence ─────────────────────────────────────────────────────────────
+    // Backed by Realtime Presence (in-memory) instead of the `presence` table:
+    // no 45s heartbeat writes and no presence row broadcast to every client.
+    // The table and its existing rows are left untouched.
     heartbeat: function (force) {
       if (!api.uid) return Promise.resolve();
       if (!force && !api._joined) return Promise.resolve();
+      return api.trackPresence();
+    },
+
+    trackPresence: function () {
+      if (!api.uid || !api._presenceChannel) return Promise.resolve();
       if (!isDisplayableUsername(api._username)) {
-        return sb.from('presence').delete().eq('uid', api.uid).then(function () {}).catch(function () {});
+        try { api._presenceChannel.untrack(); } catch (e) {}
+        return Promise.resolve();
       }
-      return sb.from('presence').upsert({
-        uid: api.uid,
-        username: api._username,
-        avatar: api._avatar || '',
-        room: api._currentRoom || '',
-        updated_at: Date.now()
-      }, { onConflict: 'uid' }).then(function () {}).catch(function () {});
+      try {
+        return Promise.resolve(api._presenceChannel.track({
+          username: api._username,
+          avatar: api._avatar || '',
+          room: api._currentRoom || '',
+          updated_at: Date.now()
+        })).catch(function () {});
+      } catch (e) { return Promise.resolve(); }
+    },
+
+    _applyPresence: function (state) {
+      var next = {};
+      Object.keys(state || {}).forEach(function (key) {
+        var metas = state[key] || [];
+        // Several tabs of the same uid share a key; the newest one wins.
+        var best = null;
+        for (var i = 0; i < metas.length; i++) {
+          var m = metas[i] || {};
+          if (!best || (Number(m.updated_at) || 0) >= (Number(best.updated_at) || 0)) best = m;
+        }
+        if (!best) return;
+        next[key] = {
+          uid: key,
+          username: best.username || '',
+          avatar: best.avatar || '',
+          room: best.room || '',
+          updated_at: best.updated_at || Date.now()
+        };
+      });
+      api._presence = next;
+      api.pushPresence();
+    },
+
+    subscribePresence: function () {
+      if (!api.uid) return;
+      if (api._presenceChannel) {
+        try { sb.removeChannel(api._presenceChannel); } catch (e) {}
+        api._presenceChannel = null;
+      }
+      var ch = sb.channel('ptr29-online', { config: { presence: { key: api.uid } } });
+      ch.on('presence', { event: 'sync' }, function () { api._applyPresence(ch.presenceState()); });
+      ch.on('presence', { event: 'join' }, function () { api._applyPresence(ch.presenceState()); });
+      ch.on('presence', { event: 'leave' }, function () { api._applyPresence(ch.presenceState()); });
+      ch.subscribe(function (status) {
+        if (status === 'SUBSCRIBED') api.trackPresence();
+      });
+      api._presenceChannel = ch;
     },
 
     presenceInRoom: function (room) {
@@ -1407,52 +1626,18 @@
     },
 
     // ── Realtime ─────────────────────────────────────────────────────────────
+    // Two channels instead of one global firehose:
+    //   • 'chat-sync'   — rooms + inbox (rare events, global by nature)
+    //   • 'room:<name>'  — messages/reactions/receipts FILTERED to the room the
+    //     user is currently in, rebuilt on every join.
+    // Cross-room toasts and unread badges now come from room_activity() once a
+    // minute (pollActivity) instead of pushing every message to every client.
     subscribeRealtime: function () {
+      if (api._syncChannel) {
+        try { sb.removeChannel(api._syncChannel); } catch (e) {}
+        api._syncChannel = null;
+      }
       var ch = sb.channel('chat-sync');
-
-      ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, function (p) {
-        var row = p.new;
-        var msg = api.mergeMeta(row.room, row.payload);
-        dispatch('chat-message', msg);
-        if (row.room !== api._currentRoom && msg.clientId !== api.uid) {
-          var snippet = msg.type === 'image' ? '[image]' : (msg.type === 'file' ? '[file]' : String(msg.message || '').slice(0, 60));
-          dispatch('system', {
-            type: 'notify',
-            message: '🔔 New in #' + row.room + ' from ' + (msg.username || 'Someone') + (snippet ? ': ' + snippet : '')
-          });
-        }
-      });
-
-      ch.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, function (p) {
-        var row = p.new;
-        var payload = row.payload || {};
-        var oldPayload = (p.old && p.old.payload) || {};
-        if (payload.edited || (payload.message && payload.message !== oldPayload.message)) {
-          dispatch('message-updated', Object.assign({ id: row.id }, payload));
-        }
-      });
-
-      ch.on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, function (p) {
-        dispatch('message-deleted', { messageId: p.old.id, room: p.old.room });
-      });
-
-      ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reactions' }, function (p) {
-        if (p.new.uid === api.uid) return; // already applied locally — no flicker
-        api._applyReaction(p.new.room, p.new.message_id, p.new.emoji, p.new.uid, p.new.username, true);
-      });
-      ch.on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'reactions' }, function (p) {
-        if (p.old.uid === api.uid) return;
-        api._applyReaction(p.old.room, p.old.message_id, p.old.emoji, p.old.uid, p.old.username, false);
-      });
-
-      ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'receipts' }, function (p) {
-        var rec = api._receipts[p.new.room] = api._receipts[p.new.room] || {};
-        var list = rec[p.new.message_id] = rec[p.new.message_id] || [];
-        if (!list.some(function (r) { return r.userId === p.new.uid; })) {
-          list.push({ userId: p.new.uid, username: p.new.username, at: p.new.at });
-        }
-        dispatch('read-receipt', { messageId: p.new.message_id, room: p.new.room, username: p.new.username, userId: p.new.uid });
-      });
 
       ch.on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, function (p) {
         if (p.eventType === 'DELETE') {
@@ -1478,29 +1663,113 @@
         dispatch('inbox-changed', { action: 'realtime', eventType: p.eventType, row: p.new || p.old || null });
       });
 
-      ch.on('postgres_changes', { event: '*', schema: 'public', table: 'presence' }, function (p) {
-        if (p.eventType === 'DELETE') {
-          delete api._presence[p.old.uid];
-        } else {
-          var row = p.new || p.old;
-          if (row) api._presence[row.uid] = row;
-        }
-        api.pushPresence();
+      ch.subscribe(function (status) {
+        if (status === 'SUBSCRIBED' && api.uid) api.refreshRooms();
+      });
+      api._syncChannel = ch;
+    },
+
+    subscribeRoom: function (room) {
+      api.unsubscribeRoom();
+      var r = sanitizeRoom(room);
+      if (!api.uid || !r) return;
+      var ch = sb.channel('room:' + r);
+
+      ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'room=eq.' + r }, function (p) {
+        var row = p.new;
+        if (!row || row.room !== r) return;
+        dispatch('chat-message', api.mergeMeta(r, api.lightMessage(row.payload)));
+        api.markRoomSeen(r);
       });
 
-      ch.subscribe(function (status) {
-        if (status === 'SUBSCRIBED' && api.uid) {
-          // Load initial presence snapshot
-          sb.from('presence').select('*').limit(PEOPLE_LIMIT).then(function (res) {
-            if (!res.error) {
-              api._presence = {};
-              (res.data || []).forEach(function (row) { api._presence[row.uid] = row; });
-              api.pushPresence();
-            }
-          });
-          api.refreshRooms();
+      ch.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: 'room=eq.' + r }, function (p) {
+        var row = p.new;
+        if (!row || row.room !== r) return;
+        var payload = row.payload || {};
+        var oldPayload = (p.old && p.old.payload) || {};
+        if (payload.edited || (payload.message && payload.message !== oldPayload.message)) {
+          dispatch('message-updated', Object.assign({ id: row.id }, payload));
         }
       });
+
+      // DELETE events cannot be filtered (old rows are not RLS-visible), so
+      // they arrive for every room; the check below keeps them harmless.
+      ch.on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, function (p) {
+        if (!p.old || p.old.room !== r) return;
+        dispatch('message-deleted', { messageId: p.old.id, room: p.old.room });
+      });
+
+      ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reactions', filter: 'room=eq.' + r }, function (p) {
+        if (!p.new || p.new.room !== r || p.new.uid === api.uid) return; // already applied locally
+        api._applyReaction(r, p.new.message_id, p.new.emoji, p.new.uid, p.new.username, true);
+      });
+      ch.on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'reactions' }, function (p) {
+        if (!p.old || p.old.room !== r || p.old.uid === api.uid) return;
+        api._applyReaction(r, p.old.message_id, p.old.emoji, p.old.uid, p.old.username, false);
+      });
+
+      ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'receipts', filter: 'room=eq.' + r }, function (p) {
+        if (!p.new || p.new.room !== r) return;
+        var rec = api._receipts[r] = api._receipts[r] || {};
+        var list = rec[p.new.message_id] = rec[p.new.message_id] || [];
+        if (!list.some(function (x) { return x.userId === p.new.uid; })) {
+          list.push({ userId: p.new.uid, username: p.new.username, at: p.new.at });
+        }
+        dispatch('read-receipt', { messageId: p.new.message_id, room: r, username: p.new.username, userId: p.new.uid });
+      });
+
+      ch.subscribe();
+      api._roomChannel = ch;
+    },
+
+    unsubscribeRoom: function () {
+      if (!api._roomChannel) return;
+      try { sb.removeChannel(api._roomChannel); } catch (e) {}
+      api._roomChannel = null;
+    },
+
+    // ── Cross-room unread / notifications (cheap poll) ─────────────────────
+    loadRoomSeen: function () {
+      try {
+        var raw = window.localStorage.getItem(ROOM_SEEN_KEY);
+        api._roomSeen = raw ? (JSON.parse(raw) || {}) : {};
+      } catch (e) { api._roomSeen = {}; }
+    },
+
+    _saveRoomSeen: function () {
+      try {
+        window.localStorage.setItem(ROOM_SEEN_KEY, JSON.stringify(api._roomSeen));
+      } catch (e) {}
+    },
+
+    markRoomSeen: function (room) {
+      if (!room) return;
+      api._roomSeen[room] = Date.now();
+      api._saveRoomSeen();
+    },
+
+    pollActivity: function () {
+      if (!api.uid || !api.ready) return Promise.resolve();
+      // The first poll only records where "now" is: it must not replay every
+      // room's entire history as unread badges/toasts.
+      var first = !api._activityPrimed;
+      api._activityPrimed = true;
+      var since = {};
+      Object.keys(api._roomSeen).forEach(function (k) { since[k] = api._roomSeen[k]; });
+      return sb.rpc('room_activity', { p_since: since }).then(function (res) {
+        if (res.error || !res.data) return;
+        var now = Number(res.data.now) || Date.now();
+        var rooms = res.data.rooms || {};
+        Object.keys(rooms).forEach(function (room) {
+          var info = rooms[room] || {};
+          var n = Number(info.count) || 0;
+          if (n <= 0) return;
+          if (first || room === api._currentRoom) { api._roomSeen[room] = now; return; }
+          dispatch('room-activity', { room: room, count: n, message: api.lightMessage(info.last) });
+          api._roomSeen[room] = now;
+        });
+        api._saveRoomSeen();
+      }).catch(function () {});
     }
   };
 
@@ -1514,6 +1783,7 @@
     var n = String(u || '').trim();
     if (n) api._username = n;
     if (a !== undefined && a !== null) api._avatar = a || '';
+    if (n && api._avatar) api.cacheAvatar(n, api._avatar);
   };
 
   // ── Public helpers for rendering media (signed URLs) ───────────────────────

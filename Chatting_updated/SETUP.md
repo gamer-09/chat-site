@@ -38,7 +38,10 @@ folder. **Run each one in the SQL Editor in ascending order** and confirm
 023_account_profile_terms_sync.sql    029_upload_policy_and_message_fix.sql
 024_ban_anonymous_usernames.sql       030_room_ownership.sql
 031_room_owner_identity_fix.sql       032_room_roles_and_kick.sql
-033_room_roles_followups.sql
+033_room_roles_followups.sql          034_delete_account_rooms.sql
+035_rename_wipes_identity.sql         037_bug_reports.sql
+038_pepper_vault.sql                  039_ensure_pepper_secret.sql
+040_scale_indexes_and_search.sql
 ```
 
 What the last few do, because they matter most in practice:
@@ -48,6 +51,8 @@ What the last few do, because they matter most in practice:
 | `030` → `031` | Room ownership is stored as the browser auth uid (what the room rules check). 031 repairs rooms that 030 re-pointed and syncs the owner **name**, so the owner keeps full admin rights and shows the right name |
 | `032` | Server-side room roles: `resolve_identities`, `room_add_member`, `room_add_admin`, `room_kick` (+ ban list), `room_claim_ownership`, ban-aware `join_room` |
 | `033` | Accepts the **shortened Client ID** the sidebar shows, adds `room_unban` + `room_list_bans` (reversible kicks) and `room_is_member` |
+| `038` → `039` | The password pepper lives in Vault. 039 creates it only if it is missing (never overwrites), so sign-ups cannot stay broken after a skipped manual step |
+| `040` | Scale pass for 10k+ monthly users, additive only: real `messages.created_at` + paging/meta indexes, server-side history paging (`get_room_history`), search (`search_room_messages`) and unread polling (`room_activity`). `light_payload()` strips the inline base64 avatar duplicate from *responses*; stored rows are untouched |
 
 > If you skip `032`/`033`, the app now says so plainly: *"Room roles need the
 > database update: run supabase/032_room_roles_and_kick.sql in Supabase."*

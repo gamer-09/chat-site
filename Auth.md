@@ -134,10 +134,16 @@ not implement. Do not claim otherwise in support replies.
 - keeps v1 only to verify legacy hashes, and upgrades a row on successful login,
 - accepts either version in `delete_account`.
 
+`supabase/039_ensure_pepper_secret.sql` creates `ptr29_pepper_v2` once if it is
+missing (value generated inside the database) and verifies the helper works. It
+never overwrites an existing secret. Run it after 038 so a skipped manual
+`vault.create_secret(...)` step cannot leave registration returning HTTP 400.
+
 Operational rules:
 
 1. Create/rotate the Vault secret **before** running or re-running the
-   migration.
+   migration — or run `039_ensure_pepper_secret.sql`, which does it for you the
+   first time.
 2. Bump `ptr29_current_pepper_version()` when rotating again.
 3. Do not delete old secret versions until every account has logged in at least
    once, or those accounts will be locked out.

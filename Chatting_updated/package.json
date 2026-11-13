@@ -8,6 +8,7 @@
     "dev": "node --watch server.js",
     "test": "node --test test/sanity.test.js test/store.test.js test/server.test.js",
     "test:live": "node supabase/back-buttons-test.js && node supabase/e2e-test.js",
+    "test:adapter": "node supabase/adapter-smoke.js",
     "audit": "npm audit --omit=dev --audit-level=high"
   },
   "dependencies": {
