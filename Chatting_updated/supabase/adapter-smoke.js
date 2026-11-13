@@ -111,6 +111,7 @@ function getJson(url) {
     console.log((ok ? 'PASS ' : 'FAIL ') + name + (detail !== undefined ? '  ' + JSON.stringify(detail) : ''));
   };
 
+  let smokeName = null;
   try {
     await send('Runtime.enable');
     await send('Page.enable');
@@ -122,6 +123,7 @@ function getJson(url) {
     await ev(`window.ChatAPI.getHistory('general', 1).then(function (r) { return r.length; })`, 90000);
 
     const name = 'smoke' + Math.random().toString(36).slice(2, 8);
+    smokeName = name;
     await ev(`window.ChatAPI.setUsername(${JSON.stringify(name)}, '')`);
     // Count adapter events instead of DOM nodes: this test exercises the
     // Supabase adapter, not the rendering layer (the app gates its own UI
@@ -148,10 +150,33 @@ function getJson(url) {
 
     const found = await ev(`window.ChatAPI.searchMessages('general', ${JSON.stringify(text)}).then(function (r) { return (r.results || []).length; })`);
     check('search finds the new message', found >= 1, found);
-
-    const cleaned = await ev(`window.ChatAPI.purgeMessagesFor(${JSON.stringify(name)}).then(function (r) { return !!(r && r.ok); })`);
-    check('test message cleanup', cleaned);
   } finally {
+    // Always clean up, even when a check threw or timed out. The purge is
+    // verified with a count: RLS silently deletes 0 rows instead of erroring,
+    // which is exactly how leftovers used to accumulate.
+    if (smokeName) {
+      try {
+        const purge = await ev(`(function () {
+          var un = ${JSON.stringify(smokeName)};
+          var uid = window.ChatAPI.uid;
+          return window.ChatAPI.purgeMessagesFor(un).then(function (r) {
+            return window.ChatAPI.deleteUser().then(function () {
+              return Promise.all([
+                window.ChatAPI.sb.from('messages')
+                  .select('id', { count: 'exact', head: true }).eq('payload->>username', un),
+                window.ChatAPI.sb.from('users')
+                  .select('client_id', { count: 'exact', head: true }).eq('client_id', uid)
+              ]);
+            }).then(function (rs) {
+              return { ok: !!(r && r.ok), messages: rs[0].count, users: rs[1].count };
+            });
+          });
+        })()`, 40000);
+        check('test data cleanup', purge && purge.messages === 0 && purge.users === 0, purge);
+      } catch (e) {
+        check('test data cleanup', false, String(e && e.message || e));
+      }
+    }
     const fatal = results.errors.filter(e => !/favicon|manifest|service worker|ERR_/i.test(e));
     check('no page exceptions', fatal.length === 0, fatal.slice(0, 5));
     ws.close();
