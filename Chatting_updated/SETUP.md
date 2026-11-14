@@ -52,7 +52,7 @@ What the last few do, because they matter most in practice:
 | `032` | Server-side room roles: `resolve_identities`, `room_add_member`, `room_add_admin`, `room_kick` (+ ban list), `room_claim_ownership`, ban-aware `join_room` |
 | `033` | Accepts the **shortened Client ID** the sidebar shows, adds `room_unban` + `room_list_bans` (reversible kicks) and `room_is_member` |
 | `038` → `039` | The password pepper lives in Vault. 039 creates it only if it is missing (never overwrites), so sign-ups cannot stay broken after a skipped manual step |
-| `040` | Scale pass for 10k+ monthly users, additive only: real `messages.created_at` + paging/meta indexes, server-side history paging (`get_room_history`), search (`search_room_messages`) and unread polling (`room_activity`). `light_payload()` strips the inline base64 avatar duplicate from *responses*; stored rows are untouched |
+| `040` | Scale pass for 10k+ monthly users, additive only: real `messages.created_at` + paging/meta indexes, server-side history paging (`get_room_history`), search (`search_room_messages`) and unread polling (`room_activity`). `light_payload()` strips the inline base64 avatar duplicate from *responses*; stored rows are untouched. **When it takes effect:** immediately on the next page load after running it — no redeploy, no data change; before that the client uses its built-in fallback and logs one console warning |
 
 > If you skip `032`/`033`, the app now says so plainly: *"Room roles need the
 > database update: run supabase/032_room_roles_and_kick.sql in Supabase."*

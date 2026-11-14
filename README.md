@@ -118,6 +118,8 @@ Open `http://localhost:3000` in your browser. The deployed GitHub Pages version 
 - **"Load older messages"** still pages 50 at a time, newest-first internally, and stops offering itself when a page comes back short.
 - Without `040`, the client falls back to the old JSON-timestamp queries and still filters avatars client-side, so nothing breaks while the migration is pending.
 
+**When it takes effect:** the client half is live now (light history/search, avatar cache, split Realtime). The `040` half — indexed RPCs and the once-a-minute unread poll — switches on by itself on the next request after you run that file in the Supabase SQL Editor. No redeploy, no data migration, no downtime; until then the page logs one console warning (`[chat] supabase/040_scale_indexes_and_search.sql is not applied yet…`) and cross-room unread badges/toasts stay off. Nothing is deleted at any point.
+
 For development with auto-reload:
 
 ```bash

@@ -311,6 +311,7 @@
     _activityTimer: null,
     _roomSeen: {},    // room -> epoch-ms cursor of the newest message already seen
     _activityPrimed: false,
+    _migration040Warned: false,
     _reactions: {},   // room -> messageId -> { emoji: [{userId, username}] }
     _receipts: {},    // room -> messageId -> [{userId, username, at}]
     _presence: {},    // uid -> row
@@ -891,6 +892,9 @@
     // Preferred path is the indexed RPC from 040_scale_indexes_and_search.sql.
     // Without it, the same data comes back through an aliased select that
     // never downloads the inline avatar copies.
+    //
+    // [EFFECTIVE] The fast path switches on by itself on the first request
+    // after 040 is run — no redeploy, no client change, nothing migrated.
     fetchHistoryRows: function (room, beforeMs, lim) {
       var viaSelect = function () {
         var q = sb.from('messages').select(LIGHT_COLUMNS).eq('room', room);
@@ -904,11 +908,36 @@
       var params = { room_name: room, lim: lim };
       if (beforeMs) params.before_ts = new Date(beforeMs).toISOString();
       return sb.rpc('get_room_history', params).then(function (res) {
-        if (res.error || !Array.isArray(res.data)) return viaSelect();
+        if (res.error || !Array.isArray(res.data)) {
+          api.noteMigration040(res);
+          return viaSelect();
+        }
         return res.data.filter(Boolean).map(function (p) {
           return typeof p === 'string' ? JSON.parse(p) : p;
         });
       }, viaSelect);
+    },
+
+    // One console warning when 040 is missing — deliberately console-only:
+    // end users get a working app either way, and a toast would just be noise.
+    // Says exactly what is degraded and when it stops being degraded.
+    noteMigration040: function (res) {
+      if (api._migration040Warned) return;
+      var err = res && res.error;
+      if (!err) return;
+      var missing = err.code === 'PGRST202' ||
+        /could not find the function|schema cache|does not exist/i.test(String(err.message || ''));
+      if (!missing) return;
+      api._migration040Warned = true;
+      try {
+        console.warn(
+          '[chat] supabase/040_scale_indexes_and_search.sql is not applied yet. ' +
+          'Until it is: history/search use the JSON-timestamp fallback and cross-room ' +
+          'unread badges/toasts stay off. Everything switches to the fast path ' +
+          'automatically on the next request after the migration is run ' +
+          '(no redeploy, no data change).'
+        );
+      } catch (e) {}
     },
 
     // ── Avatar cache (avoids shipping base64 avatars with every message) ─────
@@ -1167,6 +1196,7 @@
       return sb.rpc('search_room_messages', { room_name: r, q: query, lim: SEARCH_LIMIT })
         .then(function (res) {
           if (!res.error) return { results: (res.data || []).filter(Boolean) };
+          api.noteMigration040(res);
           // Migration 040 not applied yet: keep search working the old way,
           // but never download the inline avatar copies.
           var lc = query.toLowerCase();
@@ -1757,7 +1787,7 @@
       var since = {};
       Object.keys(api._roomSeen).forEach(function (k) { since[k] = api._roomSeen[k]; });
       return sb.rpc('room_activity', { p_since: since }).then(function (res) {
-        if (res.error || !res.data) return;
+        if (res.error || !res.data) { api.noteMigration040(res); return; }
         var now = Number(res.data.now) || Date.now();
         var rooms = res.data.rooms || {};
         Object.keys(rooms).forEach(function (room) {
