@@ -36,7 +36,7 @@ function getJson(url) {
 }
 
 (async () => {
-  const results = { checks: [], errors: [] };
+  const results = { checks: [], errors: [], warnings: [] };
   const app = express();
   app.use(express.static(path.join(__dirname, '..', 'public')));
   const server = app.listen(PORT);
@@ -74,6 +74,12 @@ function getJson(url) {
     if (msg.method === 'Runtime.consoleAPICalled' && msg.params.type === 'error') {
       const text = (msg.params.args || []).map(a => a.value || a.description || '').join(' ');
       if (text) results.errors.push('console.error: ' + text.slice(0, 300));
+    }
+    // The client logs exactly one warning when migration 040 is missing. Surface
+    // it instead of swallowing it, so "slow but working" never looks green.
+    if (msg.method === 'Runtime.consoleAPICalled' && msg.params.type === 'warning') {
+      const text = (msg.params.args || []).map(a => a.value || a.description || '').join(' ');
+      if (/040_scale_indexes_and_search/.test(text)) results.warnings.push(text.slice(0, 300));
     }
   });
 
@@ -137,6 +143,19 @@ function getJson(url) {
 
     check('join completes', await waitFor('!!window.ChatAPI._joined', 40000));
     check('history loads', await waitFor('window.__smoke.history > 0', 60000));
+
+    // The 040 RPCs are a live requirement now, not a maybe: history must be
+    // served by get_room_history, otherwise this project is on the slow
+    // fallback and the check below should say so out loud.
+    const fast = await ev(`(function () {
+      var sb = window.ChatAPI.sb, orig = sb.rpc, seen = [];
+      sb.rpc = function (fn, args) { seen.push(fn); return orig.call(sb, fn, args); };
+      return window.ChatAPI.fetchHistoryRows('general', null, 5).then(function (rows) {
+        sb.rpc = orig;
+        return { called: seen, rows: (rows || []).length };
+      }, function (e) { sb.rpc = orig; throw e; });
+    })()`, 40000);
+    check('history uses the 040 fast path', !!(fast && fast.called.indexOf('get_room_history') >= 0 && fast.rows > 0), fast);
     check('room channel is joined', await waitFor('!!(window.ChatAPI._roomChannel && window.ChatAPI._roomChannel.state === "joined")', 20000));
     check('presence channel is joined', await waitFor('!!(window.ChatAPI._presenceChannel && window.ChatAPI._presenceChannel.state === "joined")', 20000));
     check('presence includes self', await waitFor(`window.ChatAPI.presenceAll().some(function (u) { return u.username === ${JSON.stringify(name)}; })`, 15000));
@@ -179,6 +198,7 @@ function getJson(url) {
     }
     const fatal = results.errors.filter(e => !/favicon|manifest|service worker|ERR_/i.test(e));
     check('no page exceptions', fatal.length === 0, fatal.slice(0, 5));
+    check('no migration-040 fallback warning', results.warnings.length === 0, results.warnings.slice(0, 2));
     ws.close();
     chrome.kill();
     server.close();
