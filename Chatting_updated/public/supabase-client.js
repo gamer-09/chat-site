@@ -23,6 +23,10 @@
   var SUPABASE_ANON_KEY = 'sb_publishable_4fjpMTduDSiC5JaYJfwDGg_z_Ha2k-0';
   var AUTH_STORAGE_KEY = 'ptrsb::session::v1';
   var ROOM_SEEN_KEY = 'ptrsb::room-seen::v1';
+  // Separate from the "seen" cursor: this one only dedupes cross-room toasts.
+  // Keeping them apart is what lets the "New messages" divider stay accurate —
+  // a poll must never look like a visit.
+  var ROOM_NOTIFIED_KEY = 'ptrsb::room-notified::v1';
 
   if (!window.supabase) {
     console.error('supabase-js not loaded — add the CDN script before supabase-client.js');
@@ -310,6 +314,7 @@
     _presenceChannel: null,
     _activityTimer: null,
     _roomSeen: {},    // room -> epoch-ms cursor of the newest message already seen
+    _roomNotified: {},// room -> id of the newest message already announced
     _activityPrimed: false,
     _migration040Warned: false,
     _reactions: {},   // room -> messageId -> { emoji: [{userId, username}] }
@@ -1043,60 +1048,94 @@
       return copy;
     },
 
+    // Returns a Promise<{ok, id?, error?, permanent?, duplicate?}> so the UI can
+    // keep the text and retry. `p.id` + `p.timestamp` make a retry idempotent:
+    // the same row id is reused, so a send that actually landed but whose
+    // response was lost comes back as a duplicate (23505) instead of a second
+    // message. `p.room` lets a queued message be delivered after the user has
+    // already switched rooms.
     sendMessage: function (p) {
-      if (!api.uid || !api._joined || !api._currentRoom) return;
-      var text = String((typeof p.text === 'string') ? p.text : (p.text || '')).trim();
-      if (!text) return;
+      var args = p || {};
+      var fail = function (error, extra) {
+        var out = { ok: false, error: error };
+        if (extra) for (var k in extra) out[k] = extra[k];
+        return out;
+      };
+      if (!api.uid || !api._joined) return Promise.resolve(fail('not_joined'));
+      var room = sanitizeRoom(args.room || api._currentRoom);
+      var text = String((typeof args.text === 'string') ? args.text : (args.text || '')).trim();
+      if (!text) return Promise.resolve(fail('empty'));
+
       var linkCheck = validateMessageLinks(text);
       if (!linkCheck.ok) {
         dispatch('system', { type: 'error', message: 'Blocked unsafe link' + (linkCheck.reason ? ': ' + linkCheck.reason : '.') });
-        return;
+        // No amount of retrying makes an unsafe link valid.
+        return Promise.resolve(fail('unsafe_link', { permanent: true }));
       }
-      var room = api._currentRoom;
+
+      var id = String(args.id || '').trim().slice(0, 64) || genId();
+      var timestamp = Number(args.timestamp) > 0 ? Number(args.timestamp) : Date.now();
       var payload = {
-        id: genId(),
+        id: id,
         room: room,
         userId: api.uid,
         clientId: api._clientId || api.uid,
         username: api._username || 'Anonymous',
         avatar: lightAvatar(api._avatar),
         message: text.slice(0, 2000),
-        timestamp: Date.now(),
+        timestamp: timestamp,
         reactions: {},
         readBy: [{ userId: api.uid, username: api._username, at: Date.now() }]
       };
-      var replyToId = String(p.replyTo || '');
-      if (replyToId) {
-        sb.from('messages').select('payload').eq('id', replyToId).maybeSingle()
-          .then(function (res) {
-            if (!res.error && res.data && res.data.payload) {
-              var o = res.data.payload;
-              payload.replyTo = {
-                id: o.id,
-                username: o.username || 'Anonymous',
-                message: o.type === 'image' ? '' : (o.message || ''),
-                type: o.type || 'text',
-                imageUrl: o.imageUrl || ''
-              };
-            }
-            return insertMessage();
-          })
-          .catch(insertMessage);
-        return;
-      }
-      insertMessage();
 
-      function insertMessage() {
-        sb.from('messages').insert({ id: payload.id, room: room, payload: payload })
-          .then(function (res) {
-            if (res.error) {
-              var errMsg = res.error.message || '';
-              if (/row-level security/i.test(errMsg) && extractLinks(text).length) errMsg = 'safe_link_policy_rejected';
-              dispatch('error', { action: 'chat-message', error: errMsg });
-              return;
-            }
-            dispatch('chat-message', api.mergeMeta(room, payload));
-          });
+      var replyToId = String(args.replyTo || '');
+      // Resolve the quoted message first (if any), then insert. Both steps are
+      // promise-based so network rejections reach the catch below.
+      var withReply = replyToId
+        ? sb.from('messages').select('payload').eq('id', replyToId).maybeSingle()
+            .then(function (res) {
+              if (!res.error && res.data && res.data.payload) {
+                var o = res.data.payload;
+                payload.replyTo = {
+                  id: o.id,
+                  username: o.username || 'Anonymous',
+                  message: o.type === 'image' ? '' : (o.message || ''),
+                  type: o.type || 'text',
+                  imageUrl: o.imageUrl || ''
+                };
+              }
+              return null;
+            }, function () { return null; })
+        : Promise.resolve(null);
+
+      return withReply.then(function () {
+        return sb.from('messages').insert({ id: payload.id, room: room, payload: payload });
+      }).then(function (res) {
+        if (res.error) {
+          if (res.error.code === '23505') return deliverExisting();
+          var errMsg = res.error.message || 'send_failed';
+          if (/row-level security/i.test(errMsg) && extractLinks(text).length) errMsg = 'safe_link_policy_rejected';
+          dispatch('error', { action: 'chat-message', error: errMsg });
+          return fail(errMsg);
+        }
+        dispatch('chat-message', api.mergeMeta(room, payload));
+        return { ok: true, id: payload.id };
+      }, function () {
+        // Offline / connection reset. Stay quiet here: the composer shows the
+        // "not sent" bar, which is far more useful than another toast.
+        return fail('network');
+      });
+
+      function deliverExisting() {
+        // The row was already written by an earlier attempt whose response was
+        // lost. Make sure it is on screen (the INSERT event may not have been
+        // delivered to this tab), then report success.
+        return sb.from('messages').select('payload').eq('id', payload.id).maybeSingle()
+          .then(function (row) {
+            var stored = row && !row.error && row.data && row.data.payload;
+            if (stored) dispatch('chat-message', api.mergeMeta(room, stored));
+            return { ok: true, id: payload.id, duplicate: true };
+          }, function () { return { ok: true, id: payload.id, duplicate: true }; });
       }
     },
 
@@ -1764,6 +1803,10 @@
         var raw = window.localStorage.getItem(ROOM_SEEN_KEY);
         api._roomSeen = raw ? (JSON.parse(raw) || {}) : {};
       } catch (e) { api._roomSeen = {}; }
+      try {
+        var rawN = window.localStorage.getItem(ROOM_NOTIFIED_KEY);
+        api._roomNotified = rawN ? (JSON.parse(rawN) || {}) : {};
+      } catch (e) { api._roomNotified = {}; }
     },
 
     _saveRoomSeen: function () {
@@ -1772,10 +1815,22 @@
       } catch (e) {}
     },
 
+    _saveRoomNotified: function () {
+      try {
+        window.localStorage.setItem(ROOM_NOTIFIED_KEY, JSON.stringify(api._roomNotified));
+      } catch (e) {}
+    },
+
     markRoomSeen: function (room) {
       if (!room) return;
       api._roomSeen[room] = Date.now();
       api._saveRoomSeen();
+    },
+
+    // When this room was last actually open. The client reads this BEFORE
+    // joining to place the "New messages" divider, because joining marks seen.
+    roomSeenAt: function (room) {
+      return Number(api._roomSeen[room]) || 0;
     },
 
     pollActivity: function () {
@@ -1788,17 +1843,33 @@
       Object.keys(api._roomSeen).forEach(function (k) { since[k] = api._roomSeen[k]; });
       return sb.rpc('room_activity', { p_since: since }).then(function (res) {
         if (res.error || !res.data) { api.noteMigration040(res); return; }
-        var now = Number(res.data.now) || Date.now();
         var rooms = res.data.rooms || {};
+        var seenChanged = false;
         Object.keys(rooms).forEach(function (room) {
           var info = rooms[room] || {};
           var n = Number(info.count) || 0;
           if (n <= 0) return;
-          if (first || room === api._currentRoom) { api._roomSeen[room] = now; return; }
-          dispatch('room-activity', { room: room, count: n, message: api.lightMessage(info.last) });
-          api._roomSeen[room] = now;
+          // Baseline, or the room is open right now: nothing is unread.
+          if (first || room === api._currentRoom) {
+            api._roomSeen[room] = Date.now();
+            seenChanged = true;
+            return;
+          }
+          // Deliberately do NOT advance the seen cursor here. Leaving it where
+          // the reader stopped is what keeps the sidebar count cumulative and
+          // puts the "New messages" divider on the first unread message. The
+          // notified cursor below exists only to avoid repeating the toast.
+          var last = info.last || null;
+          var lastId = last && last.id ? String(last.id) : '';
+          dispatch('room-activity', {
+            room: room,
+            count: n,
+            message: api.lightMessage(last),
+            fresh: !!lastId && api._roomNotified[room] !== lastId
+          });
+          if (lastId) { api._roomNotified[room] = lastId; api._saveRoomNotified(); }
         });
-        api._saveRoomSeen();
+        if (seenChanged) api._saveRoomSeen();
       }).catch(function () {});
     }
   };

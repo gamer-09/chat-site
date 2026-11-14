@@ -1378,7 +1378,67 @@
         transform: translateX(0);
       }
     }
-    
+
+    /* ── "New messages" divider ─────────────────────────────────────────── */
+    .new-messages-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 16px 8px 8px;
+      color: #ef4444;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      user-select: none;
+    }
+    .new-messages-divider::before,
+    .new-messages-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: currentColor;
+      opacity: .35;
+    }
+    html.ptr29-light-theme .new-messages-divider { color: #dc2626; }
+
+    /* ── unsent-message bar (above the composer) ─────────────────────────── */
+    #outbox-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: -12px -16px 10px;
+      padding: 7px 16px;
+      font-size: 12.5px;
+      color: #fde68a;
+      background: rgba(180, 83, 9, .22);
+      border-bottom: 1px solid rgba(245, 158, 11, .35);
+    }
+    #outbox-bar[hidden] { display: none; }
+    #outbox-bar .ob-icon { font-size: 14px; line-height: 1; }
+    #outbox-bar .ob-text {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #outbox-bar button {
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 7px;
+      white-space: nowrap;
+    }
+    html.ptr29-light-theme #outbox-bar {
+      color: #7c2d12;
+      background: #fef3c7;
+      border-bottom-color: #fcd34d;
+    }
+    @media (max-width: 768px) {
+      #outbox-bar { margin: -8px -12px 8px; padding: 7px 12px; }
+      #outbox-bar button { padding: 4px 8px; }
+    }
+
     #help-modal { align-items: center; justify-content: center; }
     
     .help-modal-inner {
@@ -3505,6 +3565,51 @@
       50%      { transform: translateY(-3px) rotate(-3deg); }
     }
 
+    /* ── what's new notice ───────────────────────────────────────────────── */
+    #whats-new-notice .wn-card {
+      max-width: 480px;
+      padding: 24px 22px 18px;
+      text-align: left;
+      background: linear-gradient(158deg, var(--panel2), var(--panel)) !important;
+      border: 1px solid var(--border) !important;
+      box-shadow: 0 22px 60px rgba(0, 0, 0, .42);
+    }
+    #whats-new-notice .wn-icon { font-size: 34px; line-height: 1; margin-bottom: 6px; }
+    #whats-new-notice h3 { margin: 0 0 4px !important; font-size: 20px !important; }
+    #whats-new-notice .wn-sub { margin: 0 0 14px; font-size: 13px; color: var(--text-muted) !important; }
+    #whats-new-notice .wn-list {
+      list-style: none;
+      margin: 0 0 18px;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+    #whats-new-notice .wn-list li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(148, 163, 184, .25);
+    }
+    html.ptr29-light-theme #whats-new-notice .wn-list li { background: rgba(15, 23, 42, .04); }
+    #whats-new-notice .wn-emoji { font-size: 18px; line-height: 1.2; }
+    #whats-new-notice .wn-list b { display: block; font-size: 13.5px; margin-bottom: 2px; }
+    #whats-new-notice .wn-list span {
+      display: block;
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: var(--text-muted);
+    }
+    #whats-new-notice .wn-actions { display: flex; justify-content: flex-end; }
+    #whats-new-notice .wn-actions button { min-width: 120px; padding: 10px 18px; }
+    @media (max-width: 560px) {
+      #whats-new-notice .wn-card { padding: 20px 16px 14px; }
+      #whats-new-notice .wn-list li { padding: 9px 10px; }
+    }
+
     /* ── report a bug ───────────────────────────────────────────────────── */
     #bug-report-modal .bug-report-card {
       max-width: 520px;
@@ -4373,6 +4478,7 @@
     document.write('<script src="supabase-client.js?t=' + Date.now() + '"><\/script>');
     document.write('<script src="chat-ux.js?t=' + Date.now() + '"><\/script>');
     document.write('<script src="client.js?t=' + Date.now() + '"><\/script>');
+    document.write('<script src="whats-new.js?t=' + Date.now() + '"><\/script>');
     document.write('<script src="halloween-notice.js?t=' + Date.now() + '"><\/script>');
     document.write('<script src="christmas-notice.js?t=' + Date.now() + '"><\/script>');
     document.write('<script src="update-check.js?t=' + Date.now() + '"><\/script>');

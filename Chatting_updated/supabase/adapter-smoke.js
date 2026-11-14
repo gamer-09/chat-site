@@ -122,18 +122,52 @@ function getJson(url) {
     await send('Runtime.enable');
     await send('Page.enable');
 
+    const name = 'smoke' + Math.random().toString(36).slice(2, 8);
+    smokeName = name;
+
+    // The real UI is behind the account gate, and that gate asks Supabase for
+    // age/terms status of a real account. Creating one just to click buttons
+    // would leave a row behind if the run were killed, so instead seed a local
+    // session and stub ONLY the three status calls the gate makes before boot.
+    // The shim lives here, in the test, so the shipped app keeps no bypass.
+    const acctId = '00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0').slice(-12);
+    await send('Page.addScriptToEvaluateOnNewDocument', {
+      source: `(function () {
+        var ACCT = ${JSON.stringify(acctId)};
+        var NAME = ${JSON.stringify(name)};
+        try {
+          localStorage.setItem('ptr29_account_session', JSON.stringify({
+            id: ACCT, username: NAME, avatar: '', ageConfirmed: true, termsAccepted: true
+          }));
+          localStorage.setItem('ptr29_client_id_v2', ACCT);
+          localStorage.setItem('ptr29_profile_v2', JSON.stringify({ username: NAME, avatar: '', termsAgreed: true }));
+        } catch (e) {}
+        var capi;
+        Object.defineProperty(window, 'ChatAPI', {
+          configurable: true,
+          get: function () { return capi; },
+          set: function (v) {
+            capi = v;
+            if (!v) return;
+            v.accountAgeStatus = function () { return Promise.resolve({ ok: true, age_confirmed: true }); };
+            v.accountTermsStatus = function () { return Promise.resolve({ ok: true, terms_accepted: true }); };
+            v.accountProfile = function () { return Promise.resolve({ ok: true, avatar: '' }); };
+            v.claimRooms = function () { return Promise.resolve({ ok: true, rooms: 0 }); };
+            v.accountUpdateProfile = function () { return Promise.resolve({ ok: true }); };
+          }
+        });
+      })();`
+    });
+    await send('Page.reload', { ignoreCache: true });
+
     check('adapter becomes ready', await waitFor('!!(window.ChatAPI && window.ChatAPI.ready)', 60000));
 
     // Warm the connection (and the PostgREST plan cache) before timing
     // anything: the very first query to a paused/idle project can take 10s+.
     await ev(`window.ChatAPI.getHistory('general', 1).then(function (r) { return r.length; })`, 90000);
-
-    const name = 'smoke' + Math.random().toString(36).slice(2, 8);
-    smokeName = name;
     await ev(`window.ChatAPI.setUsername(${JSON.stringify(name)}, '')`);
-    // Count adapter events instead of DOM nodes: this test exercises the
-    // Supabase adapter, not the rendering layer (the app gates its own UI
-    // behind the account screen, which the adapter has no part in).
+    // Count adapter events as well as DOM nodes: these first checks exercise
+    // the adapter directly, so they must not depend on the UI's render timing.
     await ev(`window.__smoke = { history: 0, messages: 0 };
       window.ChatAPI.on('history', function (e) { window.__smoke.history += (e.messages || []).length; });
       window.ChatAPI.on('chat-message', function (e) {
@@ -169,6 +203,151 @@ function getJson(url) {
 
     const found = await ev(`window.ChatAPI.searchMessages('general', ${JSON.stringify(text)}).then(function (r) { return (r.results || []).length; })`);
     check('search finds the new message', found >= 1, found);
+
+    // ── UI checks ──────────────────────────────────────────────────────────
+    // Everything above talks to Supabase through the adapter. The next checks
+    // drive the real page, which booted because the shim at the top supplied a
+    // local account session. Wait for its own join, then re-join through the
+    // room list (that is what runs the client-side draft/divider code).
+    check('room list is rendered', await waitFor(`document.querySelectorAll('#room-list .room').length > 0`, 20000));
+
+    const clickGeneral = `(function () {
+      var list = Array.prototype.slice.call(document.querySelectorAll('#room-list .room'));
+      var g = list.filter(function (el) {
+        var n = el.querySelector('.room-name');
+        return n && n.textContent.trim() === 'general';
+      })[0] || list[0];
+      if (g) g.click();
+      return !!g;
+    })()`;
+
+    await ev(clickGeneral);
+    await sleep(2500);
+
+    // ── Drafts: typed text survives a room switch ──────────────────────────
+    const draft = 'draft-' + Date.now();
+    await ev(`(function () {
+      var input = document.getElementById('text');
+      input.value = ${JSON.stringify(draft)};
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    })()`);
+    await sleep(800);
+    const savedDraft = await ev(`(function () {
+      try { return (JSON.parse(localStorage.getItem('ptr29_drafts_v1') || '{}') || {}).general || ''; }
+      catch (e) { return 'ERR'; }
+    })()`);
+    check('draft is saved per room', savedDraft === draft, savedDraft);
+
+    await ev(`(function () {
+      document.getElementById('text').value = '';
+      var list = Array.prototype.slice.call(document.querySelectorAll('#room-list .room'));
+      var g = list.filter(function (el) {
+        var n = el.querySelector('.room-name');
+        return n && n.textContent.trim() === 'general';
+      })[0] || list[0];
+      if (g) g.click();
+      return !!g;
+    })()`);
+    await sleep(2000);
+    const restoredDraft = await ev(`document.getElementById('text').value`);
+    check('draft is restored on rejoin', restoredDraft === draft, restoredDraft);
+
+    // ── "New messages" divider ─────────────────────────────────────────────
+    // Pretend the reader last visited 8 days ago, then reopen the room. The
+    // divider must sit immediately before the first message after that cursor.
+    await ev(`(function () {
+      window.ChatAPI._roomSeen.general = Date.now() - 8 * 86400000;
+      document.getElementById('text').value = '';
+      var list = Array.prototype.slice.call(document.querySelectorAll('#room-list .room'));
+      var g = list.filter(function (el) {
+        var n = el.querySelector('.room-name');
+        return n && n.textContent.trim() === 'general';
+      })[0] || list[0];
+      if (g) g.click();
+      return !!g;
+    })()`);
+    await waitFor(`document.querySelectorAll('#messages .new-messages-divider').length === 1`, 40000);
+    const divider = await ev(`(function () {
+      var all = document.querySelectorAll('#messages .new-messages-divider');
+      var msgs = document.querySelectorAll('#messages .msg');
+      var next = all.length ? all[0].nextElementSibling : null;
+      return {
+        count: all.length,
+        nextIsMessage: !!(next && next.classList.contains('msg')),
+        msgs: msgs.length,
+        olderAbove: !!all.length && !!all[0].previousElementSibling
+          && all[0].previousElementSibling.classList.contains('msg'),
+        beforeCursor: all.length === 1 && next
+          ? Number(next.dataset.timestamp) > (Date.now() - 8 * 86400000) : false
+      };
+    })()`);
+    check('new-messages divider appears', divider.count === 1 && divider.nextIsMessage && divider.msgs > 1, divider);
+
+    // ── Outbox: a failed send is kept and can be retried ────────────────────
+    const obText = 'smoke-outbox-' + Date.now();
+    await ev(`(function () {
+      window.__outboxOrig = window.ChatAPI.sendMessage;
+      window.ChatAPI.sendMessage = function () { return Promise.resolve({ ok: false, error: 'network' }); };
+      document.getElementById('text').value = ${JSON.stringify(obText)};
+      document.getElementById('chat-form').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      return true;
+    })()`);
+    await sleep(600);
+    const queued = await ev(`(function () {
+      var bar = document.getElementById('outbox-bar');
+      var stored = [];
+      try { stored = JSON.parse(localStorage.getItem('ptr29_outbox_v1') || '[]') || []; } catch (e) {}
+      return {
+        visible: !!bar && bar.hidden === false,
+        stored: stored.length,
+        text: bar && bar.querySelector('.ob-text') ? bar.querySelector('.ob-text').textContent : ''
+      };
+    })()`);
+    check('failed send is queued', queued.visible && queued.stored === 1, queued);
+
+    await ev(`(function () {
+      window.ChatAPI.sendMessage = window.__outboxOrig;
+      var btn = document.querySelector('#outbox-bar .ob-retry');
+      if (btn) btn.click();
+      return true;
+    })()`);
+    const retried = await waitFor(`(function () {
+      var bar = document.getElementById('outbox-bar');
+      if (!bar || bar.hidden !== true) return false;
+      return Array.prototype.slice.call(document.querySelectorAll('#messages .msg'))
+        .some(function (el) { return el.textContent.indexOf('smoke-outbox-') >= 0; });
+    })()`, 60000);
+    check('retry delivers the queued message', retried, null);
+
+    // ── What's-new popup ───────────────────────────────────────────────────
+    // It may already have appeared on its own after boot; either way it must be
+    // open, on screen, and list the three changes.
+    await ev(`(function () {
+      if (!document.getElementById('whats-new-notice') && window.PTR29WhatsNew) {
+        window.PTR29WhatsNew.show();
+      }
+      return true;
+    })()`);
+    await sleep(500);
+    const wn = await ev(`(function () {
+      var el = document.getElementById('whats-new-notice');
+      return {
+        open: !!el && el.classList.contains('open'),
+        title: el && el.querySelector('h3') ? el.querySelector('h3').textContent : '',
+        bullets: el ? el.querySelectorAll('.wn-list li').length : 0
+      };
+    })()`);
+    check('whats-new popup shows', wn.open && wn.bullets === 3, wn);
+
+    await ev(`(function () {
+      var btn = document.getElementById('whats-new-close');
+      if (btn) btn.click();
+      return true;
+    })()`);
+    await sleep(500);
+    const wnClosed = await ev(`!document.getElementById('whats-new-notice')`);
+    check('whats-new popup closes', wnClosed, null);
   } finally {
     // Always clean up, even when a check threw or timed out. The purge is
     // verified with a count: RLS silently deletes 0 rows instead of erroring,

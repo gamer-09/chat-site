@@ -150,6 +150,12 @@
     oldestTs: null,
     historyLoading: false,
     historyExhausted: false,
+    // Composer drafts per room, failed sends waiting for a retry, and the
+    // "where you stopped reading" cursor captured before a room is joined.
+    drafts: {},
+    outbox: [],
+    roomSeenAnchor: null,
+    retryingOutbox: false,
   };
 
   // ── Constants ──────────────────────────────────────────────────────────────
@@ -165,6 +171,11 @@
     CLIENT_ID_ISSUED_KEY: 'ptr29_client_id_issued_v1',
     PASSKEYS_KEY:  'ptr29_room_keys_v2',
     UNREAD_KEY:    'ptr29_unread_v2',
+    DRAFTS_KEY:    'ptr29_drafts_v1',
+    OUTBOX_KEY:    'ptr29_outbox_v1',
+    OUTBOX_MAX: 10,
+    OUTBOX_MAX_ATTEMPTS: 5,
+    DRAFT_MAX_CHARS: 2000,
     INBOX_SEEN_KEY:'ptr29_inbox_seen_v1',
     GLASS_UI_KEY:  'ptr29_wenny_glass_ui_v1',
     GLASS_MOTION_KEY: 'ptr29_glass_motion_v1',
@@ -539,6 +550,194 @@
     elements.toastContainer.appendChild(t);
     setTimeout(() => t.remove(), 4000);
   };
+
+  // ── Composer drafts (per room) ─────────────────────────────────────────────
+  // Text used to live only in the input box: switching rooms carried it into the
+  // wrong room, and a failed send threw it away. Drafts are tiny, so they are
+  // kept per room and restored when that room is opened again.
+  const drafts = {
+    load() {
+      const stored = utils.loadFromStorage(CONSTANTS.DRAFTS_KEY, {});
+      state.drafts = (stored && typeof stored === 'object' && !Array.isArray(stored)) ? stored : {};
+    },
+    save() { utils.saveToStorage(CONSTANTS.DRAFTS_KEY, state.drafts); },
+    set(room, text) {
+      if (!room) return;
+      const value = String(text || '').slice(0, CONSTANTS.DRAFT_MAX_CHARS);
+      if (!value.trim()) { delete state.drafts[room]; drafts.save(); return; }
+      state.drafts[room] = value;
+      drafts.save();
+    },
+    clear(room, onlyIf) {
+      if (!room || !(room in state.drafts)) return;
+      if (onlyIf !== undefined && state.drafts[room] !== onlyIf) return;
+      delete state.drafts[room];
+      drafts.save();
+    },
+    restore(room) {
+      if (!elements.text) return;
+      elements.text.value = state.drafts[room] || '';
+    },
+  };
+
+  // ── Failed sends (outbox) ──────────────────────────────────────────────────
+  // A send that never reached Supabase keeps its text, id and timestamp, so a
+  // retry is byte-identical to the first attempt and cannot duplicate the row.
+  const outbox = {
+    load() {
+      const stored = utils.loadFromStorage(CONSTANTS.OUTBOX_KEY, []);
+      state.outbox = (Array.isArray(stored) ? stored : [])
+        .filter(e => e && e.id && e.text && e.room)
+        .slice(-CONSTANTS.OUTBOX_MAX);
+      outbox.render();
+    },
+    save() { utils.saveToStorage(CONSTANTS.OUTBOX_KEY, state.outbox.slice(-CONSTANTS.OUTBOX_MAX)); },
+
+    add(entry) {
+      if (!entry || !entry.id) return;
+      if (state.outbox.some(e => e.id === entry.id)) return;
+      state.outbox.push({
+        id: entry.id,
+        room: entry.room,
+        text: entry.text,
+        replyTo: entry.replyTo || '',
+        timestamp: entry.timestamp || Date.now(),
+        attempts: Number(entry.attempts) || 0,
+      });
+      if (state.outbox.length > CONSTANTS.OUTBOX_MAX) state.outbox = state.outbox.slice(-CONSTANTS.OUTBOX_MAX);
+      outbox.save();
+      outbox.render();
+    },
+
+    remove(id) {
+      const before = state.outbox.length;
+      state.outbox = state.outbox.filter(e => e.id !== id);
+      if (state.outbox.length !== before) { outbox.save(); outbox.render(); }
+    },
+
+    mount() {
+      if (document.getElementById('outbox-bar')) return;
+      const area = document.getElementById('input-area');
+      if (!area) return;
+      const bar = document.createElement('div');
+      bar.id = 'outbox-bar';
+      bar.hidden = true;
+      bar.setAttribute('role', 'status');
+      bar.setAttribute('aria-live', 'polite');
+      bar.innerHTML =
+        '<span class="ob-icon" aria-hidden="true">⚠</span>' +
+        '<span class="ob-text">Message not sent</span>' +
+        '<button type="button" class="ob-retry">Retry</button>' +
+        '<button type="button" class="ob-discard secondary">Discard</button>';
+      bar.querySelector('.ob-retry').addEventListener('click', () => outbox.retry(true));
+      bar.querySelector('.ob-discard').addEventListener('click', () => {
+        if (!state.outbox.length) { outbox.render(); return; }
+        state.outbox = [];
+        outbox.save();
+        outbox.render();
+        showToast('Discarded the unsent message', 'info');
+      });
+      area.insertBefore(bar, area.firstChild);
+    },
+
+    render() {
+      outbox.mount();
+      const bar = document.getElementById('outbox-bar');
+      if (!bar) return;
+      const n = state.outbox.length;
+      bar.hidden = n === 0;
+      if (!n) return;
+      const text = bar.querySelector('.ob-text');
+      if (text) text.textContent = n === 1 ? 'Message not sent' : n + ' messages not sent';
+    },
+
+    retry(manual) {
+      if (state.retryingOutbox || !state.outbox.length) return;
+      if (!window.ChatAPI || typeof window.ChatAPI.sendMessage !== 'function') return;
+      if (!manual && typeof navigator !== 'undefined' && navigator.onLine === false) return;
+      state.retryingOutbox = true;
+      const queue = state.outbox.slice();
+      let chain = Promise.resolve();
+      queue.forEach((entry) => {
+        chain = chain.then(() => {
+          if (!manual && entry.attempts >= CONSTANTS.OUTBOX_MAX_ATTEMPTS) return;
+          entry.attempts = (Number(entry.attempts) || 0) + 1;
+          outbox.save();
+          return window.ChatAPI.sendMessage({
+            room: entry.room,
+            text: entry.text,
+            replyTo: entry.replyTo,
+            id: entry.id,
+            timestamp: entry.timestamp,
+          }).then((res) => {
+            if (res && res.ok) {
+              outbox.remove(entry.id);
+              drafts.clear(entry.room, entry.text);
+              return;
+            }
+            if (res && res.permanent) outbox.remove(entry.id);
+          }, () => {});
+        });
+      });
+      chain.then(() => {
+        state.retryingOutbox = false;
+        outbox.save();
+        outbox.render();
+        if (manual && state.outbox.length) {
+          showToast('Still not sent — check your connection and try again.', 'error');
+        }
+      }).catch(() => { state.retryingOutbox = false; });
+    },
+  };
+
+  // Restore anything persisted before the first room is joined.
+  drafts.load();
+  outbox.load();
+
+  // Retry queued messages when the connection comes back, when the tab is
+  // focused again, and every 20s while anything is still unsent. Each message
+  // is capped, so a permanently failing send cannot hammer the API.
+  window.addEventListener('online', () => outbox.retry(false));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) outbox.retry(false); });
+  setInterval(() => { if (!document.hidden) outbox.retry(false); }, 20000);
+
+  // Unread total in the tab title, so a background tab still tells you.
+  const BASE_TITLE = document.title;
+  function updateUnreadTitle() {
+    const total = Object.keys(state.unreadCounts)
+      .reduce((sum, room) => sum + (Number(state.unreadCounts[room]) || 0), 0);
+    const want = total > 0 ? `(${total > 99 ? '99+' : total}) ${BASE_TITLE}` : BASE_TITLE;
+    if (document.title !== want) document.title = want;
+  }
+
+  // Puts a divider where the reader stopped last time. The cursor is captured
+  // before joining (joining marks the room seen), so the marker is stable even
+  // though the adapter writes "now" a moment later. The anchor is kept until the
+  // next join replaces it: a slow history response from the previous join can
+  // land after this one, and re-rendering must not silently lose the marker.
+  function insertNewMessagesDivider(batch) {
+    const anchor = state.roomSeenAnchor;
+    elements.messages.querySelectorAll('.new-messages-divider')
+      .forEach(node => node.remove());
+    if (!anchor || anchor.room !== state.currentRoom || !anchor.ts) return null;
+    if (String(state.currentRoom).startsWith('tour-')) return null;
+    const list = Array.isArray(batch) ? batch : [];
+    const firstNew = list.find(m => Number(m && m.timestamp) > anchor.ts);
+    if (!firstNew) return null;
+
+    let target = null;
+    elements.messages.querySelectorAll('.msg').forEach((el) => {
+      if (!target && String(el.dataset.id) === String(firstNew.id)) target = el;
+    });
+    if (!target || !target.parentNode) return null;
+
+    const divider = document.createElement('div');
+    divider.className = 'new-messages-divider';
+    divider.setAttribute('role', 'separator');
+    divider.textContent = 'New messages';
+    target.parentNode.insertBefore(divider, target);
+    return divider;
+  }
 
   // ── Modals ─────────────────────────────────────────────────────────────────
   const FOCUSABLE_SELECTOR = [
@@ -973,11 +1172,29 @@
         elements.username.value = currentUsername;
       }
 
+      // Read the "last seen" cursor BEFORE leaving or joining: both mark the
+      // room seen, which would otherwise put the divider at the bottom (or hide
+      // it entirely) every time the room is opened.
+      state.roomSeenAnchor = {
+        room: roomName,
+        ts: (window.ChatAPI && typeof window.ChatAPI.roomSeenAt === 'function')
+          ? window.ChatAPI.roomSeenAt(roomName)
+          : 0,
+      };
+
+      // Park whatever is in the composer under the room it was typed in, so
+      // switching rooms can never send it to the wrong place or lose it.
+      const previousRoom = state.joined ? state.currentRoom : null;
+      if (previousRoom && previousRoom !== roomName && elements.text) {
+        drafts.set(previousRoom, elements.text.value);
+      }
+
       if (state.joined) socket.emit('leave', { room: state.currentRoom });
 
       state.currentRoom = roomName;
       state.joined = true;
       delete state.unreadCounts[roomName];
+      updateUnreadTitle();
       state.typers.clear();
       state.currentRoomPresence = [];
       elements.typing.textContent = '';
@@ -987,6 +1204,7 @@
       rooms.render();
       elements.messages.innerHTML = '';
       scrollback.reset();   // new room starts a fresh scrollback cursor
+      drafts.restore(roomName);
 
       // Server sends 'history' and 'rooms' after successful join — no REST needed
       socket.emit('join', {
@@ -1497,17 +1715,52 @@
       }
     },
 
+    // Returns a Promise when the send actually started, or null when it was
+    // blocked. The caller only clears the input for a started send, so a
+    // rejected link or a missing username can never eat the text.
     send: (text) => {
-      if (!text.trim() || !state.joined) return;
+      if (!text.trim() || !state.joined) return null;
       const reg = (utils.loadFromStorage(CONSTANTS.STORAGE_KEY, {}) || {}).username || (elements.username && elements.username.value.trim());
       if (String(state.currentRoom).startsWith('tour-') && !reg) {
         showToast('👀 View-only during the tour — register & accept the Terms to chat', 'error');
-        return;
+        return null;
       }
       const linkCheck = utils.validateMessageLinks(text);
-      if (!linkCheck.ok) { showToast(linkCheck.message, 'error'); return; }
-      socket.emit('chat-message', { text, replyTo: state.replyTarget?.id || '' });
+      if (!linkCheck.ok) { showToast(linkCheck.message, 'error'); return null; }
+
+      const room = state.currentRoom;
+      const entry = {
+        id: (window.crypto && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : 'm_' + Date.now().toString(36) + Math.random().toString(36).slice(2),
+        room,
+        text: String(text).slice(0, CONSTANTS.DRAFT_MAX_CHARS),
+        replyTo: state.replyTarget?.id || '',
+        timestamp: Date.now(),
+        attempts: 0,
+      };
       messages.clearReply();
+      drafts.clear(room);
+
+      // Self-hosted / Socket.IO build: fire and forget, exactly as before.
+      if (!window.ChatAPI || typeof window.ChatAPI.sendMessage !== 'function') {
+        socket.emit('chat-message', { text: entry.text, replyTo: entry.replyTo });
+        return Promise.resolve({ ok: true });
+      }
+
+      return window.ChatAPI.sendMessage(entry).then((res) => {
+        if (!res || res.ok) {
+          outbox.remove(entry.id);
+          drafts.clear(room);
+          return res || { ok: true };
+        }
+        if (res.permanent) return res;        // unsafe link: retrying is pointless
+        outbox.add(entry);
+        return res;
+      }, () => {
+        outbox.add(entry);
+        return { ok: false, error: 'network' };
+      });
     },
 
     sendImage: async (dataUrl, filename) => {
@@ -1977,6 +2230,9 @@
       const params = new URLSearchParams(window.location.search);
       const target = params.get('room') || state.currentRoom || 'general';
       rooms.join(target, savedPasskeys[target] || '');
+      // Anything left over from a previous session ("not sent" bar) gets one
+      // immediate attempt now that the socket is up.
+      outbox.retry(false);
     },
 
     'chat-message': (data) => {
@@ -2001,6 +2257,7 @@
       } else {
         state.unreadCounts[data.room] = (state.unreadCounts[data.room] || 0) + 1;
         utils.saveToStorage(CONSTANTS.UNREAD_KEY, state.unreadCounts);
+        updateUnreadTitle();
         rooms.render();
       }
     },
@@ -2026,6 +2283,7 @@
       scrollback.reset();
       const batch = data.messages || [];
       batch.forEach(msg => messages.render(msg));
+      insertNewMessagesDivider(batch);
       document.querySelectorAll('.msg').forEach(m => m.classList.toggle('me', isMineDataset(m)));
       // Seed the scrollback cursor from the oldest message we just rendered.
       if (batch.length) scrollback.noteOldest(batch[0] && batch[0].timestamp);
@@ -2053,9 +2311,16 @@
       if (!data || !data.room || data.room === state.currentRoom) return;
       const n = Number(data.count) || 0;
       if (n <= 0) return;
+      // The count is authoritative (messages since the last visit), so it can
+      // only grow while the room stays unread — that is what makes the badge
+      // survive the poll instead of resetting every minute.
       state.unreadCounts[data.room] = n;
       utils.saveToStorage(CONSTANTS.UNREAD_KEY, state.unreadCounts);
+      updateUnreadTitle();
       rooms.render();
+      // Toast / OS notification only when the newest message is one we have not
+      // announced yet, otherwise every poll would repeat the same notice.
+      if (data.fresh === false) return;
       const m = data.message || null;
       if (!m || isMine(m.clientId)) return;
       const snippet = m.type === 'image' ? '[image]' : (m.type === 'file' ? '[file]' : String(m.message || '').slice(0, 60));
@@ -2227,9 +2492,11 @@
       elements.form.addEventListener('submit', (e) => {
         e.preventDefault();
         const text = elements.text ? elements.text.value.trim() : '';
-        if (text) {
-          messages.send(text);
-          if (elements.text) elements.text.value = '';
+        if (!text) return;
+        const started = messages.send(text);
+        if (started && elements.text) {
+          elements.text.value = '';
+          drafts.clear(state.currentRoom);
         }
       });
     }
@@ -2241,6 +2508,12 @@
         socket.emit('typing', { isTyping: true });
         clearTimeout(state.typingTimer);
         state.typingTimer = setTimeout(() => socket.emit('typing', { isTyping: false }), 2000);
+        // Drafts are saved on a short debounce: typing stays instant, and the
+        // text survives a room switch, a reload or a closed tab.
+        clearTimeout(drafts._timer);
+        drafts._timer = setTimeout(() => {
+          if (state.joined) drafts.set(state.currentRoom, elements.text.value);
+        }, 400);
       });
     }
 
@@ -3046,6 +3319,7 @@
     if (window.ChatAPI._offline) setTimeout(() => showToast('Backend unreachable — offline mode. Check your connection and reload.', 'error'), 600);
     profile.load();
     state.unreadCounts = utils.loadFromStorage(CONSTANTS.UNREAD_KEY, {});
+    updateUnreadTitle();
     // 'connect' is a one-shot handshake and must run exactly once. ChatAPI
     // dispatches it the instant its init() resolves — which can be before this
     // init() registers the handler — so replay it when we missed it.
